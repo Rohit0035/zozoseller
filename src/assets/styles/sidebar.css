@@ -1,0 +1,149 @@
+
+.sidebar-item {
+  position: relative;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar-link {
+  color: #000;
+  font-size: 14px;
+  text-align: center;
+  position: relative;
+  width: 100%;
+}
+
+.sidebar-link a {
+  color: #000;
+}
+
+.sidebar-link .icon {
+  font-size: 16px;
+  color: var(--primary);
+}
+
+/* .hover-menu {
+  position: absolute;
+  top: 0;
+  left: 80px;
+  background-color: #1f2a48;
+  color: #fff;
+  padding: 10px 15px;
+  min-width: 160px;
+  border-radius: 4px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1050;
+}
+
+.sidebar-item:hover .hover-menu {
+  display: flex;
+}
+
+.hover-item {
+  font-size: 14px;
+  color: #aaa;
+  transition: all 0.2s ease;
+}
+
+.hover-item:hover {
+  color: #4f8dfd;
+}
+
+
+@media only screen and (max-width: 600px) {
+  .custom-sidebar {
+    top: 60px !important;
+  }
+} */
+
+
+.hover-menu {
+  position: absolute;
+  /* top: 20px; */
+  bottom:0px;
+  left: 80px;
+  background-color: #fff;
+  color: #fff;
+  padding: 10px 15px;
+  min-width: 251px;
+  border-radius: 4px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1050;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+}
+
+
+.sidebar-item:hover .hover-menu {
+  display: flex;
+}
+
+.hover-item {
+  position: relative;
+  font-size: 14px;
+  color: #aaa;
+  transition: all 0.2s ease;
+  line-height: 16px;
+}
+
+.hover-item:hover {
+  color: #4f8dfd;
+}
+
+/* Child Menu */
+.child-menu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background-color: #fff;
+  padding: 10px 12px;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+  border-radius: 4px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+}
+
+.hover-item:hover .child-menu {
+  display: flex;
+}
+
+.child-item {
+  font-size: 13px;
+  color: #000;
+}
+
+.child-item:hover {
+  /* color: #4f8dfd; */
+}
+
+/* Mobile support */
+@media only screen and (max-width: 600px) {
+  .hover-menu, .child-menu {
+    position: relative;
+    left: 0;
+    top: auto;
+    border-radius: 0;
+    padding: 10px 0;
+  }
+
+  .sidebar-item:hover .hover-menu {
+    display: none;
+  }
+
+  .hover-menu, .child-menu {
+    display: block;
+  }
+}
+
+
+@media only screen and (max-width: 600px) {
+  .custom-sidebar {
+    top: 60px !important;
+  }
+}

@@ -1,0 +1,99 @@
+
+:root {
+  --primary: #0a399c;
+  --secondary:#ffcc00;
+  --sidebar-bg: #fff;
+  --sidebar-hover-bg: #f4f5ff;
+  --text-color: #1a1a1a;
+}
+
+.text-primary{
+  color:var(--primary) !important;
+}
+.text-secondary{
+  color:var(--secondary) !important ;
+}
+.btn-primary{
+  background-color: var(--primary) !important;
+  color: #f4f5ff;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f7f9fc;
+}
+
+/* new css  */
+.app-layout {
+  min-height: 100vh;
+}
+
+.custom-sidebar {
+  width: 100px;
+  background-color: #fff;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1030;
+  transition: all 0.3s;
+  border-right: 1px solid #ccc;
+}
+
+.main-wrapper {
+  margin-left: 100px;
+  transition: all 0.3s;
+}
+
+.main-wrapper.sidebar-hidden {
+  margin-left: 0 !important;
+}
+
+
+/* common swiper css start */
+.swiper-slide img {
+  width: 100%;
+  object-fit: cover;
+}
+.swiper-button-next,
+.swiper-button-prev {
+  background-color: yellow;
+  color: navy;
+  padding: 5px !important;
+  border-radius: 50% !important;
+  width: 30px !important;
+  height: 30px !important;
+  font-weight: bold !important;
+  transition: all 0.3s ease;
+  cursor: pointer !important;
+}
+.swiper-button-next::after,
+.swiper-button-prev::after {
+  font-size: 16px !important; 
+  color: navy; 
+}
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  background-color: #ffeb3b;
+  transform: scale(1.1);
+}
+/* common swiper css close */
+
+
+
+/* Offcanvas for mobile */
+@media (max-width: 768px) {
+  .custom-sidebar {
+    transform: translateX(-100%);
+    position: fixed;
+  }
+
+  .custom-sidebar.show {
+    transform: translateX(0%);
+  }
+
+  .main-wrapper {
+    margin-left: 0 !important;
+  }
+}
