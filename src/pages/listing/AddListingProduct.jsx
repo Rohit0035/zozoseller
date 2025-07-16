@@ -51,7 +51,7 @@ const AddListingProduct = () => {
                 Select Option
               </DropdownToggle>
               <DropdownMenu>
-                <DropdownItem>Add Single Listing</DropdownItem>
+                <DropdownItem tag={Link} to="/add-single-listing">Add Single Listing</DropdownItem>
                 <DropdownItem>Add Bulk Listing</DropdownItem>
               </DropdownMenu>
             </UncontrolledDropdown>

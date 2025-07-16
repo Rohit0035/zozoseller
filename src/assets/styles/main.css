@@ -81,6 +81,24 @@ body {
 /* common swiper css close */
 
 
+/* stepper horizental */
+.react-form-stepper .rfstep {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 8px 16px !important;
+  gap: 8px !important;
+}
+
+.react-form-stepper .rfstep .rfstep-label {
+  margin-top: 0 !important;
+  white-space: nowrap !important;
+}
+
+span.st-int-span {
+    width: 30% !important;
+}
+
 
 /* Offcanvas for mobile */
 @media (max-width: 768px) {

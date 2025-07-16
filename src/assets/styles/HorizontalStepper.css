@@ -1,0 +1,36 @@
+.step-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 20px;
+}
+
+.step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  background-color: white;
+  color: #888;
+}
+
+.step-circle.active {
+  background-color: #0066d9;
+  color: white;
+  border-color: #0066d9;
+}
+
+.step-label {
+  margin-top: 5px;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.step-label.active {
+  color: #0066d9;
+  font-weight: 500;
+}

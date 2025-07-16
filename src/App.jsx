@@ -23,7 +23,6 @@ export default function App() {
     return <AppRoutes />;
   }
 
-  // Return full layout for protected pages
   return (
     <div className="app-layout">
       {/* Sidebar */}

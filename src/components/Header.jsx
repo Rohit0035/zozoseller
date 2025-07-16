@@ -29,10 +29,8 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
           </Button>
         </div>
         <div className="d-flex gap-1">
-          {/* Notification Dropdown */}
           <UncontrolledDropdown>
             <DropdownToggle
-              // caret
               color="light"
               className="d-flex align-items-center border-0 bg-transparent"
             >

@@ -38,9 +38,9 @@ const sidebarMenu = [
             { label: 'My Listings', path: '/listing' },
             { label: 'Add New Listings', path: '/addlisting' },
             { label: 'Rack Approval Requests', path: '/trackapprovalrequests' },
-            { label: 'My Audits', path: '/myaudits' },
-            { label: 'Selection Insights', path: '/' },
-            { label: 'Fashion Trends', path: '/' },
+            // { label: 'My Audits', path: '/myaudits' },
+            // { label: 'Selection Insights', path: '/' },
+            // { label: 'Fashion Trends', path: '/' },
         ]
 
     },
@@ -57,48 +57,44 @@ const sidebarMenu = [
         label: 'Order ',
         submenu: [
             { label: 'Active Orders', path: '/activeorder' },
-            { label: 'Returns', path: '/' },
-            { label: 'Cancellations', path: '/' },
+            { label: 'Returns', path: '/return-order' },
+            { label: 'Cancellations', path: '/cancel-order' },
             // { label: 'Insights', path: '/base/insights' },
-            { label: 'Customer Returns Reduction', path: '/' },
-            { label: 'Cancellations & Logistics Returns', path: '/' }
+            { label: 'Customer Returns Reduction', path: '/customer-return-reduction' },
+            { label: 'Cancellations & Logistics Returns', path: '/returncancellogistic' }
         ]
     },
     {
         icon: <FaCreditCard />,
         label: 'Payments',
         submenu: [
-            { label: 'Payments Overview', path: '/' },
-            { label: 'Previous Payments', path: '/' },
-            { label: 'Details', path: '/order/details' },
-            { label: 'Search Order Settlements', path: '/' },
-            { label: 'Invoices', path: '/' },
-            { label: 'Statements', path: '/' },
-            { label: 'Services Transaction History', path: '/' },
-            { label: 'Seller Protection Fund (SPF)', path: '/' }
+            { label: 'Payments Overview', path: '/payments-overview' },
+            { label: 'Previous Payments', path: '/previous-payment' },
+            { label: 'Search Order Settlements', path: '/settlement-dashboard' },
+            { label: 'Invoices', path: '/report-center' },
+            { label: 'Statements', path: '/statements' },
+            { label: 'Services Transaction History', path: '/service-transaction' },
+            // { label: 'Seller Protection Fund (SPF)', path: '/' }
         ]
     },
-    {
-        icon: <FaDatabase />,
-        label: 'Growth',
-        submenu: [
-            { label: 'Flipkart Nxt Insights', path: '/' },
-            { label: 'Advertising Recommendation', path: '/' },
-            { label: 'Price Recommendations', path: '/' },
-            { label: 'Flipkart Promotions', path: '/' },
-            { label: 'Flipkart Growth Plans', path: '/' },
-            { label: 'Rewards', path: '/' },
-            { label: 'Product Quality', path: '/' },
-            { label: 'Returns', path: '/' },
-            { label: 'Cancellations', path: '/' },
-            { label: 'Selection Insights', path: '/' },
-            { label: 'Growth Central', path: '/' },
-            { label: 'My Freebies', path: '/' }
-        ]
-    },
-
-
-
+    // {
+    //     icon: <FaDatabase />,
+    //     label: 'Growth',
+    //     submenu: [
+    //         { label: 'Flipkart Nxt Insights', path: '/' },
+    //         { label: 'Advertising Recommendation', path: '/' },
+    //         { label: 'Price Recommendations', path: '/' },
+    //         { label: 'Flipkart Promotions', path: '/' },
+    //         { label: 'Flipkart Growth Plans', path: '/' },
+    //         { label: 'Rewards', path: '/' },
+    //         { label: 'Product Quality', path: '/' },
+    //         { label: 'Returns', path: '/' },
+    //         { label: 'Cancellations', path: '/' },
+    //         { label: 'Selection Insights', path: '/' },
+    //         { label: 'Growth Central', path: '/' },
+    //         { label: 'My Freebies', path: '/' }
+    //     ]
+    // },
     {
         icon: <IoIosMore />,
         label: 'More',
@@ -111,7 +107,7 @@ const sidebarMenu = [
                 label: 'Report',
                 path: '/',
                 children: [
-                    { label: 'Repurt center', path: '/' },
+                    { label: 'Repurt center', path: '/report-center' },
                 ]
             },
             {
@@ -119,8 +115,8 @@ const sidebarMenu = [
                 path: '/',
                 children: [
                     { label: 'All Services', path: '/' },
-                    { label: 'My Service', path: '/' },
-                    { label: 'Helo', path: '/' },
+                    { label: 'My Service', path: '/my-service' },
+                    { label: 'Help', path: '/help' },
                 ]
             }
         ]
