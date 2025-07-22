@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DataTable from 'react-data-table-component';
 import { CSVLink } from 'react-csv';
 import { Breadcrumb, BreadcrumbItem, Card, CardBody, Col, Row, Badge, Button } from 'reactstrap';
@@ -7,6 +7,9 @@ import { Link } from 'react-router-dom';
 import {
   FaList, FaExclamationCircle, FaHourglassHalf, FaCheckCircle
 } from 'react-icons/fa';
+import { GetVendorOrders } from '../../api/vendorOrderAPI';
+import { showToast } from '../../components/ToastifyNotification';
+import { useDispatch } from 'react-redux';
 
 const returnOrders = [
   {
@@ -80,18 +83,63 @@ const ReturnOrder = () => {
   const [filterText, setFilterText] = useState('');
   const [selectedRows, setSelectedRows] = useState([]);
   const [sortConfig, setSortConfig] = useState({ field: 'returnDate', order: 'desc' });
+  const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
 
-  const filteredData = returnOrders
-    .filter(item =>
-      Object.values(item).some(val =>
-        val.toString().toLowerCase().includes(filterText.toLowerCase())
-      )
-    )
-    .sort((a, b) => {
-      const valA = a[sortConfig.field];
-      const valB = b[sortConfig.field];
-      return sortConfig.order === 'desc' ? (valA < valB ? 1 : -1) : (valA > valB ? 1 : -1);
-    });
+  const dispatch = useDispatch();
+
+  const fetchOrders = async (data) => {
+      dispatch({ type: 'loader', loader: true })
+  
+      try {
+        const response = await GetVendorOrders(data); // Make sure login function returns token
+        console.log(response);
+        if (response.success == true) {
+          showToast('success', response.message)
+          const formattedData = response.data.map((item, index) => ({
+            index: index + 1,
+            id: item._id,
+            title: item.orderItems[0]?.productId?.name,
+            sku: item.orderItems[0]?.productVariationId?.sku,
+            category: item.orderItems[0]?.productId?.categoryId?.name || 'N/A',
+            customerName: item.orderId?.userId?.name,
+            orderDate: item.createdAt,
+            returnDate: item.updatedAt,
+            returnReason: item.returnReason,
+            refundStatus: item.refundStatus,
+            quantity: item.orderItems[0]?.quantity,
+            amount: item.total,
+            status: item.orderStatus,
+          }));
+          setData(formattedData);
+          setFilteredData(formattedData);
+        } else {
+          // setError(response.message);
+          showToast('error', response.message)
+        }
+      } catch (error) {
+        // setError(error); // Handle login errors
+        showToast('error', error)
+      } finally {
+        dispatch({ type: 'loader', loader: false })
+      }
+    }
+  
+    useEffect(() => {
+      fetchOrders();
+    }, []);
+
+  // const filteredData = returnOrders
+  //   .filter(item =>
+  //     Object.values(item).some(val =>
+  //       val.toString().toLowerCase().includes(filterText.toLowerCase())
+  //     )
+  //   )
+  //   .sort((a, b) => {
+  //     const valA = a[sortConfig.field];
+  //     const valB = b[sortConfig.field];
+  //     return sortConfig.order === 'desc' ? (valA < valB ? 1 : -1) : (valA > valB ? 1 : -1);
+  //   });
 
   const toggleColumn = (colName) => {
     setVisibleColumns(prev =>
@@ -101,6 +149,7 @@ const ReturnOrder = () => {
 
   const applyPreset = (preset) => {
     setVisibleColumns(presets[preset]);
+    setDropdownOpen(false)
   };
 
   const handleRowSelected = (state) => {
@@ -115,9 +164,9 @@ const ReturnOrder = () => {
   const columnsToShow = allColumns.filter(col => visibleColumns.includes(col.name));
 
   const counters = [
-    { title: 'All Returns', count: returnOrders.length, icon: <FaList size={24} />, bgColor: '#6c757d', textColor: '#fff' },
-    { title: 'Pending Refunds', count: returnOrders.filter(r => r.refundStatus === 'Pending').length, icon: <FaExclamationCircle size={24} />, bgColor: '#dc3545', textColor: '#fff' },
-    { title: 'Completed Refunds', count: returnOrders.filter(r => r.refundStatus === 'Refunded').length, icon: <FaCheckCircle size={24} />, bgColor: '#198754', textColor: '#fff' },
+    { title: 'All Returns', count: data.length, icon: <FaList size={24} />, bgColor: '#6c757d', textColor: '#fff' },
+    { title: 'Pending Refunds', count: data.filter(r => r.refundStatus != 'Refunded').length, icon: <FaExclamationCircle size={24} />, bgColor: '#dc3545', textColor: '#fff' },
+    { title: 'Completed Refunds', count: data.filter(r => r.refundStatus === 'Refunded').length, icon: <FaCheckCircle size={24} />, bgColor: '#198754', textColor: '#fff' },
   ];
 
   return (

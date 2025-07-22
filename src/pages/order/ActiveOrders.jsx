@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Col, Input, InputGroup, Row } from 'reactstrap';
 import Select from 'react-select';
@@ -11,6 +11,11 @@ import PendingHandoverList from '../../components/activeorder/PendingHandoverLis
 import InTransitList from '../../components/activeorder/InTransitList';
 import PendingServicesList from '../../components/activeorder/PendingServicesList';
 import CompletedOrdersList from '../../components/activeorder/PendingLabelsList';
+import { GetOrders } from '../../api/orderAPI';
+import { showToast } from '../../components/ToastifyNotification';
+import { useDispatch } from 'react-redux';
+import { GetVendorOrders } from '../../api/vendorOrderAPI';
+import AllOrderList from '../../components/activeorder/AllOrderList';
 
 const warehouseOptions = [
     { value: 'WH001', label: 'Warehouse - New York' },
@@ -22,34 +27,48 @@ const warehouseOptions = [
 
 const ActiveOrders = () => {
     const [selectedWarehouse, setSelectedWarehouse] = useState(null);
-    const [selectedStat, setSelectedStat] = useState('');
+    const [selectedStat, setSelectedStat] = useState('all');
+    const [data, setData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
+    const [orderStatusData, setOrderStatusData] = useState({
+        Pending: [],
+        'PendingRTD':[],
+        'PendingHandover': [],
+        'InTransit': [],
+        'PendingServices': [],
+        'Inlast30days': [],
+        'upcomingOrder': [],
+        'ProcessingQueued': [],
+    });
+    const [searchTerm, setSearchTerm] = useState('');
+    const dispatch = useDispatch();
 
     const handleChange = (selectedOption) => {
         setSelectedWarehouse(selectedOption);
     };
 
     const handleCounterClick = (statName) => {
-        setSelectedStat(statName === selectedStat ? '' : statName);
+        setSelectedStat(statName === selectedStat ? 'all' : statName);
     };
 
     const renderSelectedComponent = () => {
         switch (selectedStat) {
             case 'Pending Labels':
-                return <PendingLabelsList />;
+                return <PendingLabelsList orders={orderStatusData.Pending}/>;
             case 'Pending RTD':
-                return <PendingRTDList />;
+                return <PendingRTDList orders={orderStatusData.PendingRTD}/>;
             case 'Pending Handover':
-                return <PendingHandoverList />;
+                return <PendingHandoverList orders={orderStatusData.PendingHandover}/>;
             case 'In Transit':
-                return <InTransitList />;
+                return <InTransitList orders={orderStatusData.InTransit}/>;
             case 'Pending Services':
-                return <PendingServicesList />;
+                return <PendingServicesList orders={orderStatusData.PendingServices}/>;
             case 'In last 30 days':
-                return <InTransitList />;
+                return <InTransitList orders={orderStatusData.Inlast30days}/>;
             case 'upcomingorder':
-                return <PendingLabelsList />;
+                return <PendingLabelsList orders={orderStatusData.upcomingOrder}/>;
             case 'Processing Queued':
-                return <PendingLabelsList />;
+                return <PendingLabelsList orders={orderStatusData.ProcessingQueued}/>;
             default:
                 return null;
         }
@@ -59,6 +78,53 @@ const ActiveOrders = () => {
     const getCounterClass = (item) => {
         return `mb-2 border py-1 px-2 ${selectedStat === item ? 'border-primary bg-light' : ''}`;
     };
+
+    const fetchOrders = async (data) => {
+		dispatch({ type: 'loader', loader: true })
+
+		try {
+			const response = await GetVendorOrders(data); // Make sure login function returns token
+			console.log(response);
+			if (response.success == true) {
+				showToast('success', response.message)
+				const formattedData = response.data.map((item, index) => ({
+					index: index + 1,
+					id: item._id,
+					orderId: item.subOrderUniqueId,
+					productInfo: item.orderItems[0]?.productId?.name,
+					quantity: item.orderItems[0]?.quantity,
+					amount: item.total,
+					status: item.orderStatus,
+					vendorId: item.vendorId?._id,
+					vendorName: item.vendorId?.name,
+				}));
+				setData(formattedData);
+				setFilteredData(formattedData);
+                setOrderStatusData({
+                    Pending: formattedData.filter(order => order.status === 'Pending'),
+                    'PendingRTD': formattedData.filter(order => order.status === 'Pending RTD'),
+                    'PendingHandover': formattedData.filter(order => order.status === 'Pending Handover'),
+                    'InTransit': formattedData.filter(order => order.status === 'In Transit'),
+                    'PendingServices': formattedData.filter(order => order.status === 'Pending Services'),
+                    'Inlast30days': formattedData.filter(order => order.status === 'In last 30 days'),
+                    'upcomingOrder': formattedData.filter(order => order.status === 'upcomingorder'),
+                    'ProcessingQueued': formattedData.filter(order => order.status === 'Processing Queued')
+                })
+			} else {
+				// setError(response.message);
+				showToast('error', response.message)
+			}
+		} catch (error) {
+			// setError(error); // Handle login errors
+			showToast('error', error)
+		} finally {
+			dispatch({ type: 'loader', loader: false })
+		}
+	}
+
+	useEffect(() => {
+		fetchOrders();
+	}, []);
 
     return (
         <>
@@ -182,7 +248,11 @@ const ActiveOrders = () => {
             {selectedStat && (
                 <Row className='mt-2'>
                     <Col md="12">
-                        {renderSelectedComponent()}
+                        {
+                            selectedStat.toLowerCase() === 'all' ? <AllOrderList orders={filteredData}/>:
+                            renderSelectedComponent()
+                        }
+
                     </Col>
                 </Row>
             )}

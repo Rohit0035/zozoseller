@@ -11,7 +11,17 @@ import { FaUserCircle, FaBell } from 'react-icons/fa';
 import { IoMdAlert } from "react-icons/io";
 import { Link } from 'react-router-dom';
 import { FaLongArrowAltRight } from "react-icons/fa";
+import { useDispatch, useSelector } from 'react-redux';
+import { LOGOUT } from '../reducers/authReducer';
 export default function Header({ toggleSidebar, toggleCollapse }) {
+  const dispatch = useDispatch();
+  const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
+  const user = useSelector(state => state.auth?.user) || {};
+  
+  const handleLogout = () => {
+    // Dispatch the logout action
+    dispatch({ type: LOGOUT });
+  };
   return (
     <>
       <Navbar className="border-bottom bg-white justify-content-between sticky-top">
@@ -55,11 +65,11 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
               <FaUserCircle size={20} color="#02339a" />
             </DropdownToggle>
             <DropdownMenu end>
-              <DropdownItem header>JOHN SMITH</DropdownItem>
+              <DropdownItem header>{user?.name}</DropdownItem>
               <DropdownItem divider />
               <DropdownItem tag={Link} to="/Profile">My Account</DropdownItem>
               <DropdownItem divider />
-              <DropdownItem>Logout</DropdownItem>
+              <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
             </DropdownMenu>
           </UncontrolledDropdown>
         </div>

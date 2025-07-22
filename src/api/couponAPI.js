@@ -1,0 +1,84 @@
+// authApi.js
+import { API_CONFIG, API_MULTIPART_CONFIG } from "../../utils/api-config";
+import axios from "axios";
+import fetchWithAuth from "../../utils/apiAthurization";
+
+export const StoreCoupon = async (data) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_CONFIG.baseURL}/coupons`,'POST',data
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "signup failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const GetCoupons = async (CouponCategoryId) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_CONFIG.baseURL}/coupons`
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "coupons fetching failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const GetCouponById = async (id) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_CONFIG.baseURL}/coupons/${id}`
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "signup failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const UpdateCoupon = async (id,data) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_CONFIG.baseURL}/coupons/${id}`,'PATCH',data
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "signup failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const DeleteCoupon = async (id) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_CONFIG.baseURL}/coupons/${id}`,'DELETE'
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "signup failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};

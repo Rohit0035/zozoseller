@@ -1,52 +1,57 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, use, useEffect } from "react";
 import {
-  Container, Row, Col, Card, CardBody,
-  Form, FormGroup, Input, Button, Label
-} from 'reactstrap';
-import { useNavigate } from 'react-router-dom';
-import LogoLg from '../assets/images/logo-lg.png';
-import Loginimg from '../assets/images/common/login-img.jpg';
+  Container,
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Form,
+  FormGroup,
+  Input,
+  Button,
+  Label
+} from "reactstrap";
+import { Link,useNavigate } from "react-router-dom";
+import LogoLg from "../assets/images/logo-lg.png";
+import Loginimg from "../assets/images/common/login-img.jpg";
+import { useDispatch, useSelector } from "react-redux";
+import { showToast } from "../components/ToastifyNotification";
+import { sellerLogin } from "../api/sellerAPI";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [showOtpForm, setShowOtpForm] = useState(false);
-  const inputsRef = useRef([]);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [error, setError] = useState("");
 
-  const handleSendOtp = (e) => {
+  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated]);
+  const sendOtp = async e => {
     e.preventDefault();
-    if (email) {
-      // Simulate OTP send
-      setShowOtpForm(true);
-    }
-  };
-
-  const handleVerifyOtp = (e) => {
-    e.preventDefault();
-    const fullOtp = otp.join('');
-    if (fullOtp.length === 6) {
-      localStorage.setItem('token', 'dummy-auth-token');
-      navigate('/');
-    } else {
-      alert('Please enter a valid 6-digit OTP');
-    }
-  };
-
-  const handleOtpChange = (value, index) => {
-    if (!/^\d?$/.test(value)) return; // Only digit or empty
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    if (value && index < 5) {
-      inputsRef.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (e, index) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputsRef.current[index - 1]?.focus();
+    try {
+      if (!emailOrPhone) {
+        showToast("error", "Email or Phone number is required");
+        return;
+      }
+      const data = {
+        emailOrPhone: emailOrPhone
+      };
+      const response = await sellerLogin(data);
+      if (response.success == true) {
+        showToast("success", response.message);
+        navigate("/otp", { state: { emailOrPhone } }); // Redirect upon successful login
+      } else {
+        // setError(response.message);
+        showToast("error", response.message);
+      }
+    } catch (error) {
+      // setError(error); // Handle login errors
+      showToast("error", error);
     }
   };
 
@@ -57,75 +62,34 @@ const Login = () => {
           <Card>
             <CardBody>
               {/* Email Form Section */}
-              {!showOtpForm && (
-                <Row>
-                  <Col md="6" className="d-none d-md-block">
-                    <img src={Loginimg} alt="" width="100%" />
-                  </Col>
-                  <Col md="6">
-                    <img src={LogoLg} alt="" width={200} className="pb-5" />
-                    <h4 className="mb-0 mt-3 text-start">Login</h4>
-                    <hr />
-                    <Form onSubmit={handleSendOtp}>
-                      <FormGroup>
-                        <Label for="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                        />
-                      </FormGroup>
-                      <Button className="btn btn-primary" block type="submit">
-                        Send OTP
-                      </Button>
-                    </Form>
-                  </Col>
-                </Row>
-              )}
 
-              {/* OTP Form Section */}
-              {showOtpForm && (
-                <Row>
-                  <Col md="6" className="d-none d-md-block">
-                    <img src={Loginimg} alt="" width="100%" />
-                  </Col>
-                  <Col md="6">
-                    <img src={LogoLg} alt="" width={200} className="pb-5" />
-                    <h4 className="mb-0 mt-3 text-start">Verify OTP</h4>
-                    <hr />
-                    <Form onSubmit={handleVerifyOtp}>
-                      <FormGroup>
-                        <Label>Enter 6-digit OTP</Label>
-                        <div className="d-flex gap-2 mb-3">
-                          {otp.map((digit, index) => (
-                            <Input
-                              key={index}
-                              type="text"
-                              maxLength={1}
-                              value={digit}
-                              onChange={(e) => handleOtpChange(e.target.value, index)}
-                              onKeyDown={(e) => handleKeyDown(e, index)}
-                              innerRef={(el) => (inputsRef.current[index] = el)}
-                              style={{
-                                width: '45px',
-                                height: '50px',
-                                fontSize: '1.5rem',
-                                textAlign: 'center'
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </FormGroup>
-                      <Button className="btn btn-primary" block type="submit">
-                        Verify OTP
-                      </Button>
-                    </Form>
-                  </Col>
-                </Row>
-              )}
+              <Row>
+                <Col md="6" className="d-none d-md-block">
+                  <img src={Loginimg} alt="" width="100%" />
+                </Col>
+                <Col md="6">
+                  <img src={LogoLg} alt="" width={200} className="pb-5" />
+                  <h4 className="mb-0 mt-3 text-start">Login</h4>
+                  <hr />
+                  <Form onSubmit={sendOtp}>
+                    <FormGroup>
+                      <Label for="emailOrMobile">Email or Mobile Number</Label>
+                      <Input
+                        id="emailOrMobile"
+                        type="text"
+                        placeholder="Enter your email or mobile number"
+                        value={emailOrPhone}
+                        onChange={e => setEmailOrPhone(e.target.value)}
+                        required
+                      />
+                    </FormGroup>
+                    <Button className="btn btn-primary" block type="submit">
+                      Send OTP
+                    </Button>
+                    <Link to="/register">New Here? Click to Register</Link>
+                  </Form>
+                </Col>
+              </Row>
             </CardBody>
           </Card>
         </Col>

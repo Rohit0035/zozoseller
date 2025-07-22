@@ -9,6 +9,17 @@ const ListingIndex = () => {
 
     const [videoModal, setVideoModal] = useState(false);
     const [videoUrl, setVideoUrl] = useState('');
+    // State to hold your listing counts
+    const [listingCounts, setListingCounts] = useState({
+        active: 0,
+        readyForActivation: 0,
+        blocked: 0,
+        inactive: 0,
+        archived: 0,
+    });
+
+    const [activeFilter, setActiveFilter] = useState("Active"); // New state for counter filters
+    
 
     const handleVideoClick = (url) => {
         setVideoUrl(url);
@@ -59,10 +70,11 @@ const ListingIndex = () => {
             {/* status card listing start */}
             <Row className='mt-3'>
                 <Col xs="6" sm="3" md="4" lg="2" className="mb-2">
-                    <Link className='text-decoration-none'>
-                        <Card className='bg-info bg-opacity-10 p-2' style={{border:'none'}}>
+                    <Link className='text-decoration-none' onClick={() => setActiveFilter("Active")}>
+                        <Card className='bg-info bg-opacity-10 p-2' 
+                        style={{border: activeFilter === "Active" ? "2px solid #007bff" : "none",}}>
                             <div className="d-flex justify-content-between align-items-center">
-                                <h4 className='mb-0'>01</h4>
+                                <h4 className='mb-0'>{listingCounts.active}</h4>
                                 <span id="listTooltip" style={{ cursor: 'pointer' }}>
                                     <FaList />
                                 </span>
@@ -75,10 +87,11 @@ const ListingIndex = () => {
                     </Link>
                 </Col>
                 <Col xs="6" sm="3" md="4" lg="2" className="mb-2">
-                    <Link className='text-decoration-none'>
-                        <Card className='bg-primary bg-opacity-10 p-2'  style={{border:'none'}}>
+                    <Link className='text-decoration-none' onClick={() => setActiveFilter("ReadyForActivation")}>
+                        <Card className='bg-primary bg-opacity-10 p-2'  style={{border:
+                  activeFilter === "ReadyForActivation" ? "2px solid #007bff" : "none",}}>
                             <div className="d-flex justify-content-between align-items-center">
-                                <h4 className='mb-0'>00</h4>
+                                <h4 className='mb-0'>{listingCounts.readyForActivation}</h4>
                                 <span id="listTooltip" style={{ cursor: 'pointer' }}>
                                     <FaList />
                                 </span>
@@ -91,10 +104,11 @@ const ListingIndex = () => {
                     </Link>
                 </Col>
                 <Col xs="6" sm="3" md="4" lg="2" className="mb-2">
-                    <Link className='text-decoration-none'>
-                        <Card className='bg-warning bg-opacity-10 p-2'  style={{border:'none'}}>
+                    <Link className='text-decoration-none' onClick={() => setActiveFilter("Blocked")}>
+                        <Card className='bg-warning bg-opacity-10 p-2'  style={{border:
+                  activeFilter === "Blocked" ? "2px solid #007bff" : "none",}}>
                             <div className="d-flex justify-content-between align-items-center">
-                                <h4 className='mb-0'>06</h4>
+                                <h4 className='mb-0'>{listingCounts.blocked}</h4>
                                 <span id="listTooltip" style={{ cursor: 'pointer' }}>
                                     <FaList />
                                 </span>
@@ -107,10 +121,11 @@ const ListingIndex = () => {
                     </Link>
                 </Col>
                 <Col xs="6" sm="3" md="4" lg="2" className="mb-2">
-                    <Link className='text-decoration-none'>
-                        <Card className='bg-danger bg-opacity-10 p-2'  style={{border:'none'}}>
+                    <Link className='text-decoration-none' onClick={() => setActiveFilter("Inactive")}>
+                        <Card className='bg-danger bg-opacity-10 p-2'  style={{border:
+                  activeFilter === "Inactive" ? "2px solid #007bff" : "none",}}>
                             <div className="d-flex justify-content-between align-items-center">
-                                <h4 className='mb-0'>08</h4>
+                                <h4 className='mb-0'>{listingCounts.inactive}</h4>
                                 <span id="listTooltip" style={{ cursor: 'pointer' }}>
                                     <FaList />
                                 </span>
@@ -123,10 +138,11 @@ const ListingIndex = () => {
                     </Link>
                 </Col>
                 <Col xs="6" sm="3" md="4" lg="2" className="mb-2">
-                    <Link className='text-decoration-none'>
-                        <Card className='bg-success bg-opacity-10 p-2'  style={{border:'none'}}>
+                    <Link className='text-decoration-none' onClick={() => setActiveFilter("Deleted")}>
+                        <Card className='bg-success bg-opacity-10 p-2'  style={{border:
+                  activeFilter === "Deleted" ? "2px solid #007bff" : "none",}}>
                             <div className="d-flex justify-content-between align-items-center">
-                                <h4 className='mb-0'>01</h4>
+                                <h4 className='mb-0'>{listingCounts.archived}</h4>
                                 <span id="listTooltip" style={{ cursor: 'pointer' }}>
                                     <FaList />
                                 </span>
@@ -134,7 +150,7 @@ const ListingIndex = () => {
                                     View List
                                 </UncontrolledTooltip>
                             </div>
-                            <h5 className='fs-'>Archived Listings</h5>
+                            <h5 className='fs-6'>Archived Listings</h5>
                         </Card>
                     </Link>
                 </Col>
@@ -147,7 +163,7 @@ const ListingIndex = () => {
                 <Col md="12">
                     <Card>
                         <CardBody>
-                            <ListingProduct />
+                            <ListingProduct setListingCounts={setListingCounts} activeFilter={activeFilter}/>
                         </CardBody>
 
                     </Card>

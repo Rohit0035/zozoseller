@@ -1,90 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { CSVLink } from 'react-csv';
 import { Breadcrumb, BreadcrumbItem, Col, Row } from 'reactstrap';
 import { RiArrowDropDownLine } from "react-icons/ri";
+import { useDispatch } from 'react-redux'; // Import useDispatch
+import { showToast } from '../../components/ToastifyNotification'; // Assuming this path
+import { GetWarehouses } from '../../api/warehouseAPI';
 
-const demoWarehouses = [
-    {
-        id: 1,
-        warehouseName: 'Delhi Warehouse',
-        location: 'Delhi, India',
-        contactPerson: 'Amit Sharma',
-        contactNumber: '+91 9876543210',
-        capacity: '5000 units',
-        area: '3000 sq ft',
-        type: 'Fulfillment Center',
-        created: '2024-01-05',
-        updated: '2024-05-10',
-        status: 'Active',
-        onboardingStage: 'Completed',
-        managerEmail: 'amit@warehouse.com',
-        handlingSKU: 1200,
-        inventorySoftware: 'Zoho Inventory',
-        workingHours: '9 AM - 6 PM',
-        specialNotes: 'Temperature Controlled',
-        action: 'Edit/Delete',
-    },
-    {
-        id: 2,
-        warehouseName: 'Mumbai Hub',
-        location: 'Mumbai, India',
-        contactPerson: 'Rohit Verma',
-        contactNumber: '+91 9988776655',
-        capacity: '8000 units',
-        area: '4500 sq ft',
-        type: 'Distribution Center',
-        created: '2024-02-12',
-        updated: '2024-05-15',
-        status: 'Pending Approval',
-        onboardingStage: 'Document Verification',
-        managerEmail: 'rohit@warehouse.com',
-        handlingSKU: 2500,
-        inventorySoftware: 'SAP WMS',
-        workingHours: '24x7',
-        specialNotes: 'Handles fragile items',
-        action: 'Edit/Delete',
-    },
-    {
-        id: 3,
-        warehouseName: 'Bangalore DC',
-        location: 'Bangalore, India',
-        contactPerson: 'Suresh Kumar',
-        contactNumber: '+91 9123456789',
-        capacity: '10000 units',
-        area: '6000 sq ft',
-        type: 'Fulfillment Center',
-        created: '2023-12-01',
-        updated: '2024-05-08',
-        status: 'Active',
-        onboardingStage: 'Completed',
-        managerEmail: 'suresh@warehouse.com',
-        handlingSKU: 3000,
-        inventorySoftware: 'NetSuite WMS',
-        workingHours: '10 AM - 7 PM',
-        specialNotes: 'Near Airport',
-        action: 'Edit/Delete',
-    },
-];
-
+// Define all possible columns based on your API response structure
 const allColumns = [
-    { name: 'Warehouse Name', selector: row => row.warehouseName, sortable: true },
-    { name: 'Location', selector: row => row.location, sortable: true },
-    { name: 'Contact Person', selector: row => row.contactPerson, sortable: true },
-    { name: 'Contact Number', selector: row => row.contactNumber, sortable: true },
-    { name: 'Capacity', selector: row => row.capacity, sortable: true, right: true },
-    { name: 'Area', selector: row => row.area, sortable: true },
-    { name: 'Type', selector: row => row.type, sortable: true },
-    { name: 'Creation Time', selector: row => row.created, sortable: true },
-    { name: 'Update Time', selector: row => row.updated, sortable: true },
-    { name: 'Status', selector: row => row.status, sortable: true },
-    { name: 'Onboarding Stage', selector: row => row.onboardingStage, sortable: true },
-    { name: 'Manager Email', selector: row => row.managerEmail, sortable: true },
-    { name: 'Handling SKU Count', selector: row => row.handlingSKU, sortable: true, right: true },
-    { name: 'Inventory Software', selector: row => row.inventorySoftware, sortable: true },
-    { name: 'Working Hours', selector: row => row.workingHours, sortable: true },
-    { name: 'Special Notes', selector: row => row.specialNotes, sortable: false },
-    { name: 'Action', selector: row => row.action, sortable: false },
+    { name: 'Warehouse Name', selector: row => row.name, sortable: true, wrap: true, minWidth: "150px" },
+    { name: 'Location', selector: row => row.location, sortable: true, wrap: true, minWidth: "150px" },
+    { name: 'Contact Person', selector: row => row.contactPerson, sortable: true, wrap: true, minWidth: "120px" },
+    { name: 'Contact Number', selector: row => row.contactNumber, sortable: true, wrap: true, minWidth: "120px" },
+    { name: 'Capacity', selector: row => row.capacity, sortable: true, right: true, width: "100px" },
+    { name: 'Area', selector: row => row.area, sortable: true, width: "100px" },
+    { name: 'Type', selector: row => row.type, sortable: true, wrap: true, minWidth: "120px" },
+    { name: 'Creation Time', selector: row => new Date(row.createdAt).toLocaleString(), sortable: true, wrap: true, minWidth: "160px" }, // Assuming createdAt from API
+    { name: 'Update Time', selector: row => new Date(row.updatedAt).toLocaleString(), sortable: true, wrap: true, minWidth: "160px" }, // Assuming updatedAt from API
+    { name: 'Status', selector: row => row.status, sortable: true, width: "120px" },
+    { name: 'Onboarding Stage', selector: row => row.onBoardingStage, sortable: true, wrap: true, minWidth: "140px" },
+    { name: 'Manager Email', selector: row => row.managerEmail, sortable: true, wrap: true, minWidth: "150px" },
+    { name: 'Handling SKU Count', selector: row => row.handlingSKUCount, sortable: true, right: true, width: "110px" },
+    { name: 'Inventory Software', selector: row => row.inventorySoftware, sortable: true, wrap: true, minWidth: "150px" },
+    { name: 'Working Hours', selector: row => row.workingHours, sortable: true, wrap: true, minWidth: "150px" },
+    { name: 'Special Notes', selector: row => row.specialNotes, sortable: false, wrap: true, minWidth: "200px" },
+    // Action column is not needed here as per the `ListWarehouse` example,
+    // this component focuses on display and filtering.
+    // If you need actions, you'd add it similarly to ListWarehouse.
 ];
 
 const presets = {
@@ -93,25 +36,73 @@ const presets = {
 };
 
 const WarehouseOnboarding = () => {
+    const dispatch = useDispatch();
+    const [warehouses, setWarehouses] = useState([]); // State for raw API data
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
     const [visibleColumns, setVisibleColumns] = useState(presets['Default View']);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
     const [filterText, setFilterText] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
-    const [sortConfig, setSortConfig] = useState({ field: 'created', order: 'desc' });
+    const [sortConfig, setSortConfig] = useState({ field: 'createdAt', order: 'desc' }); // Default sort by creation time
 
-    const filteredData = demoWarehouses
+    // Fetch data from API
+    const fetchWarehousesData = async () => {
+        dispatch({ type: 'loader', loader: true });
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await GetWarehouses();
+            if (response.success && response.data) {
+                // Ensure data has the keys expected by allColumns
+                setWarehouses(response.data);
+                showToast('success', response.message || 'Warehouses loaded successfully.');
+            } else {
+                showToast('error', response.message || 'Failed to fetch warehouses.');
+                setError(response.message || 'Failed to fetch warehouses.');
+            }
+        } catch (err) {
+            console.error("Error fetching warehouses:", err);
+            showToast('error', 'An error occurred while fetching warehouses.');
+            setError('An error occurred. Please try again later.');
+        } finally {
+            dispatch({ type: 'loader', loader: false });
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchWarehousesData();
+    }, []); // Fetch data on component mount
+
+    // Filter and sort logic
+    const filteredAndSortedData = warehouses
         .filter(item =>
             Object.values(item).some(val =>
-                val.toString().toLowerCase().includes(filterText.toLowerCase())
+                val != null && val.toString().toLowerCase().includes(filterText.toLowerCase())
             )
         )
         .sort((a, b) => {
             const field = sortConfig.field;
-            const valA = a[field];
-            const valB = b[field];
-            if (sortConfig.order === 'desc') return valA < valB ? 1 : -1;
-            else return valA > valB ? 1 : -1;
+            let valA = a[field];
+            let valB = b[field];
+
+            // Handle date sorting if necessary
+            if (field === 'createdAt' || field === 'updatedAt') {
+                valA = new Date(valA);
+                valB = new Date(valB);
+            }
+            // Handle numeric sorting
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return sortConfig.order === 'desc' ? valB - valA : valA - valB;
+            }
+
+            // Fallback for string comparison
+            if (valA < valB) return sortConfig.order === 'desc' ? 1 : -1;
+            if (valA > valB) return sortConfig.order === 'desc' ? -1 : 1;
+            return 0;
         });
 
     const toggleColumn = (colName) => {
@@ -122,6 +113,7 @@ const WarehouseOnboarding = () => {
 
     const applyPreset = (preset) => {
         setVisibleColumns(presets[preset]);
+        setDropdownOpen(false); // Close dropdown after applying preset
     };
 
     const handleRowSelected = (state) => {
@@ -135,6 +127,14 @@ const WarehouseOnboarding = () => {
 
     const columnsToShow = allColumns.filter(col => visibleColumns.includes(col.name));
 
+    // Headers for CSV export
+    const csvHeaders = allColumns
+        .filter(col => visibleColumns.includes(col.name)) // Only export visible columns
+        .map(col => ({
+            label: col.name,
+            key: col.selector.toString().match(/row\.(\w+)/)?.[1] || col.name.replace(/\s/g, ''), // Extract key from selector or derive
+        }));
+
     return (
         <div>
             <Row>
@@ -147,13 +147,13 @@ const WarehouseOnboarding = () => {
                     </BreadcrumbItem>
                 </Breadcrumb>
             </Row>
-            <Row>
-                <Col md="6" className='mb-2'>
+            <Row className="mb-3 align-items-center">
+                <Col md="6">
                     <input
                         type="text"
                         className="form-control"
-                        placeholder="Search Warehouse, Location, Contact"
-                        style={{ maxWidth: '250px' }}
+                        placeholder="Search Warehouse, Location, Contact, etc."
+                        style={{ maxWidth: '350px' }}
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
                     />
@@ -167,10 +167,15 @@ const WarehouseOnboarding = () => {
                             </button>
                             {sortDropdownOpen && (
                                 <div className="position-absolute bg-white border rounded shadow-sm mt-1 p-2" style={{ width: '220px', zIndex: 1000, cursor: 'pointer' }}>
-                                    <div className="dropdown-item" onClick={() => handleSortSelect('warehouseName')}>Warehouse Name</div>
-                                    <div className="dropdown-item" onClick={() => handleSortSelect('created')}>Creation Time</div>
-                                    <div className="dropdown-item" onClick={() => handleSortSelect('status')}>Status</div>
-                                    <div className="dropdown-item" onClick={() => handleSortSelect('onboardingStage')}>Onboarding Stage</div>
+                                    {allColumns.filter(col => col.sortable).map(col => (
+                                        <div key={col.name} className="dropdown-item" onClick={() => handleSortSelect(col.selector.toString().match(/row\.(\w+)/)?.[1] || col.name.replace(/\s/g, ''))}>
+                                            {col.name} {sortConfig.field === (col.selector.toString().match(/row\.(\w+)/)?.[1] || col.name.replace(/\s/g, '')) && ` (${sortConfig.order === 'asc' ? 'Asc' : 'Desc'})`}
+                                        </div>
+                                    ))}
+                                    <hr/>
+                                    <div className="dropdown-item" onClick={() => handleSortSelect(sortConfig.field, sortConfig.order === 'asc' ? 'desc' : 'asc')}>
+                                        Toggle Order ({sortConfig.order === 'asc' ? 'Desc' : 'Asc'})
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -203,10 +208,11 @@ const WarehouseOnboarding = () => {
                         </div>
                         {/* CSV Export */}
                         <CSVLink
-                            data={selectedRows.length ? selectedRows : filteredData}
-                            filename="warehouse_onboarding_list.csv"
-                            style={{ backgroundColor: '#02339a' }}
+                            data={selectedRows.length ? selectedRows : filteredAndSortedData}
+                            headers={csvHeaders}
+                            filename={`warehouse_onboarding_list_${new Date().toISOString().slice(0, 10)}.csv`}
                             className="btn btn-success text-white btn-sm"
+                            style={{ backgroundColor: '#02339a' }}
                         >
                             Export CSV
                         </CSVLink>
@@ -217,14 +223,19 @@ const WarehouseOnboarding = () => {
             <div className="table-responsive">
                 <DataTable
                     columns={columnsToShow}
-                    data={filteredData}
+                    data={filteredAndSortedData}
                     pagination
                     striped
                     selectableRows
                     onSelectedRowsChange={handleRowSelected}
                     highlightOnHover
+                    progressPending={loading}
+                    noDataComponent={!loading && !error && <div className="text-center">No warehouses found.</div>}
+                    subHeaderAlign="right"
+                    subHeaderWrap
                 />
             </div>
+            {error && <div className="alert alert-danger mt-3" role="alert">{error}</div>}
         </div>
     );
 };

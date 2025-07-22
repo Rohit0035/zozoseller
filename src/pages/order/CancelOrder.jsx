@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DataTable from 'react-data-table-component';
 import { CSVLink } from 'react-csv';
 import { Breadcrumb, BreadcrumbItem, Card, CardBody, Col, Row } from 'reactstrap';
 import { RiArrowDropDownLine } from "react-icons/ri";
 import { Link } from 'react-router-dom';
 import { FaList, FaExclamationCircle, FaHourglassHalf, FaCheckCircle } from 'react-icons/fa';
+import { GetVendorOrders } from '../../api/vendorOrderAPI';
+import { showToast } from '../../components/ToastifyNotification';
+import { useDispatch } from 'react-redux';
 
 // Sample cancel order data
 const cancelOrders = [
@@ -94,20 +97,65 @@ const CancelOrder = () => {
     const [filterText, setFilterText] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
     const [sortConfig, setSortConfig] = useState({ field: 'date', order: 'desc' });
+    const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
 
-    const filteredData = cancelOrders
-        .filter(item =>
-            Object.values(item).some(val =>
-                val.toString().toLowerCase().includes(filterText.toLowerCase())
-            )
-        )
-        .sort((a, b) => {
-            const field = sortConfig.field;
-            const valA = a[field];
-            const valB = b[field];
-            if (sortConfig.order === 'desc') return valA < valB ? 1 : -1;
-            else return valA > valB ? 1 : -1;
-        });
+  const dispatch = useDispatch();
+
+  const fetchOrders = async (data) => {
+      dispatch({ type: 'loader', loader: true })
+  
+      try {
+        const response = await GetVendorOrders(data); // Make sure login function returns token
+        console.log(response);
+        if (response.success == true) {
+          showToast('success', response.message)
+          const formattedData = response.data.map((item, index) => ({
+            index: index + 1,
+            id: item._id,
+            orderId: item.orderId?._id,
+            customerName: item.orderId?.userId?.name,
+            contact: item.orderId?.userId?.phone,
+            product: item.orderItems[0]?.productId?.name,
+            sku: item.orderItems[0]?.productVariationId?.sku,
+            amount: item.total,
+            reason: item.returnReason || 'N/A',
+            date: item.createdAt,
+            status: item.orderStatus,
+            refundStatus: item.refundStatus || 'N/A',
+            channel: item.orderId?.channel || 'N/A',
+          }));
+          setData(formattedData);
+          setFilteredData(formattedData);
+        } else {
+          // setError(response.message);
+          showToast('error', response.message)
+        }
+      } catch (error) {
+        // setError(error); // Handle login errors
+        showToast('error', error)
+      } finally {
+        dispatch({ type: 'loader', loader: false })
+      }
+    }
+  
+    useEffect(() => {
+      fetchOrders();
+    }, []);
+
+    // const filteredData = cancelOrders
+    //     .filter(item =>
+    //         Object.values(item).some(val =>
+    //             val.toString().toLowerCase().includes(filterText.toLowerCase())
+    //         )
+    //     )
+    //     .sort((a, b) => {
+    //         const field = sortConfig.field;
+    //         const valA = a[field];
+    //         const valB = b[field];
+    //         if (sortConfig.order === 'desc') return valA < valB ? 1 : -1;
+    //         else return valA > valB ? 1 : -1;
+    //     });
 
     const toggleColumn = (colName) => {
         setVisibleColumns(prev =>
@@ -117,6 +165,7 @@ const CancelOrder = () => {
 
     const applyPreset = (preset) => {
         setVisibleColumns(presets[preset]);
+        setDropdownOpen(false);
     };
 
     const handleRowSelected = (state) => {
@@ -131,9 +180,9 @@ const CancelOrder = () => {
     const columnsToShow = allColumns.filter(col => visibleColumns.includes(col.name));
 
     const counters = [
-        { title: 'All Cancelled', count: cancelOrders.length, icon: <FaList size={30} color="#fff" />, bgColor: '#6c757d', textColor: '#fff' },
-        { title: 'Refund Processed', count: cancelOrders.filter(o => o.refundStatus === 'Processed').length, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
-        { title: 'Refund Pending', count: cancelOrders.filter(o => o.refundStatus === 'Pending').length, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
+        { title: 'All Cancelled', count: data.length, icon: <FaList size={30} color="#fff" />, bgColor: '#6c757d', textColor: '#fff' },
+        { title: 'Refund Processed', count: data.filter(o => o.refundStatus === 'Refunded').length, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
+        { title: 'Refund Pending', count: data.filter(o => o.refundStatus != 'Refunded').length, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
     ];
 
     return (
