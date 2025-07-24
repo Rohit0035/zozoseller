@@ -99,10 +99,10 @@ const sidebarMenu = [
         icon: <IoIosMore />,
         label: 'More',
         submenu: [
-            {
-                label: 'Advertising',
-                path: '/'
-            },
+            // {
+            //     label: 'Advertising',
+            //     path: '/'
+            // },
             {
                 label: 'Report',
                 path: '/',
@@ -114,8 +114,8 @@ const sidebarMenu = [
                 label: 'Partner Services',
                 path: '/',
                 children: [
-                    { label: 'All Services', path: '/' },
-                    { label: 'My Service', path: '/my-service' },
+                    // { label: 'All Services', path: '/' },
+                    // { label: 'My Service', path: '/my-service' },
                     { label: 'Help', path: '/help' },
                 ]
             }

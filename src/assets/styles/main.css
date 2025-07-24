@@ -99,6 +99,11 @@ span.st-int-span {
     width: 30% !important;
 }
 
+/* new css nav tab */
+.nav-pills .nav-link.active, .nav-pills .show>.nav-link {
+    color: var(--bs-nav-pills-link-active-color);
+    background-color: #013499 !important;
+}
 
 /* Offcanvas for mobile */
 @media (max-width: 768px) {
