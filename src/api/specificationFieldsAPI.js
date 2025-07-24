@@ -1,7 +1,7 @@
 // authApi.js
-import { API_CONFIG, API_MULTIPART_CONFIG } from "../../utils/api-config";
+import { API_CONFIG, API_MULTIPART_CONFIG } from "../utils/api-config";
 import axios from "axios";
-import fetchWithAuth from "../../utils/apiAthurization";
+import fetchWithAuth from "../utils/apiAthurization";
 
 export const StoreSpecificationFields = async (data) => {
   try {

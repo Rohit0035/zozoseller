@@ -19,28 +19,59 @@ const AddListingIndex = () => {
         subCategoryOneId: null,
         subCategoryTwoId: null,
         brandId: null,
-        regularPrice: null,
-        salePrice: null,
-        stockQty: null,
-        description: null,
+        
         mainImage: null,
         galleryImages: [],
         videos: [],
-        status: 'draft',
         type: null,
-        title: null,
-        sku: null,
-        attributes: {},
+       
+        name: "",
+        skuId: "",
+        status: "",
+        regularPrice: "",
+        salePrice: "",
+        minOrderQuantity: "",
+        fulfillmentBy: "",
+        procurementType: "",
+        procurementSLA: "",
+        stockQty: "",
+        minStockQty: "",
+        shippingProvider: "",
+        packageLength: "",
+        packageBreadth: "",
+        packageHeight: "",
+        packageWeight: "",
+        hsn: "",
+        luxuryCess: "",
+        taxCode: "",
+        countryOfOrigin: "",
+        manufacturerDetails: "",
+        packerDetails: "",
+        importerDetails: "",
+        productDetails: [{ key: "", value: "" }], // The dynamic "Description *" inputs in section 3
+        description: "", // The single 'Description' input in section 3
+        more:'', 
+        specifications: [],
+        
+        attributes: [],
     });
 
     // A more generic handler to update any part of the listingData state
     // This allows child components to update multiple fields at once if needed,
     // or just a single field.
     const handleListingDataChange = (updates) => {
-        setListingData(prevData => ({
-            ...prevData,
-            ...updates // Merge the incoming updates into the existing state
-        }));
+        // Check if 'updates' is a function (callback from child)
+        if (typeof updates === 'function') {
+            // If it's a function, pass it directly to setListingData.
+            // React's setState will then call this function with the current state.
+            setListingData(updates);
+        } else {
+            // If it's an object, merge it into the existing state.
+            setListingData(prevData => ({
+                ...prevData,
+                ...updates
+            }));
+        }
     };
 
     const handleNext = () => {
