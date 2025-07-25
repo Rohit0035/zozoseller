@@ -30,13 +30,13 @@ const Dashboard = () => {
     }
   ];
 
-  // const navigate = useNavigate();
-  // const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
-  // useEffect(() => {
-  //   if (!isAuthenticated) {
-  //     navigate('/login');
-  //   }
-  // }, [isAuthenticated])
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated])
 
   return (
     <div className="page text-start">

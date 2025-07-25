@@ -63,6 +63,7 @@ const ListingProduct = ({setListingCounts,activeFilter}) => {
                     _id: item._id, // Keep _id for potential future actions
                     name: item.name,
                     brand: item?.brandId?.name || 'N/A',
+                    skuId: item?.skuId || 'N/A',
                     category: item?.categoryId?.name || 'N/A',
                     subCategoryOne: item?.subCategoryOneId?.name || 'N/A',
                     subCategoryTwo: item?.subCategoryTwoId?.name || 'N/A',

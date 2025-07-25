@@ -52,7 +52,7 @@ const columns = [
 				/>
 				<div>
 					{row.title} <br />
-					<strong>SKU ID:</strong> {row.sku}
+					<strong>SKU ID:</strong> {row.skuId}
 				</div>
 			</div>
 		),
@@ -204,7 +204,7 @@ const SingleListings = () => {
 					index: index + 1,
 					id: item._id,
 					title: item.name,
-					sku: item.sku,
+					skuId: item.skuId,
 					image: `${IMAGE_URL}/${item.images?.mainImage}`,
 					created: formatDateWithTime(item.createdAt),
 					updated: formatDateWithTime(item.updatedAt),

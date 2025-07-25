@@ -131,11 +131,10 @@ const ProductPhotos = ({ listingData, onListingDataChange }) => {
             <CardBody>
                 <div className='d-flex align-items-center mb-3'>
                     <h6 className="fw-bold mb-0">Product Photos ({previewImages.length}/5)</h6>
-                    <div className='ms-auto'>
-                        {/* Cancel button could reset to previous listingData.images state if needed */}
+                    {/* <div className='ms-auto'>
                         <Button className='btn btn-danger btn-sm me-1'>Cancel</Button>
                         <Button className='btn btn-primary btn-sm' onClick={handleSavePhotos}>Save</Button>
-                    </div>
+                    </div> */}
                 </div>
                 <div className="d-flex gap-2 mb-3 overflow-auto">
                     {[...Array(5)].map((_, i) => (

@@ -1,5 +1,5 @@
 // authApi.js
-import { API_CONFIG } from "../../utils/api-config";
+import { API_CONFIG } from "../utils/api-config";
 import axios from "axios";
 
 export const login = async (data) => {

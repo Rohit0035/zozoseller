@@ -9,18 +9,22 @@ import { FaBars } from 'react-icons/fa';
 import LogoLg from '../assets/images/logo-lg.png'
 import { FaUserCircle, FaBell } from 'react-icons/fa';
 import { IoMdAlert } from "react-icons/io";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaLongArrowAltRight } from "react-icons/fa";
 import { useDispatch, useSelector } from 'react-redux';
 import { LOGOUT } from '../reducers/authReducer';
+import { showToast } from './ToastifyNotification';
 export default function Header({ toggleSidebar, toggleCollapse }) {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
   const user = useSelector(state => state.auth?.user) || {};
+  const navigate = useNavigate();
   
   const handleLogout = () => {
     // Dispatch the logout action
     dispatch({ type: LOGOUT });
+    navigate('/'); // Redirect upon successful login
+    showToast('success', 'You have been logged out successfully')
   };
   return (
     <>

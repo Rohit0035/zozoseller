@@ -23,6 +23,7 @@ import { GetAttributes } from "../../../api/attributeAPI";
 import Select from 'react-select';
 import { StoreProduct } from "../../../api/productAPI";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 // Assuming you have an API to fetch attributes, e.g.:
 // import { GetAttributesBySubCategoryTwoId } from "../../../api/attributesAPI";
@@ -32,6 +33,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
   const [localSpecifications, setLocalSpecifications] = useState([]);
   const [errors, setErrors] = useState({});
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   // New states for Product Variants
   const [availableAttributes, setAvailableAttributes] = useState([]); // All attributes from API
@@ -532,8 +534,18 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
     if (response.success === true) {
       showToast('success', response.message);
 
+      navigate('/listings');
       //clear listingData
-      onListingDataChange({})
+      // onListingDataChange({
+      //   ...listingData,
+      //   productDetails: [],
+      //   specifications: [],
+      //   mainImage: '',
+      //   galleryImages: [],
+      //   attributes: [],
+      //   variations: [],
+      //   type: 'simple',
+      // })
       // Temporarily uncommenting for local testing feedback
       console.log("FormData contents:");
       for (let [key, value] of formData.entries()) {
