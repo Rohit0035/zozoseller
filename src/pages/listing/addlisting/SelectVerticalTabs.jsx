@@ -54,7 +54,7 @@ const SelectVerticalTabs = ({ currentStep, setCurrentStep, listingData, onListin
     useEffect(() => {
         const level1Cat = categoryData[selected.level1];
         if (selected.level1 && level1Cat?.id && !level1Cat.children) {
-            fetchSubCategoryOne(level1Cat.id);
+            fetchSubCategoryOne({categoryId: level1Cat.id});
         }
     }, [selected.level1, categoryData]);
 
@@ -69,7 +69,7 @@ const SelectVerticalTabs = ({ currentStep, setCurrentStep, listingData, onListin
         ) {
             const subCategoryOneId = level1Cat.childrenIds?.[level2Key];
             if (subCategoryOneId) {
-                fetchSubCategoryTwo(subCategoryOneId);
+                fetchSubCategoryTwo({subCategoryOneId: subCategoryOneId});
             }
         }
     }, [selected.level2, selected.level1, categoryData]);

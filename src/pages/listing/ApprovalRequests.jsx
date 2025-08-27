@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Breadcrumb, BreadcrumbItem, Col, Row, Card, CardBody, Input, Button, Badge,
     Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, Label
@@ -6,34 +6,81 @@ import {
 import { FaList, FaExclamationCircle, FaHourglassHalf, FaCheckCircle, FaDownload } from 'react-icons/fa';
 import { CSVLink } from 'react-csv';
 import DataTable from 'react-data-table-component';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { showToast } from '../../components/ToastifyNotification';
+import { GetProducts } from '../../api/productAPI';
+import { formatDateWithTime } from '../../utils/dateFormatter';
+import { checkProfileCompletion } from '../../utils/common';
 
 const ApprovalRequests = () => {
     const [filterText, setFilterText] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
+    const [data, setData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
+    const [isProfileComplete, setIsProfileComplete] = useState(false);
+    const navigate = useNavigate();
+
+    
+
+    const dispatch = useDispatch();
+     // --- API Fetching Logic ---
+        const fetchProducts = async () => {
+            dispatch({ type: 'loader', loader: true });
+            try {
+                const response = await GetProducts();
+                if (response.success) {
+                    showToast('success', response.message);
+                    const formattedData = response.data.map((item, index) => ({
+                        index: index + 1,
+                        id: item._id, // Keep _id for potential future actions
+                        title: item.name,
+                        brand: item?.brandId?.name || 'N/A',
+                        vertical: item?.categoryId?.name +'->'+item?.subCategoryOneId?.name +'->'+ item?.subCategoryTwoId?.name || 'N/A',
+                        status: item.status,
+                        comments: item.comments || 'N/A',
+                        lastUpdated: formatDateWithTime(item.updatedAt),
+                    }));
+                    setData(formattedData);
+                    setFilteredData(formattedData); // Initialize filteredData with all fetched data
+                } else {
+                    showToast('error', response.message);
+                    setError(response.message);
+                }
+            } catch (error) {
+                showToast('error', error.message || 'Failed to fetch products');
+                setError(error.message || 'Failed to fetch products');
+            } finally {
+                dispatch({ type: 'loader', loader: false });
+            }
+        };
+    
+        useEffect(() => {
+            fetchProducts();
+        }, []); // Fetch products on component mount
 
     const toggleModal = () => setModalOpen(!modalOpen);
 
     const counters = [
-        { title: 'All Requests', count: 1, icon: <FaList size={30} color="#fff" />, bgColor: '#6c757d', textColor: '#fff' },
-        { title: 'Action Required', count: 1, icon: <FaExclamationCircle size={30} color="#fff" />, bgColor: '#dc3545', textColor: '#fff' },
-        { title: 'Pending', count: 0, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
-        { title: 'Approved', count: 0, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
+        { title: 'All Requests', count: data.length, icon: <FaList size={30} color="#fff" />, bgColor: '#6c757d', textColor: '#fff' },
+        { title: 'Action Required', count: data.filter(item => item.status === 'Action Required').length, icon: <FaExclamationCircle size={30} color="#fff" />, bgColor: '#dc3545', textColor: '#fff' },
+        { title: 'Pending', count: data.filter(item => item.status === 'Pending').length, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
+        { title: 'Approved', count: data.filter(item => item.status === 'Approved').length, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
     ];
 
-    const demoData = [
-        { id: 143434443, brand: 'Nike', vertical: 'Sportswear', status: 'Pending', comments: 'Awaiting manager approval', lastUpdated: '2025-06-28' },
-        { id: 243434434, brand: 'Apple', vertical: 'Electronics', status: 'Approved', comments: 'Approved by admin', lastUpdated: '2025-06-27' },
-        { id: 356576764, brand: 'Samsung', vertical: 'Electronics', status: 'Action Required', comments: 'Need clarification', lastUpdated: '2025-06-26' },
-    ];
+    // const demoData = [
+    //     { id: 143434443, brand: 'Nike', vertical: 'Sportswear', status: 'Pending', comments: 'Awaiting manager approval', lastUpdated: '2025-06-28' },
+    //     { id: 243434434, brand: 'Apple', vertical: 'Electronics', status: 'Approved', comments: 'Approved by admin', lastUpdated: '2025-06-27' },
+    //     { id: 356576764, brand: 'Samsung', vertical: 'Electronics', status: 'Action Required', comments: 'Need clarification', lastUpdated: '2025-06-26' },
+    // ];
 
-    const filteredData = demoData.filter(
-        (item) =>
-            item.brand.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.vertical.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.status.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.comments.toLowerCase().includes(filterText.toLowerCase())
-    );
+    // const filteredData = demoData.filter(
+    //     (item) =>
+    //         item.brand.toLowerCase().includes(filterText.toLowerCase()) ||
+    //         item.vertical.toLowerCase().includes(filterText.toLowerCase()) ||
+    //         item.status.toLowerCase().includes(filterText.toLowerCase()) ||
+    //         item.comments.toLowerCase().includes(filterText.toLowerCase())
+    // );
 
     const columns = [
         { name: 'Request ID', selector: row => row.id, sortable: true },
@@ -64,6 +111,22 @@ const ApprovalRequests = () => {
             button: true,
         },
     ];
+
+    const user = useSelector(state => state.auth.user) || '';
+    useEffect(() => {
+        const profileComplete = checkProfileCompletion(user);
+
+        if (!profileComplete.isComplete) {
+            navigate('/profile', { state: { showPopup: true } });
+        } else {
+            setIsProfileComplete(true);
+        }
+    }, [user, navigate]);
+
+    // Conditional rendering check
+    if (!isProfileComplete) {
+        return null; // Or a loading spinner/message
+    }
 
     return (
         <>
@@ -111,7 +174,7 @@ const ApprovalRequests = () => {
                             />
                         </Col>
                         <Col className="text-end">
-                            <CSVLink data={demoData} filename="request_list.csv">
+                            <CSVLink data={filteredData} filename="request_list.csv">
                                 <Button color="success">
                                     <FaDownload className="me-1" /> Export CSV
                                 </Button>

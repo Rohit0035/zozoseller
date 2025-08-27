@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Breadcrumb, BreadcrumbItem, Col, Row } from "reactstrap";
 import StatsCards from "../components/StatCard,";
 // import BarGraph from '../components/BarGraph';
@@ -7,6 +7,7 @@ import DashboardCards from "../components/DashboardCards";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { GetSellerDashboardData } from "../api/sellerAPI";
 
 const Dashboard = () => {
   const carouselItems = [
@@ -30,6 +31,8 @@ const Dashboard = () => {
     }
   ];
 
+  const [dashboardData, setDashboardData] = useState([]);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
   useEffect(() => {
@@ -37,6 +40,28 @@ const Dashboard = () => {
       navigate('/login');
     }
   }, [isAuthenticated])
+
+  const fetchDashboardData = async () => {
+    dispatch({ type: "loader", loader: true });
+    
+    try {
+      const response = await GetSellerDashboardData();
+      console.log(response)
+        if (response.success) {
+          setDashboardData(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching invoice data:", err);
+        setDashboardData([]);
+      } finally {
+        dispatch({ type: "loader", loader: false });
+      }
+    };
+  
+    // Initial load of months and data
+    useEffect(() => {
+      fetchDashboardData();
+    }, []);
 
   return (
     <div className="page text-start">
@@ -51,7 +76,7 @@ const Dashboard = () => {
                   </BreadcrumbItem>
                   <BreadcrumbItem active>Today</BreadcrumbItem>
                 </Breadcrumb>
-                <StatsCards />
+                <StatsCards dashboardData={dashboardData}/>
               </Col>
               {/* <Col md="5">
                 <Card>
@@ -66,7 +91,7 @@ const Dashboard = () => {
 
         <Col md="12">
           <div className="mt-3 p-3" style={{ backgroundColor: "#eff7ff" }}>
-            <DashboardCards />
+            <DashboardCards dashboardData={dashboardData}/>
           </div>
         </Col>
 

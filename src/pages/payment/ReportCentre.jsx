@@ -1,172 +1,212 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import {
     Container,
-    Nav,
-    NavItem,
-    NavLink,
     Button,
     Row,
     Col,
-    Input,
-    Badge,
-    Offcanvas,
-    OffcanvasHeader,
-    OffcanvasBody,
     Card,
     CardBody,
     Breadcrumb,
-    BreadcrumbItem
-} from 'reactstrap';
-import { FaPlus, FaFilter } from 'react-icons/fa';
-import classnames from 'classnames';
-import DataTable from 'react-data-table-component';
-import OffInnerComponent from './OffInnerComponent';
+    BreadcrumbItem,
+    Badge
+} from "reactstrap";
+// Assuming Link is from react-router-dom
+import { Link } from "react-router-dom";
+import { FaEye } from "react-icons/fa";
+import DataTable from "react-data-table-component";
+// Assuming 'format' is from date-fns for date formatting
+import { format } from "date-fns";
+import { getReportData } from "../../api/paymentAPI";
 
-const tabs = ['Requested Reports', 'Scheduled Reports'];
-const tags = ['All', 'Fulfilment Reports', 'Invoices', 'Listings reports', 'Payment Reports', 'Tax Reports'];
+// Define the tags for the report types
+const tags = ["Invoices", "Listings Reports", "Payment Reports", "Tax Reports"];
 
-const dummyData = [
+// Define the columns for the Invoices table
+const invoiceColumns = [
+    { name: "S.No", selector: (row) => row.index, sortable: true, width: "8%" },
+    { name: "Invoice ID", selector: row => row.invoiceId },
     {
-        type: 'Invoices',
-        subtype: 'GSTR-1',
-        dateRange: '01 Jul - 31 Jul',
-        requestedDate: '10 Jul',
-        status: 'Completed',
-        requestType: 'Monthly',
-        generationDate: '11 Jul',
-        action: 'Download'
+        name: "Invoice Date",
+        selector: row =>
+            row.invoiceDate
+                ? format(new Date(row.invoiceDate), "dd-MM-yyyy hh:mm a")
+                : "N/A"
+    },
+    { name: "Invoice Amount", selector: row => row.totalAmountDisbursed },
+    { name: "Invoice Status", selector: row => row.status },
+    {
+        name: "Action",
+        cell: row =>
+            <Link
+                to={`/invoice-details/${row.invoiceId}`}
+                className="btn btn-success btn-sm"
+            >
+                <FaEye />
+            </Link>
     }
 ];
 
-const columns = [
-    { name: 'Type', selector: row => row.type },
-    { name: 'Sub Type', selector: row => row.subtype },
-    { name: 'Date Range', selector: row => row.dateRange },
-    { name: 'Requested Date', selector: row => row.requestedDate },
-    { name: 'Status', selector: row => row.status },
-    { name: 'Report Request Type', selector: row => row.requestType },
-    { name: 'Generation Date', selector: row => row.generationDate },
-    { name: 'Action', selector: row => row.action }
+const listingColumns = [
+    { name: 'S.No', selector: row => row.index, sortable: true, width: "8%" },
+    { name: 'Product Title', selector: row => row.name, sortable: true }, // Changed from 'title' to 'name'
+    { name: 'Creation Time', selector: row => row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A', sortable: true }, // Assuming 'createdAt' from API
+    { name: 'Update Time', selector: row => row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : 'N/A', sortable: true }, // Assuming 'updatedAt' from API
+    { name: 'Sales', selector: row => row.sales || 0, sortable: true, right: true }, // Assuming 'sales' might come from API, default to 0
+    { name: 'Product Details', selector: row => row.description, sortable: true }, // Assuming 'description' from API
+    { name: 'Listing Price', selector: row => row.regularPrice, sortable: true, right: true },
+    { name: 'Benchmark Price', selector: row => row.benchmarkPrice || 'N/A', sortable: true, right: true }, // Assuming benchmarkPrice might be a field
+    { name: 'Final Price', selector: row => row.salePrice || 'N/A', sortable: true, right: true },
+    { name: 'MRP', selector: row => row.mrp || 'N/A', sortable: true, right: true }, // Assuming mrp might be a field
+    { name: 'Stock', selector: row => row.stockQty, sortable: true, right: true },
+    { name: 'Returns', selector: row => row.returns || '0%', sortable: true }, // Assuming returns might be a field
+    { name: 'New', selector: row => (row.isNew ? 'Yes' : 'No'), sortable: true }, // Assuming 'isNew' flag
+    { name: 'Fulfillment', selector: row => row.fulfillment || 'N/A', sortable: true }, // Assuming 'fulfillment' flag
+    { name: 'Procurement SLA', selector: row => row.procurementSLA || 'N/A', sortable: true }, // Assuming 'procurementSLA' field
+    { name: 'Listing Quality', selector: row => row.listingQuality || 'N/A', sortable: true }, // Assuming 'listingQuality' field
+    { name: 'Additional Info', selector: row => row.additionalInfo || 'N/A', sortable: false }, // Assuming 'additionalInfo' field
+    // Action column is omitted here as per your new demo, but you can re-add it from previous component if needed
+    // { name: 'Action', selector: row => row.action, sortable: false },
 ];
 
+const paymentColumns = [
+    { name: "S.No", selector: (row) => row.index, sortable: true, width: "8%" },
+    { name: "Payment ID", selector: (row) => row._id, sortable: true, width: "25%" },
+    { name: "Transaction ID", selector: (row) => row.transactionId, sortable: true, width: "25%" },
+    { name: "Amount (₹)", selector: (row) => row.amount, sortable: true, width: "20%", format: row => `₹${row.amount}` },
+    { name: "Date", selector: (row) => row.paymentDate, sortable: true, width: "20%" },
+];
+
+const taxColumns = [
+    { name: "S.No", selector: (row) => row.index, sortable: true, width: "8%" },
+    { name: "Order ID", selector: (row) => row.orderId?.orderUniqueId, sortable: true, width: "10%" },
+    { name: "Sub Order ID", selector: (row) => row._id, sortable: true, width: "10%" },
+    { name: "Sub Total Amount (₹)", selector: (row) => row.subTotal, sortable: true, width: "10%", format: row => `₹${row.subTotal}` },
+    { name: "Tax Amount (₹)", selector: (row) => row.tax, sortable: true, width: "10%", format: row => `₹${row.tax}` },
+    { name: "Commission Amount (₹)", selector: (row) => row.commission, sortable: true, width: "10%", format: row => `₹${row.commission}` },
+    { name: "Shipping Amount (₹)", selector: (row) => row.shipping, sortable: true, width: "10%", format: row => `₹${row.shipping}` },
+    { name: "Amount (₹)", selector: (row) => row.total, sortable: true, width: "10%", format: row => `₹${row.total}` },
+    { name: "Status", selector: (row) => row.orderStatus, sortable: true, width: "10%" },
+    { name: "Payment To Vendor Status", selector: (row) => row.paymentToVendorStatus, sortable: true, width: "10%" },
+    { name: "Paid To Vendor Amount", selector: (row) => row.paidToVendorAmount, sortable: true, width: "10%" },
+    { name: "Date", selector: (row) => row.orderDate, sortable: true, width: "10%" },
+];
+
+
 const ReportCentre = () => {
-    const [activeTab, setActiveTab] = useState('Requested Reports');
-    const [activeTag, setActiveTag] = useState('All');
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [activeTag, setActiveTag] = useState("Invoices");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [invoiceData, setInvoiceData] = useState([]);
+    const [listingData, setListingData] = useState([]);
+    const [paymentData, setPaymentData] = useState([]);
+    const [taxData, setTaxData] = useState([]);
 
-    const toggleTab = tab => {
-        if (tab !== activeTab) setActiveTab(tab);
+    // A function to get the correct data based on the active tag
+    const getFilteredData = () => {
+        switch (activeTag) {
+            case "Invoices":
+                return invoiceData;
+            case "Listings Reports":
+                return listingData;
+            case "Payment Reports":
+                return paymentData;
+            case "Tax Reports":
+                return taxData;
+            default:
+                return [];
+        }
     };
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
+    // A function to get the correct columns based on the active tag
+    const getColumns = () => {
+        switch (activeTag) {
+            case "Invoices":
+                return invoiceColumns;
+            case "Listings Reports":
+                return listingColumns;
+            case "Payment Reports":
+                return paymentColumns;
+            case "Tax Reports":
+                return taxColumns;
+            default:
+                return [];
+        }
     };
 
-    const filteredData =
-        activeTag === 'All' ? dummyData : dummyData.filter(item => item.type === activeTag);
+    const fetchReportData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            // This API call should fetch all report data at once
+            const response = await getReportData();
+            if (response.success) {
+                // Add an index to each data item and update state
+                setInvoiceData((response.data.invoiceData || []).map((item, index) => ({ ...item, index: index + 1 })));
+                setListingData((response.data.listingData || []).map((item, index) => ({ ...item, index: index + 1 })));
+                setPaymentData((response.data.paymentData || []).map((item, index) => ({ ...item, index: index + 1 })));
+                setTaxData((response.data.taxData || []).map((item, index) => ({ ...item, index: index + 1 })));
+                console.log("Fetched tax data:", response.data.taxData);
+            }
+        } catch (err) {
+            console.error("Error fetching report data:", err);
+            setError("Failed to load report data.");
+            // We don't need to set filteredData, as it's a derived value
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial load of data when the component mounts
+    useEffect(() => {
+        fetchReportData();
+    }, []); // Empty dependency array ensures this runs only once
 
     return (
         <>
             <Row>
-                <Col md='6'>
-                    <Breadcrumb className='my-2'>
+                <Col md="6">
+                    <Breadcrumb className="my-2">
                         <BreadcrumbItem>
                             <h5>Report Centre</h5>
                         </BreadcrumbItem>
-                        <BreadcrumbItem active>
-                            Payment
-                        </BreadcrumbItem>
+                        <BreadcrumbItem active>Payment</BreadcrumbItem>
                     </Breadcrumb>
-                </Col>
-                <Col md="6">
-                    <div className='d-flex justify-content-end '>
-                        <Button color="primary" className='btn btn-primary' onClick={toggleSidebar}>
-                            <FaPlus className="me-1" /> REQUEST NEW REPORT
-                        </Button>
-                    </div>
                 </Col>
             </Row>
 
-            {/* Top Tabs */}
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <div className="d-flex gap-4">
-                    {tabs.map(tab => (
-                        <div key={tab} className="text-center">
-                            <Nav pills>
-                                <NavItem>
-                                    <NavLink
-                                        className={classnames({ active: activeTab === tab })}
-                                        onClick={() => toggleTab(tab)}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        {tab} <Badge color="light" className="ms-1 text-dark">0</Badge>
-                                    </NavLink>
-                                </NavItem>
-                            </Nav>
-                        </div>
-                    ))}
-                </div>
-
-            </div>
-
             {/* Tag Filters */}
             <div className="mb-3 d-flex flex-wrap gap-2">
-                {tags.map(tag => (
+                {tags.map(tag =>
                     <Button
                         key={tag}
                         outline
-                        color={activeTag === tag ? 'primary' : 'secondary'}
+                        color={activeTag === tag ? "primary" : "secondary"}
                         size="sm"
                         onClick={() => setActiveTag(tag)}
                     >
                         {tag}
                     </Button>
-                ))}
+                )}
             </div>
-
-            {/* Subtype Filter */}
-            <Row className="mb-3">
-                <Col md="3">
-                    <Input type="select">
-                        <option>All Subtypes</option>
-                        <option>GSTR-1</option>
-                        <option>Sales Report</option>
-                    </Input>
-                </Col>
-            </Row>
 
             {/* Data Table */}
             <Card className="shadow-sm">
                 <CardBody>
-                    {filteredData.length === 0 ? (
-                        <div className="text-center py-5">
-                            <h6 className="mb-2">Request Your First Report!</h6>
-                            <p className="text-muted">
-                                You can request reports like GSTR return report, Sales Report, TDS
+                    {loading
+                        ? <p>Loading reports...</p>
+                        : error
+                            ? <p className="text-danger">
+                                {error}
                             </p>
-                            <Button color="primary" onClick={toggleSidebar}>
-                                <FaPlus className="me-1" /> REQUEST NEW REPORT
-                            </Button>
-                        </div>
-                    ) : (
-                        <DataTable
-                            columns={columns}
-                            data={filteredData}
-                            pagination
-                            noHeader
-                            className="border rounded"
-                        />
-                    )}
+                            : <DataTable
+                                columns={getColumns()}
+                                data={getFilteredData()}
+                                pagination
+                                noHeader
+                                className="border rounded"
+                            />}
                 </CardBody>
             </Card>
-
-            {/* Offcanvas Sidebar */}
-            <Offcanvas isOpen={isSidebarOpen} toggle={toggleSidebar} direction="end"  className="w-50">
-                <OffcanvasHeader toggle={toggleSidebar}>Request New Report</OffcanvasHeader>
-                <OffcanvasBody>
-                   <OffInnerComponent/>
-                </OffcanvasBody>
-            </Offcanvas> 
         </>
     );
 };

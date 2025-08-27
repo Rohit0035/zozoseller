@@ -1,167 +1,258 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-    Container,
-    Row,
-    Col,
-    Card,
-    CardBody,
-    Nav,
-    NavItem,
-    NavLink,
-    Button,
-    Breadcrumb,
-    BreadcrumbItem
-} from 'reactstrap';
-import DataTable from 'react-data-table-component';
-import { FaCalendarAlt } from 'react-icons/fa';
-import { DateRange } from 'react-date-range';
-import { format, parse } from 'date-fns';
-import classnames from 'classnames';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
+  Container,
+  Row,
+  Col,
+  Card,
+  CardBody,
+  Nav,
+  NavItem,
+  NavLink,
+  Button,
+  Breadcrumb,
+  BreadcrumbItem
+} from "reactstrap";
+import DataTable from "react-data-table-component";
+import { FaCalendarAlt } from "react-icons/fa";
+import { DateRange } from "react-date-range";
+import { format, parse } from "date-fns";
+import classnames from "classnames";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
+import { getAvailableMonths, getPreviousPayments } from "../../api/paymentAPI";
 
-const months = ["Jul'25", "Jun'25", "May'25", "Apr'25", "Mar'25", "Feb'25"];
-
-const mockData = {
-    "Jul'25": [
-        { date: 'July 2, 2025', bank: 'ICICI', neft: 'NEFT1234', balanceType: 'Prepaid', amount: '₹1000' },
-        { date: 'July 5, 2025', bank: 'SBI', neft: 'NEFT5678', balanceType: 'Postpaid', amount: '₹2500' },
-    ],
-    "Jun'25": [
-        { date: 'June 10, 2025', bank: 'HDFC', neft: 'NEFT8910', balanceType: 'Prepaid', amount: '₹1500' }
-    ],
-    "May'25": [
-        { date: 'May 14, 2025', bank: 'Axis', neft: 'NEFT1122', balanceType: 'Postpaid', amount: '₹1700' }
-    ],
-    "Apr'25": [
-        { date: 'April 1, 2025', bank: 'Kotak', neft: 'NEFT4455', balanceType: 'Prepaid', amount: '₹500' }
-    ],
-    "Mar'25": [
-        { date: 'March 14, 2025', bank: 'N/A', neft: 'N/A', balanceType: 'Prepaid', amount: '₹0 (Bank Holiday)' },
-        { date: 'March 14, 2025', bank: 'N/A', neft: 'N/A', balanceType: 'Postpaid', amount: '₹0 (Bank Holiday)' }
-    ],
-    "Feb'25": [
-        { date: 'February 28, 2025', bank: 'HDFC', neft: 'NEFT7788', balanceType: 'Prepaid', amount: '₹800' }
-    ]
-};
-
+// Columns for the DataTable - remain the same
 const columns = [
-    { name: 'Payment Date', selector: row => row.date, sortable: true },
-    { name: 'Bank Account', selector: row => row.bank },
-    { name: 'Neft ID', selector: row => row.neft },
-    { name: 'Balance Account Type', selector: row => row.balanceType },
-    { name: 'Payment Amount', selector: row => row.amount }
+  { name: "Payment Date", selector: row => row.date, sortable: true },
+  { name: "Bank Account", selector: row => row.bank },
+  { name: "Neft ID", selector: row => row.neft },
+  { name: "Balance Account Type", selector: row => row.balanceType },
+  { name: "Payment Amount", selector: row => row.amount }
 ];
 
 const PreviousPayments = () => {
-    const [activeTab, setActiveTab] = useState("Mar'25");
-    const [showDateRange, setShowDateRange] = useState(false);
-    const [dateRange, setDateRange] = useState([
-        {
-            startDate: new Date(2025, 2, 1),
-            endDate: new Date(2025, 2, 28),
-            key: 'selection'
-        }
-    ]);
-    const [filteredData, setFilteredData] = useState(mockData[activeTab]);
+  const [availableMonths, setAvailableMonths] = useState([]);
+  const [activeTab, setActiveTab] = useState(""); // Will be set dynamically
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [dateRange, setDateRange] = useState([
+    {
+      startDate: new Date(), // Default to current month or a sensible range
+      endDate: new Date(),
+      key: "selection"
+    }
+  ]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    const toggleTab = (tab) => {
-        setActiveTab(tab);
-        setDateRange([
+  // Function to fetch available months
+  const fetchAvailableMonths = async () => {
+    try {
+      const response = await getAvailableMonths();
+      if (response.success) {
+        setAvailableMonths(response.data);
+        if (response.data.length > 0) {
+          // Set the most recent month as active initially
+          setActiveTab(response.data[0]);
+          // Set default date range for the active tab
+          const [monStr, yearStr] = response.data[0].split("'");
+          const year = parseInt(`20${yearStr}`, 10);
+          const monthMap = {
+            Jan: 0,
+            Feb: 1,
+            Mar: 2,
+            Apr: 3,
+            May: 4,
+            Jun: 5,
+            Jul: 6,
+            Aug: 7,
+            Sep: 8,
+            Oct: 9,
+            Nov: 10,
+            Dec: 11
+          };
+          const monthNum = monthMap[monStr];
+          const startOfMonth = new Date(year, monthNum, 1);
+          const endOfMonth = new Date(year, monthNum + 1, 0);
+          setDateRange([
             {
-                startDate: new Date(2025, 0, 1),
-                endDate: new Date(2025, 11, 31),
-                key: 'selection'
+              startDate: startOfMonth,
+              endDate: endOfMonth,
+              key: "selection"
             }
-        ]);
-        setFilteredData(mockData[tab]);
-        setShowDateRange(false);
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching available months:", err);
+      setError("Failed to load available months.");
+    }
+  };
+
+  // Function to fetch payment data based on current filters
+  const fetchPaymentData = async (activeTabParam, dateRangeParam) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = {
+        month: activeTabParam,
+        startDate: dateRangeParam
+          ? format(dateRangeParam[0].startDate, "yyyy-MM-dd")
+          : new Date().toISOString().split("T")[0],
+        endDate: dateRangeParam
+          ? format(dateRangeParam[0].endDate, "yyyy-MM-dd")
+          : new Date().toISOString().split("T")[0]
+      };
+      const response = await getPreviousPayments(params);
+      if (response.success) {
+        setFilteredData(response.data);
+      }
+    } catch (err) {
+      console.error("Error fetching payment data:", err);
+      setError("Failed to load payment data.");
+      setFilteredData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load of months and data
+  useEffect(() => {
+    fetchAvailableMonths();
+  }, []);
+
+  // Fetch data whenever activeTab or dateRange changes (when not in month tab mode)
+  useEffect(
+    () => {
+      if (activeTab) {
+        fetchPaymentData(activeTab, null);
+      } else if (dateRange[0].startDate && dateRange[0].endDate) {
+        // This case handles when a custom date range is applied
+        // The `handleApplyFilter` already calls fetchPaymentData,
+        // so this might not be strictly needed for date range,
+        // but keeps the month tab logic clean.
+      }
+    },
+    [activeTab]
+  ); // Only re-fetch for activeTab changes
+
+  const toggleTab = tab => {
+    setActiveTab(tab);
+    setShowDateRange(false); // Hide date picker when switching tabs
+    // Set the date range picker to the selected month's range
+    const [monStr, yearStr] = tab.split("'");
+    const year = parseInt(`20${yearStr}`, 10);
+    const monthMap = {
+      Jan: 0,
+      Feb: 1,
+      Mar: 2,
+      Apr: 3,
+      May: 4,
+      Jun: 5,
+      Jul: 6,
+      Aug: 7,
+      Sep: 8,
+      Oct: 9,
+      Nov: 10,
+      Dec: 11
     };
+    const monthNum = monthMap[monStr];
+    const startOfMonth = new Date(year, monthNum, 1);
+    const endOfMonth = new Date(year, monthNum + 1, 0); // Last day of the month
+    setDateRange([
+      { startDate: startOfMonth, endDate: endOfMonth, key: "selection" }
+    ]);
+  };
 
-    const handleApplyFilter = () => {
-        const [range] = dateRange;
-        const newData = mockData[activeTab].filter(row => {
-            const rowDate = parse(row.date, 'MMMM d, yyyy', new Date());
-            return rowDate >= range.startDate && rowDate <= range.endDate;
-        });
-        setFilteredData(newData);
-        setShowDateRange(false);
-    };
+  const handleApplyFilter = () => {
+    setActiveTab(""); // Clear active tab when custom date range is applied
+    fetchPaymentData(null, dateRange); // Fetch with date range
+    setShowDateRange(false);
+  };
 
-    return (
-        <>
-            <Row>
-                <Breadcrumb className='my-2'>
-                    <BreadcrumbItem>
-                        <h5>Previous Payments</h5>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem active>
-                        Payment
-                    </BreadcrumbItem>
-                </Breadcrumb>
-            </Row>
+  return (
+    <Container fluid>
+      <Row>
+        <Breadcrumb className="my-2">
+          <BreadcrumbItem>
+            <h5>Previous Payments</h5>
+          </BreadcrumbItem>
+          <BreadcrumbItem active>Payment</BreadcrumbItem>
+        </Breadcrumb>
+      </Row>
 
-            {/* Date Range Filter */}
-            <Row className="mb-3">
-                <Col md="4">
-                    <Button color="light" onClick={() => setShowDateRange(!showDateRange)}>
-                        <FaCalendarAlt className="me-2" />
-                        {`${format(dateRange[0].startDate, 'dd MMM yyyy')} - ${format(dateRange[0].endDate, 'dd MMM yyyy')}`}
-                    </Button>
-                    {showDateRange && (
-                        <div className="bg-white shadow mt-2">
-                            <DateRange
-                                editableDateInputs={true}
-                                onChange={item => setDateRange([item.selection])}
-                                moveRangeOnFirstSelection={false}
-                                ranges={dateRange}
-                                months={2}
-                                direction="horizontal"
-                                style={{ zIndex: '999999' }}
-                            />
-                            <div className="p-2 text-end">
-                                <Button color="primary" onClick={handleApplyFilter}>
-                                    Apply
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </Col>
-            </Row>
-            <Card className="">
-                <CardBody>
-                    {/* Tabs */}
-                    <Nav tabs className="mb-3">
-                        {months.map(month => (
-                            <NavItem key={month}>
-                                <NavLink
-                                    className={classnames({ active: activeTab === month })}
-                                    onClick={() => toggleTab(month)}
-                                    style={{ cursor: 'pointer' }}
-                                >
-                                    {month}
-                                </NavLink>
-                            </NavItem>
-                        ))}
-                    </Nav>
+      {/* Date Range Filter */}
+      <Row className="mb-3">
+        <Col md="4">
+          <Button
+            color="light"
+            onClick={() => setShowDateRange(!showDateRange)}
+          >
+            <FaCalendarAlt className="me-2" />
+            {`${format(dateRange[0].startDate, "dd MMM yyyy")} - ${format(
+              dateRange[0].endDate,
+              "dd MMM yyyy"
+            )}`}
+          </Button>
+          {showDateRange &&
+            <div
+              className="bg-white shadow mt-2"
+              style={{ position: "absolute", zIndex: 1000 }}
+            >
+              <DateRange
+                editableDateInputs={true}
+                onChange={item => setDateRange([item.selection])}
+                moveRangeOnFirstSelection={false}
+                ranges={dateRange}
+                months={2}
+                direction="horizontal"
+              />
+              <div className="p-2 text-end">
+                <Button color="primary" onClick={handleApplyFilter}>
+                  Apply
+                </Button>
+              </div>
+            </div>}
+        </Col>
+      </Row>
+      <Card className="">
+        <CardBody>
+          {/* Tabs */}
+          <Nav tabs className="mb-3">
+            {availableMonths.map(month =>
+              <NavItem key={month}>
+                <NavLink
+                  className={classnames({ active: activeTab === month })}
+                  onClick={() => toggleTab(month)}
+                  style={{ cursor: "pointer" }}
+                >
+                  {month}
+                </NavLink>
+              </NavItem>
+            )}
+          </Nav>
 
-
-
-                    {/* Data Table */}
-                    <DataTable
-                        columns={columns}
-                        data={filteredData}
-                        noHeader
-                        pagination
-                        highlightOnHover
-                        persistTableHead
-                        className=""
-                        noDataComponent="No records found."
-                    />
-                </CardBody>
-            </Card>
-        </>
-    );
+          {loading && <p>Loading payments...</p>}
+          {error &&
+            <p className="text-danger">
+              {error}
+            </p>}
+          {!loading &&
+            !error &&
+            <DataTable
+              columns={columns}
+              data={filteredData}
+              noHeader
+              pagination
+              highlightOnHover
+              persistTableHead
+              className=""
+              noDataComponent="No records found."
+            />}
+        </CardBody>
+      </Card>
+    </Container>
+  );
 };
 
 export default PreviousPayments;

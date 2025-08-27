@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DataTable from 'react-data-table-component';
 import { CSVLink } from 'react-csv';
 import { Breadcrumb, BreadcrumbItem, Card, CardBody, Col, Row } from 'reactstrap';
 import { RiArrowDropDownLine } from "react-icons/ri";
 import { FaList, FaTools, FaCheckCircle } from 'react-icons/fa';
+import { useDispatch } from 'react-redux';
+import { GetVendorOrders } from '../../api/vendorOrderAPI';
+import { showToast } from '../../components/ToastifyNotification';
 
 const returnReductionData = [
     {
@@ -86,31 +89,60 @@ const presets = {
 const CustomerReturnsReduction = () => {
     const [visibleColumns, setVisibleColumns] = useState(presets['Default View']);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
     const [filterText, setFilterText] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
-    const [sortConfig, setSortConfig] = useState({ field: 'frequency', order: 'desc' });
+    const [sortConfig, setSortConfig] = useState({ field: 'date', order: 'desc' });
+    const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
 
-    const filteredData = returnReductionData
-        .filter(item =>
-            Object.values(item).some(val =>
-                val.toString().toLowerCase().includes(filterText.toLowerCase())
-            )
-        )
-        .sort((a, b) => {
-            const field = sortConfig.field;
-            const valA = a[field];
-            const valB = b[field];
-            return sortConfig.order === 'desc' ? valA < valB ? 1 : -1 : valA > valB ? 1 : -1;
-        });
+  const dispatch = useDispatch();
 
-    const toggleColumn = (colName) => {
-        setVisibleColumns(prev =>
-            prev.includes(colName) ? prev.filter(c => c !== colName) : [...prev, colName]
-        );
-    };
+  const fetchOrders = async (data) => {
+      dispatch({ type: 'loader', loader: true })
+  
+      try {
+        const response = await GetVendorOrders(data); // Make sure login function returns token
+        console.log(response);
+        if (response.success == true) {
+          showToast('success', response.message)
+          const formattedData = response.data.map((item, index) => ({
+            index: index + 1,
+            id: item._id,
+            returnId: item.orderId?.returnId,
+            orderId: item.orderId?.orderUniqueId,
+            customerName: item.orderId?.userId?.name,
+            contact: item.orderId?.userId?.phone,
+            product: item.orderItems[0]?.productId?.name,
+            sku: item.orderItems[0]?.productVariationId?.sku,
+            reason: item.returnReason || 'N/A',
+            frequency: item.returnFrequency || 'N/A',
+            returnDate: item.returnDate || 'N/A',
+            actionTaken: item.actionTaken || 'N/A',
+            preventiveMeasure: item.preventiveMeasure || 'N/A',
+            status: item.orderStatus,
+          }));
+          setData(formattedData);
+          setFilteredData(formattedData);
+        } else {
+          // setError(response.message);
+          showToast('error', response.message)
+        }
+      } catch (error) {
+        // setError(error); // Handle login errors
+        showToast('error', error)
+      } finally {
+        dispatch({ type: 'loader', loader: false })
+      }
+    }
+  
+    useEffect(() => {
+      fetchOrders();
+    }, []);
 
     const applyPreset = (preset) => {
         setVisibleColumns(presets[preset]);
+        setDropdownOpen(false);
     };
 
     const handleRowSelected = (state) => {
@@ -122,21 +154,21 @@ const CustomerReturnsReduction = () => {
     const counters = [
         {
             title: 'Total Returns Analyzed',
-            count: returnReductionData.length,
+            count: data.length,
             icon: <FaList size={30} color="#fff" />,
             bgColor: '#6c757d',
             textColor: '#fff'
         },
         {
             title: 'Resolved Issues',
-            count: returnReductionData.filter(o => o.status === 'Resolved').length,
+            count: data.filter(o => o.status === 'Resolved').length,
             icon: <FaCheckCircle size={30} color="#fff" />,
             bgColor: '#28a745',
             textColor: '#fff'
         },
         {
             title: 'Improvements Made',
-            count: returnReductionData.filter(o => o.actionTaken !== '').length,
+            count: data.filter(o => o.actionTaken !== '').length,
             icon: <FaTools size={30} color="#fff" />,
             bgColor: '#007bff',
             textColor: '#fff'

@@ -32,12 +32,17 @@ const SettlementDashboard = lazy(() =>
 );
 const PaymentIndex = lazy(() => import("./pages/payment/PaymentIndex"));
 const PreviousPayments = lazy(() => import("./pages/payment/PreviousPayments"));
-const ReportCenter = lazy(() => import("./pages/payment/ReportCentre"));
+const Invoices = lazy(() => import("./pages/payment/Invoices"));
+const InvoiceDetails = lazy(() => import("./pages/payment/InvoiceDetails"));
 const Statements = lazy(() => import("./pages/payment/Statements"));
 const ServiceTransactions = lazy(() =>
   import("./pages/payment/ServiceTransactions")
 );
+const AddServiceRequest = lazy(() =>
+  import("./pages/payment/AddServiceRequest")
+);
 // more
+const ReportCenter = lazy(() => import("./pages/payment/ReportCentre"));
 const MyServices = lazy(() => import("./pages/more/MyServices"));
 const PartnerServicesHelp = lazy(() =>
   import("./pages/more/PartnerServicesHelp")
@@ -230,6 +235,22 @@ export default function AppRoutes() {
           }
         />
         <Route
+          path="/invoices"
+          element={
+            <PrivateRoute>
+              <Invoices />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/invoice-details/:invoiceId"
+          element={
+            <PrivateRoute>
+              <InvoiceDetails />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/report-center"
           element={
             <PrivateRoute>
@@ -250,6 +271,15 @@ export default function AppRoutes() {
           element={
             <PrivateRoute>
               <ServiceTransactions />
+            </PrivateRoute>
+          }
+        />
+       
+        <Route
+          path="/add-service-request"
+          element={
+            <PrivateRoute>
+              <AddServiceRequest />
             </PrivateRoute>
           }
         />

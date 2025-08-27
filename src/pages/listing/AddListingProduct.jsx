@@ -1,24 +1,44 @@
 
 
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Nav, NavItem, NavLink, TabContent, TabPane, Breadcrumb, BreadcrumbItem, Col, DropdownMenu, DropdownToggle, Row, UncontrolledDropdown, DropdownItem } from 'reactstrap';
 import { FaListAlt, FaLayerGroup, FaThLarge } from 'react-icons/fa';
 // import BulkVariantGroupings from './BulkVariantGroupings';
 import classnames from 'classnames';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaBell } from 'react-icons/fa';
 import SingleListings from './SingleListings';
 import BulkListings from './BulkListings';
 import BulkVariantGroupings from './BulkVariantGroupings';
+import { useSelector } from 'react-redux';
+import { checkProfileCompletion } from '../../utils/common';
 
 
 const AddListingProduct = () => {
   const [activeTab, setActiveTab] = useState('1');
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const navigate = useNavigate();
 
   const toggle = (tab) => {
     if (activeTab !== tab) setActiveTab(tab);
   };
+
+  const user = useSelector(state => state.auth.user) || '';
+    useEffect(() => {
+        const profileComplete = checkProfileCompletion(user);
+        console.log('Profile Completion:', profileComplete);
+        if (!profileComplete.isComplete) {
+            navigate('/profile', { state: { showPopup: true } });
+        } else {
+            setIsProfileComplete(true);
+        }
+    }, [user, navigate]);
+
+    // Conditional rendering check
+    if (!isProfileComplete) {
+        return null; // Or a loading spinner/message
+    }
 
   return (
 

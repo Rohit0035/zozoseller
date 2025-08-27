@@ -1,0 +1,57 @@
+@media print {
+
+    /* Hide everything by default */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Make the invoice content visible */
+    .invoice-print-area,
+    .invoice-print-area * {
+        visibility: visible;
+    }
+
+    /* Position the invoice content to the top-left of the page */
+    .invoice-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        /* Ensure it takes full print width */
+        margin: 0;
+        /* Remove any external margins */
+        padding: 0;
+        /* Remove any external padding */
+    }
+
+    /* Optional: Adjust specific styles for print */
+    .card,
+    .card-body {
+        box-shadow: none !important;
+        /* Remove shadows */
+        border: none !important;
+        /* Remove borders */
+        background-color: transparent !important;
+        /* No background color */
+    }
+
+    /* Ensure text is black for better readability on paper */
+    body {
+        color: #000 !important;
+    }
+
+    /* Prevent elements from breaking across pages awkwardly */
+    table {
+        page-break-inside: auto;
+    }
+
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    thead {
+        display: table-header-group;
+        /* Repeat table headers on new pages */
+    }
+}

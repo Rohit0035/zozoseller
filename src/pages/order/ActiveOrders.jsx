@@ -90,7 +90,7 @@ const ActiveOrders = () => {
 				const formattedData = response.data.map((item, index) => ({
 					index: index + 1,
 					id: item._id,
-					orderId: item.subOrderUniqueId,
+					orderId: item.orderId?.orderUniqueId,
 					productInfo: item.orderItems[0]?.productId?.name,
 					quantity: item.orderItems[0]?.quantity,
 					amount: item.total,

@@ -1,182 +1,327 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
-    Card, CardBody, CardHeader,
-    UncontrolledAccordion, AccordionItem, AccordionHeader, AccordionBody,
-    Container, Row, Col,
-    Breadcrumb,
-    BreadcrumbItem
-} from 'reactstrap';
+  Card,
+  CardBody,
+  UncontrolledAccordion,
+  AccordionItem,
+  AccordionHeader,
+  AccordionBody,
+  Row,
+  Col,
+  Breadcrumb,
+  BreadcrumbItem
+} from "reactstrap";
+import {
+  FaUserCog,
+  FaUniversity,
+  FaBuilding,
+  FaNetworkWired,
+  FaCheckCircle
+} from "react-icons/fa";
+import Account from "../../components/profile/Account";
+import BankDetails from "../../components/profile/BankDetails";
+import BusinessDetial from "../../components/profile/BusinessDetial";
+import ManageSessions from "../../components/profile/ManageSessions";
+import {
+  GetSellerProfileData,
+  UpdateSellerProfile
+} from "../../api/sellerProfileAPI";
+import { showToast } from "../../components/ToastifyNotification";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { SET_USER } from "../../reducers/authReducer";
 
-import {
-    FaUserCog, FaUserTie, FaUniversity, FaBuilding,
-    FaCogs, FaCalendarAlt, FaUsers, FaHandshake,
-    FaNetworkWired, FaCode
-} from 'react-icons/fa';
-import Account from '../../components/profile/Account';
-import AccountManager from '../../components/profile/AccountManager';
-import BankDetails from '../../components/profile/BankDetails';
-import BusinessDetial from '../../components/profile/BusinessDetial';
-import Settings from '../../components/profile/Settings';
-import CalendarSettings from '../../components/profile/CalendarSettings';
-import ManageUsers from '../../components/profile/ManageUsers';
-import ManagePartnerAccess from '../../components/profile/ManagePartnerAccess';
-import ManageSessions from '../../components/profile/ManageSessions';
-import DeveloperAccess from '../../components/profile/DeveloperAccess';
+// Helper function to calculate completion percentage for a card
+const calculateCardCompletion = (data, requiredFields) => {
+  if (!data) return 0;
+
+  let completedFields = 0;
+  requiredFields.forEach(field => {
+    // Handle nested fields like 'pickupAddress.pinCode'
+    const parts = field.split(".");
+    let value = data;
+    let isFieldPresent = true;
+    for (const part of parts) {
+      if (value && value[part] !== undefined) {
+        value = value[part];
+      } else {
+        isFieldPresent = false;
+        break;
+      }
+    }
+
+    if (isFieldPresent && value !== null && value !== "") {
+      completedFields++;
+    }
+  });
+
+  return Math.round(completedFields / requiredFields.length * 100);
+};
 
 const ProfileIndex = () => {
-    const [activeSection, setActiveSection] = useState('');
+  const location = useLocation();
+  const showPopup = (location.state && location.state.showPopup) || true;
+  const [activeSection, setActiveSection] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const [webSessions, setWebSessions] = useState([]);
+  const [appSessions, setAppSessions] = useState([]);
 
-    const handleToggle = (id) => {
-        setActiveSection(prev => (prev === id ? '' : id));
-    };
+  const handleToggle = id => {
+    setActiveSection(prev => (prev === id ? "" : id));
+  };
 
-    return (
-        <>
-            <Breadcrumb className='my-2'>
-                <BreadcrumbItem>
-                    <h5>Mange Profile</h5>
-                </BreadcrumbItem>
-                <BreadcrumbItem active>
-                    Home
-                </BreadcrumbItem>
-            </Breadcrumb>
-            <div className="my-3">
-                <Row className="justify-content-center">
-                    <Col md="12">
-                        <Card>
-                            <CardBody className='p-0'>
-                                <UncontrolledAccordion stayOpen open={activeSection} style={{ border: 'none' }}>
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="1" className='' onClick={() => handleToggle("1")}>
-                                            <div className='d-flex'>
-                                                <FaUserCog size={20} color='#0a399c' className="me-3" />
-                                                <h6 className='mb-0'>Account
-                                                    <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>View your display information, pickup address, login detail and primary details</p>
-                                                </h6>
-                                            </div>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="1" className='p-2'>
-                                            <Account />
-                                        </AccordionBody>
-                                    </AccordionItem>
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="2" onClick={() => handleToggle("2")}>
-                                            <FaUserTie size={20} color='#0a399c' className="me-2 " />
-                                            <h6 className='mb-0'>  Account Manager
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>View your account manager details</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="2" className='p-2'>
-                                            <AccountManager />
-                                        </AccordionBody>
-                                    </AccordionItem>
+  const fetchProfileData = async () => {
+    setLoading(true);
+    try {
+      const response = await GetSellerProfileData();
+      if (response.success) {
+        setProfileData(response.data.user);
+        dispatch({ type: SET_USER, payload: response.data.user });
+        setWebSessions(response.data.webSessions);
+        setAppSessions(response.data.appSessions);
+      }
+    } catch (err) {
+      console.error("Error fetching profile data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="3" onClick={() => handleToggle("3")}>
-                                            <FaUniversity size={20} color='#0a399c' className="me-2" />
-                                            <h6 className='mb-0'>  Bank Details
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>View your bank details</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="3" className='p-2'>
-                                            <BankDetails />
-                                        </AccordionBody>
-                                    </AccordionItem>
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="4" onClick={() => handleToggle("4")}>
-                                            <FaBuilding size={20} color='#0a399c' className="me-2" />
-                                            <h6 className='mb-0'>  Business Details
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>View your business details and KYC documents</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="4" className='p-2'>
-                                            <BusinessDetial />
-                                        </AccordionBody>
-                                    </AccordionItem>
+  const handleSubmit = async data => {
+    console.log("data", data);
+    setLoading(true);
+    try {
+      const response = await UpdateSellerProfile(data);
+      if (response.success) {
+        showToast("success", response.message);
+        // After a successful update, re-fetch profile data to show the new completion status
+        fetchProfileData();
+      } else {
+        showToast("error", response.message);
+      }
+    } catch (err) {
+      console.error("Error updating profile data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="5" onClick={() => handleToggle("5")}>
-                                            <FaCogs size={20} color='#0a399c' className="me-2" />
-                                            <h6 className='mb-0'>  Settings
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>Manage your logistics and FBF settings</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="5" className='p-2'>
-                                            <Settings />
-                                        </AccordionBody>
-                                    </AccordionItem>
+  // Define the required fields for each section
+  const accountFields = [
+    "name",
+    "email",
+    "phone",
+    "displayName",
+    "businessDescription",
+    "pickupAddress.line1",
+    "pickupAddress.pinCode",
+    "pickupAddress.city"
+  ];
+  const bankDetailsFields = ["bankName", "accountNo", "ifscCode", "branchName"];
+  const businessDetailsFields = [
+    "companyName",
+    "tan",
+    "gstin",
+    "companyAddress",
+    "signature",
+    "businessType",
+    "pan",
+    "addressProof",
+    "state",
+    "brandDetails.brandType",
+    "brandDetails.brandName",
+    "brandDetails.brandNameCertificate"
+  ];
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="6" onClick={() => handleToggle("6")}>
-                                            <FaCalendarAlt size={20} color='#0a399c' className="me-2" />
-                                            <h6 className='mb-0'>  Calendar
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>View your working hours, Holiday list and vacation plans</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="6" className="me-2">
-                                            <CalendarSettings />
-                                        </AccordionBody>
-                                    </AccordionItem>
+  // Calculate completion percentages
+  const accountCompletion = calculateCardCompletion(profileData, accountFields);
+  const bankDetailsCompletion = calculateCardCompletion(
+    profileData,
+    bankDetailsFields
+  );
+  const businessDetailsCompletion = calculateCardCompletion(
+    profileData,
+    businessDetailsFields
+  );
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="7" onClick={() => handleToggle("7")}>
-                                            <FaUsers size={20} color='#0a399c' className="me-2" />
-                                            <h6 className='mb-0'>  Manage Users
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>Manage your employees, add, edit, delete roles and permissions given to access dashboard</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="7" className="py-2">
-                                            <ManageUsers />
-                                        </AccordionBody>
-                                    </AccordionItem>
+  // You'll need to pass the updated handleSubmit function to the child components
+  // for a seamless update experience.
+  // The handleUpdate function in the child components (e.g., BusinessDetial) should call this handleSubmit.
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="8" onClick={() => handleToggle("8")}>
-                                            <FaHandshake size={20} color='#0a399c' className="me-2" /> 
-                                            <h6 className='mb-0'> Manage Partners
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>Manage your partners, add, edit, delete roles and permissions given to access dashboard</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="8" className="py-2">
-                                              <ManagePartnerAccess/>
-                                        </AccordionBody>
-                                    </AccordionItem>
+  useEffect(
+    () => {
+      if (showPopup) {
+        showToast("error", "Please complete your profile.");
+      }
+    },
+    [showPopup]
+  );
+  return (
+    <div className="my-3">
+      <Row className="justify-content-center">
+        <Col md="12">
+          <Card>
+            <CardBody className="p-0">
+              <UncontrolledAccordion
+                stayOpen
+                open={activeSection}
+                style={{ border: "none" }}
+              >
+                {/* Account Section */}
+                <AccordionItem className="mb-2 shadow-sm">
+                  <AccordionHeader
+                    targetId="1"
+                    onClick={() => handleToggle("1")}
+                  >
+                    <div className="d-flex align-items-center">
+                      <FaUserCog size={20} color="#0a399c" className="me-3" />
+                      <div className="d-flex flex-column">
+                        <h6 className="mb-0">
+                          Account
+                          <p
+                            style={{ fontSize: "12px" }}
+                            className="mt-0 mb-0 text-dark"
+                          >
+                            View your display information, pickup address, login
+                            detail and primary details
+                          </p>
+                        </h6>
+                      </div>
+                      {accountCompletion === 100 &&
+                        <FaCheckCircle className="text-success ms-auto me-2" />}
+                      <span className="text-muted" style={{ fontSize: "14px" }}>
+                        {accountCompletion}% Complete
+                      </span>
+                    </div>
+                  </AccordionHeader>
+                  <AccordionBody accordionId="1" className="p-2">
+                    <Account
+                      profileData={profileData}
+                      handleSubmit={handleSubmit}
+                    />
+                  </AccordionBody>
+                </AccordionItem>
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="9" onClick={() => handleToggle("9")}>
-                                            <FaNetworkWired size={20} color='#0a399c' className="me-2" /> 
-                                            <h6 className='mb-0'> Manage Sessions
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>Manage your sessions, view IP Address and delete sessions.</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="9" className='py-2'>
-                                             <ManageSessions/>
-                                        </AccordionBody>
-                                    </AccordionItem>
+                {/* Bank Details Section */}
+                <AccordionItem className="mb-2 shadow-sm">
+                  <AccordionHeader
+                    targetId="3"
+                    onClick={() => handleToggle("3")}
+                  >
+                    <div className="d-flex align-items-center">
+                      <FaUniversity
+                        size={20}
+                        color="#0a399c"
+                        className="me-3"
+                      />
+                      <div className="d-flex flex-column">
+                        <h6 className="mb-0">
+                          Bank Details
+                          <p
+                            style={{ fontSize: "12px" }}
+                            className="mt-0 mb-0 text-dark"
+                          >
+                            View your bank details
+                          </p>
+                        </h6>
+                      </div>
+                      {bankDetailsCompletion === 100 &&
+                        <FaCheckCircle className="text-success ms-auto me-2" />}
+                      <span className="text-muted" style={{ fontSize: "14px" }}>
+                        {bankDetailsCompletion}% Complete
+                      </span>
+                    </div>
+                  </AccordionHeader>
+                  <AccordionBody accordionId="3" className="p-2">
+                    <BankDetails
+                      profileData={profileData}
+                      handleSubmit={handleSubmit}
+                    />
+                  </AccordionBody>
+                </AccordionItem>
 
-                                    <AccordionItem className='mb-2 shadow-sm'>
-                                        <AccordionHeader targetId="10" onClick={() => handleToggle("10")}>
-                                            <FaCode size={20} color='#0a399c' className="me-2" /> 
-                                             <h6 className='mb-0'> Developer Access
-                                                <p style={{ fontSize: '12px' }} className='mt-0 mb-0 text-dark'>Manage the Developer access to your seller portal</p>
-                                            </h6>
-                                        </AccordionHeader>
-                                        <AccordionBody accordionId="10" className='py-2'>
-                                            <DeveloperAccess/>
-                                        </AccordionBody>
-                                    </AccordionItem>
+                {/* Business Details Section */}
+                <AccordionItem className="mb-2 shadow-sm">
+                  <AccordionHeader
+                    targetId="4"
+                    onClick={() => handleToggle("4")}
+                  >
+                    <div className="d-flex align-items-center">
+                      <FaBuilding size={20} color="#0a399c" className="me-3" />
+                      <div className="d-flex flex-column">
+                        <h6 className="mb-0">
+                          Business Details
+                          <p
+                            style={{ fontSize: "12px" }}
+                            className="mt-0 mb-0 text-dark"
+                          >
+                            View your business details and KYC documents
+                          </p>
+                        </h6>
+                      </div>
+                      {businessDetailsCompletion === 100 &&
+                        <FaCheckCircle className="text-success ms-auto me-2" />}
+                      <span className="text-muted" style={{ fontSize: "14px" }}>
+                        {businessDetailsCompletion}% Complete
+                      </span>
+                    </div>
+                  </AccordionHeader>
+                  <AccordionBody accordionId="4" className="p-2">
+                    <BusinessDetial
+                      profileData={profileData}
+                      handleSubmit={handleSubmit}
+                    />
+                  </AccordionBody>
+                </AccordionItem>
 
-                                </UncontrolledAccordion>
-                            </CardBody>
-                        </Card>
-                    </Col>
-                </Row>
-            </div>
-        </>
-
-    );
+                {/* Manage Sessions Section */}
+                <AccordionItem className="mb-2 shadow-sm">
+                  <AccordionHeader
+                    targetId="9"
+                    onClick={() => handleToggle("9")}
+                  >
+                    <div className="d-flex align-items-center">
+                      <FaNetworkWired
+                        size={20}
+                        color="#0a399c"
+                        className="me-3"
+                      />
+                      <div className="d-flex flex-column">
+                        <h6 className="mb-0">
+                          Manage Sessions
+                          <p
+                            style={{ fontSize: "12px" }}
+                            className="mt-0 mb-0 text-dark"
+                          >
+                            Manage your sessions, view IP Address and delete
+                            sessions.
+                          </p>
+                        </h6>
+                      </div>
+                    </div>
+                  </AccordionHeader>
+                  <AccordionBody accordionId="9" className="py-2">
+                    <ManageSessions
+                      webSessions={webSessions}
+                      appSessions={appSessions}
+                    />
+                  </AccordionBody>
+                </AccordionItem>
+              </UncontrolledAccordion>
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+    </div>
+  );
 };
 
 export default ProfileIndex;

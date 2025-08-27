@@ -113,7 +113,7 @@ const CancelOrder = () => {
           const formattedData = response.data.map((item, index) => ({
             index: index + 1,
             id: item._id,
-            orderId: item.orderId?._id,
+            orderId: item.orderId?.orderUniqueId,
             customerName: item.orderId?.userId?.name,
             contact: item.orderId?.userId?.phone,
             product: item.orderItems[0]?.productId?.name,

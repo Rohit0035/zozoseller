@@ -1,6 +1,7 @@
 // authApi.js
 import { API_CONFIG } from "../utils/api-config";
 import axios from "axios";
+import fetchWithAuth from "../utils/apiAthurization";
 
 export const sellerLogin = async (data) => {
   try {
@@ -76,6 +77,22 @@ export const sellerVerifyRegistrationOtp = async (data) => {
       status: "error", 
       message: error?.response?.data?.message || "Login failed",
       statusCode: error?.response?.data?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const GetSellerDashboardData = async (data) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_CONFIG.baseURL}/seller/get-seller-dashboard-data`
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "brand products fetching failed",
+      statusCode: error.response?.status || 500 // Preserve status code
     };
   }
 };

@@ -3,10 +3,10 @@ import { API_CONFIG, API_MULTIPART_CONFIG } from "../utils/api-config";
 import axios from "axios";
 import fetchWithAuth from "../utils/apiAthurization";
 
-export const StoreVendor = async (data) => {
+export const StoreCommissionSlab = async (data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_MULTIPART_CONFIG.baseURL}/vendors`,'POST',data,'multipart'
+      `${API_CONFIG.baseURL}/commission-slabs`,'POST',data
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {
@@ -19,42 +19,26 @@ export const StoreVendor = async (data) => {
   }
 };
 
-export const GetVendors = async (VendorCategoryId) => {
+export const GetCommissionSlabs = async () => {
   try {
     const response = await fetchWithAuth(
-      `${API_CONFIG.baseURL}/vendors`
+      `${API_CONFIG.baseURL}/commission-slabs`
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {
     // throw new Error(error?.message || "Login failed");
     return { 
       status: "error", 
-      message: error?.message || "Vendors fetching failed",
+      message: error?.message || "commission-slabs fetching failed",
       statusCode: error.response?.status || 500 // Preserve status code
     };
   }
 };
 
-export const GetVendorById = async (id) => {
+export const GetCommissionSlabById = async (id) => {
   try {
     const response = await fetchWithAuth(
-      `${API_CONFIG.baseURL}/vendors/${id}`
-    );
-    return response.data; // Axios automatically parses JSON
-  } catch (error) {
-    // throw new Error(error?.message || "Login failed");
-    return { 
-      status: "error", 
-      message: error?.message || "signup failed",
-      statusCode: error.response?.status || 500 // Preserve status code
-    };
-  }
-};
-
-export const UpdateVendor = async (id,data) => {
-  try {
-    const response = await fetchWithAuth(
-      `${API_MULTIPART_CONFIG.baseURL}/vendors/${id}`,'PATCH',data,'multipart'
+      `${API_CONFIG.baseURL}/commission-slabs/${id}`
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {
@@ -67,10 +51,10 @@ export const UpdateVendor = async (id,data) => {
   }
 };
 
-export const DeleteVendor = async (id) => {
+export const GetCommissionSlabsBySubsCategoryTwoId = async (data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_CONFIG.baseURL}/vendors/${id}`,'DELETE'
+      `${API_CONFIG.baseURL}/commission-slabs/get-commission-slabs-by-sub-category-two-id/${data?.subCategoryTwoId}`
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {
@@ -83,10 +67,26 @@ export const DeleteVendor = async (id) => {
   }
 };
 
-export const UpdateVendorStatus = async (data) => {
+export const UpdateCommissionSlab = async (id,data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_CONFIG.baseURL}/vendors/update-vendor-status/`,'POST',data
+      `${API_CONFIG.baseURL}/commission-slabs/${id}`,'PATCH',data
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "signup failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const DeleteCommissionSlab = async (id) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_CONFIG.baseURL}/commission-slabs/${id}`,'DELETE'
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {

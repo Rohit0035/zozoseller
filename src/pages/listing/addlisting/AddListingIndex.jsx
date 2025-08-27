@@ -24,11 +24,17 @@ const AddListingIndex = () => {
         galleryImages: [],
         videos: [],
         type: null,
-       
+        
         name: "",
-        skuId: "",
+        sku: "",
         status: "",
         regularPrice: "",
+        productPrice: "",
+        comissionRate: "",
+        comissionAmount: "",
+        gstAmount: "",
+        tcsAmount: "",
+        shippingCharge: "",
         salePrice: "",
         minOrderQuantity: "",
         fulfillmentBy: "",
@@ -50,7 +56,8 @@ const AddListingIndex = () => {
         importerDetails: "",
         productDetails: [{ key: "", value: "" }], // The dynamic "Description *" inputs in section 3
         description: "", // The single 'Description' input in section 3
-        more:'', 
+        more:'',
+        type:'simple', 
         specifications: [],
         
         attributes: [],

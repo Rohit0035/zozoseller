@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaList, FaSearch } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Modal, ModalBody, Breadcrumb, BreadcrumbItem, Button, Card, CardBody, Col, DropdownItem, DropdownMenu, DropdownToggle, Input, InputGroup, Row, UncontrolledDropdown, UncontrolledTooltip } from 'reactstrap';
 import StatsCards from '../../components/StatCard,';
 import ListingProduct from './ListingProduct';
+import { useSelector } from 'react-redux';
+import { checkProfileCompletion } from '../../utils/common';
 
 const ListingIndex = () => {
 
@@ -19,6 +21,8 @@ const ListingIndex = () => {
     });
 
     const [activeFilter, setActiveFilter] = useState("Active"); // New state for counter filters
+    const [isProfileComplete, setIsProfileComplete] = useState(false); // New state to track profile completion
+    const navigate = useNavigate();
     
 
     const handleVideoClick = (url) => {
@@ -30,6 +34,23 @@ const ListingIndex = () => {
         setVideoModal(!videoModal);
     };
 
+    const user = useSelector(state => state.auth.user) || '';
+    useEffect(() => {
+        const profileComplete = checkProfileCompletion(user);
+
+        if (!profileComplete.isComplete) {
+            navigate('/profile', { state: { showPopup: true } });
+        } else {
+            setIsProfileComplete(true);
+        }
+    }, [user, navigate]);
+
+    // Conditional rendering check
+    if (!isProfileComplete) {
+        return null; // Or a loading spinner/message
+    }
+
+    
     return (
         <>
             <Row>

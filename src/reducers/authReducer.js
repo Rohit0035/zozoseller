@@ -1,5 +1,6 @@
 export const LOGIN_SUCCESS = "LOGIN_SUCCESS"; // Define LOGIN_SUCCESS action type
 export const LOGOUT = "LOGOUT"; // Define LOGOUT action type
+export const SET_USER = "SET_USER";
 
 const initialState = {
   isAuthenticated: localStorage.getItem("isAuthenticated") === "true",
@@ -37,6 +38,9 @@ const authReducer = (state = initialState, action) => {
       localStorage.removeItem("loginTime");
       localStorage.removeItem("token");
       return { ...state, isAuthenticated: false, user: null, loginTime: null };
+    case SET_USER: // Use SET_USER constant in your switch case
+      localStorage.setItem("user", JSON.stringify(action.payload));
+      return { ...state, user: action.payload };
     default:
       return state;
   }

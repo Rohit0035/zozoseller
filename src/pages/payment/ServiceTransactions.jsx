@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Container,
     Button,
@@ -10,6 +10,8 @@ import {
     BreadcrumbItem
 } from 'reactstrap';
 import DataTable from 'react-data-table-component';
+import { GetAdServiceRequests } from '../../api/adServiceRequestAPI';
+import { Link } from 'react-router-dom';
 
 const sampleData = [
     {
@@ -54,19 +56,56 @@ const columns = [
     { name: 'Amount', selector: row => row.amount },
     { name: 'Transaction Status', selector: row => row.status },
     { name: 'Payment Date', selector: row => row.paymentDate },
-    { name: 'Message', selector: row => row.message },
     { name: 'Payment Mode', selector: row => row.mode }
 ];
 
-const tabs = ['All', 'Success', 'Failed', 'Pending'];
+const tabs = ['All', 'Paid', 'Failed', 'Pending'];
 
 const ServiceTransactions = () => {
     const [activeTab, setActiveTab] = useState('Pending');
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const filteredData =
         activeTab === 'All'
-            ? sampleData
-            : sampleData.filter(item => item.status === activeTab);
+            ? data
+            : data.filter(item => item.status === activeTab);
+
+    // Function to fetch payment data based on current filters
+      const fetchAdServiceRequestData = async (activeTabParam, dateRangeParam) => {
+        setLoading(true);
+        setError(null);
+        try {
+          const response = await GetAdServiceRequests();
+          if (response.success) {
+            const formattedData = response.data.map((item)=>{
+                return {
+                    id: item._id,
+                    serviceName: item.adPlanId?.name,
+                    serviceDetails: item.adPlanId?.description,
+                    orderId: item?._id,
+                    amount: item.adPlanId?.price,
+                    status: item.paymentStatus,
+                    paymentDate: item.createdAt,
+                    mode: item.method
+                }
+            })
+            setData(formattedData);
+          }
+        } catch (err) {
+          console.error("Error fetching payment data:", err);
+          setError("Failed to load payment data.");
+          setFilteredData([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+    
+      // Initial load of months and data
+      useEffect(() => {
+        fetchAdServiceRequestData();
+      }, []);
 
     return (
         <>
@@ -82,20 +121,25 @@ const ServiceTransactions = () => {
                     </Breadcrumb>
                 </Col>
             </Row>
-            <div className="mb-3 d-flex gap-2 flex-wrap">
-                {tabs.map(tab => (
-                    <Button
+            <Row>
+                <Col md={10} className="mb-3 d-flex gap-2 flex-wrap">
+                    {tabs.map(tab => (
+                        <Button
                         key={tab}
                         outline
                         size="sm"
                         color={activeTab === tab ? 'primary' : 'secondary'}
                         onClick={() => setActiveTab(tab)}
                         className={activeTab === tab ? 'fw-bold' : ''}
-                    >
-                        {tab}
-                    </Button>
-                ))}
-            </div>
+                        >
+                            {tab}
+                        </Button>
+                    ))}
+                </Col>
+                <Col md={2} className='text-end'>
+                    <Link to="/add-service-request" className='btn btn-primary'>Add Request</Link>
+                </Col>
+            </Row>
 
             <Card className="shadow-sm">
                 <CardBody>
