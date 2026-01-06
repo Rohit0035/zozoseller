@@ -13,7 +13,7 @@ import store from "./store";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <Provider store={store}>
-    <BrowserRouter basename="/zozokart-seller">
+    <BrowserRouter>
       <ToastifyNotification />
       <App />
     </BrowserRouter>

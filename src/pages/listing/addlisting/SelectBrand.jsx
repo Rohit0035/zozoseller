@@ -53,7 +53,7 @@ const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataCh
     }
 
     useEffect(() => {
-        fetchBrands();
+        fetchBrands({ categoryId: listingData?.categoryId });
     }, []);
 
     // Effect to update local state if listingData.brandId changes from parent

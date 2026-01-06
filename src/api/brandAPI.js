@@ -19,10 +19,10 @@ export const StoreBrand = async (data) => {
   }
 };
 
-export const GetBrands = async (brandCategoryId) => {
+export const GetBrands = async (data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_CONFIG.baseURL}/brands?brandCategoryId=${brandCategoryId}`
+      `${API_CONFIG.baseURL}/brands?categoryId=${data?.categoryId}`
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {

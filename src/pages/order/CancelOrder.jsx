@@ -1,59 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import DataTable from 'react-data-table-component';
 import { CSVLink } from 'react-csv';
 import { Breadcrumb, BreadcrumbItem, Card, CardBody, Col, Row } from 'reactstrap';
 import { RiArrowDropDownLine } from "react-icons/ri";
 import { Link } from 'react-router-dom';
-import { FaList, FaExclamationCircle, FaHourglassHalf, FaCheckCircle } from 'react-icons/fa';
+import { FaList, FaHourglassHalf, FaCheckCircle } from 'react-icons/fa'; // Removed unused FaExclamationCircle
 import { GetVendorOrders } from '../../api/vendorOrderAPI';
 import { showToast } from '../../components/ToastifyNotification';
 import { useDispatch } from 'react-redux';
-
-// Sample cancel order data
-const cancelOrders = [
-    {
-        id: 1,
-        orderId: "ORD12345",
-        customerName: "John Doe",
-        contact: "9876543210",
-        product: "iPhone 14",
-        sku: "APL-IPH14-128GB-BLK",
-        amount: 780,
-        reason: "Customer changed mind",
-        date: "2024-06-15",
-        status: "Cancelled",
-        refundStatus: "Processed",
-        channel: "Website",
-    },
-    {
-        id: 2,
-        orderId: "ORD12346",
-        customerName: "Jane Smith",
-        contact: "9123456780",
-        product: "Galaxy S23",
-        sku: "SMSNG-GS23-256GB-GRY",
-        amount: 690,
-        reason: "Late delivery",
-        date: "2024-06-14",
-        status: "Cancelled",
-        refundStatus: "Pending",
-        channel: "App",
-    },
-    {
-        id: 3,
-        orderId: "ORD12347",
-        customerName: "Michael Johnson",
-        contact: "9988776655",
-        product: "MacBook Air",
-        sku: "APL-MAC-AIR-13IN",
-        amount: 980,
-        reason: "Duplicate order",
-        date: "2024-06-13",
-        status: "Cancelled",
-        refundStatus: "Processed",
-        channel: "Website",
-    },
-];
 
 // Column definitions
 const allColumns = [
@@ -76,7 +30,7 @@ const allColumns = [
         selector: row => row.refundStatus,
         sortable: true,
         cell: row => (
-            <span className={`badge ${row.refundStatus === 'Processed' ? 'bg-success' : 'bg-warning text-dark'}`}>
+            <span className={`badge ${row.refundStatus === 'Refunded' ? 'bg-success' : (row.refundStatus === 'Pending' ? 'bg-warning text-dark' : 'bg-secondary')}`}>
                 {row.refundStatus}
             </span>
         )
@@ -86,9 +40,17 @@ const allColumns = [
 
 // Preset column views
 const presets = {
-    'Default View': ['Order ID', 'Customer Name', 'Product', 'Date', 'Status'],
+    'Default View': ['Order ID', 'Customer Name', 'Product', 'Date', 'Status', 'Refund Status'],
     'Full View': allColumns.map(col => col.name),
 };
+
+// Map sort field names to keys in the data object
+const sortFieldMap = {
+    'Date': 'createdAtTimestamp', // Use timestamp for accurate date sort
+    'Amount': 'amount',
+    'Customer Name': 'customerName',
+};
+
 
 const CancelOrder = () => {
     const [visibleColumns, setVisibleColumns] = useState(presets['Default View']);
@@ -96,66 +58,96 @@ const CancelOrder = () => {
     const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
     const [filterText, setFilterText] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
+    // Changed initial sort field to reflect the property name
     const [sortConfig, setSortConfig] = useState({ field: 'date', order: 'desc' });
-    const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+    const [data, setData] = useState([]); // Stores raw API data
+    
+    // filteredData is now calculated using useMemo
+    // const [filteredData, setFilteredData] = useState([]); // Removed this, using useMemo now
 
-  const dispatch = useDispatch();
+    const dispatch = useDispatch();
 
-  const fetchOrders = async (data) => {
-      dispatch({ type: 'loader', loader: true })
-  
-      try {
-        const response = await GetVendorOrders(data); // Make sure login function returns token
-        console.log(response);
-        if (response.success == true) {
-          showToast('success', response.message)
-          const formattedData = response.data.map((item, index) => ({
-            index: index + 1,
-            id: item._id,
-            orderId: item.orderId?.orderUniqueId,
-            customerName: item.orderId?.userId?.name,
-            contact: item.orderId?.userId?.phone,
-            product: item.orderItems[0]?.productId?.name,
-            sku: item.orderItems[0]?.productVariationId?.sku,
-            amount: item.total,
-            reason: item.returnReason || 'N/A',
-            date: item.createdAt,
-            status: item.orderStatus,
-            refundStatus: item.refundStatus || 'N/A',
-            channel: item.orderId?.channel || 'N/A',
-          }));
-          setData(formattedData);
-          setFilteredData(formattedData);
-        } else {
-          // setError(response.message);
-          showToast('error', response.message)
+    const fetchOrders = async () => { // Removed `data` argument as we'll filter for cancelled orders
+        dispatch({ type: 'loader', loader: true })
+    
+        try {
+            // Assuming orderStatus = 'Cancelled' or 'Returned' is needed for this page
+            const response = await GetVendorOrders({ orderStatus: ['Cancelled', 'Returned', 'Refunded'] }); 
+            
+            if (response.success === true) {
+                showToast('success', response.message)
+                
+                const formattedData = response.data.map((item, index) => ({
+                    index: index + 1,
+                    id: item._id,
+                    orderId: item.orderId?.orderUniqueId,
+                    customerName: item.orderId?.userId?.name || 'N/A',
+                    contact: item.orderId?.userId?.phone || 'N/A',
+                    product: item.orderItems[0]?.productId?.name || 'N/A',
+                    sku: item.orderItems[0]?.productVariationId?.sku || 'N/A',
+                    amount: item.total || 0,
+                    reason: item.returnReason || 'N/A', // Assuming reason for cancellation/return is stored here
+                    date: new Date(item.createdAt).toLocaleDateString(), // Formatted date for display
+                    createdAtTimestamp: new Date(item.createdAt).getTime(), // Timestamp for sorting
+                    status: item.orderStatus,
+                    refundStatus: item.refundStatus || (item.orderStatus === 'Cancelled' ? 'Pending' : 'N/A'), // Set default Refunded status
+                    channel: item.orderId?.channel || 'N/A',
+                }));
+                
+                setData(formattedData);
+            } else {
+                showToast('error', response.message)
+            }
+        } catch (error) {
+            showToast('error', error.toString())
+        } finally {
+            dispatch({ type: 'loader', loader: false })
         }
-      } catch (error) {
-        // setError(error); // Handle login errors
-        showToast('error', error)
-      } finally {
-        dispatch({ type: 'loader', loader: false })
-      }
     }
-  
+    
     useEffect(() => {
-      fetchOrders();
+        fetchOrders();
     }, []);
 
-    // const filteredData = cancelOrders
-    //     .filter(item =>
-    //         Object.values(item).some(val =>
-    //             val.toString().toLowerCase().includes(filterText.toLowerCase())
-    //         )
-    //     )
-    //     .sort((a, b) => {
-    //         const field = sortConfig.field;
-    //         const valA = a[field];
-    //         const valB = b[field];
-    //         if (sortConfig.order === 'desc') return valA < valB ? 1 : -1;
-    //         else return valA > valB ? 1 : -1;
-    //     });
+    // --- NEW: Combined Filtered and Sorted Data Logic ---
+    const filteredAndSortedData = useMemo(() => {
+        let currentData = data;
+
+        // 1. Filtering Logic
+        if (filterText) {
+            const lowerCaseFilter = filterText.toLowerCase();
+            currentData = currentData.filter(item =>
+                Object.values(item).some(val =>
+                    val !== null && val !== undefined && val.toString().toLowerCase().includes(lowerCaseFilter)
+                )
+            );
+        }
+
+        // 2. Sorting Logic
+        if (sortConfig.field) {
+            const sortKey = sortFieldMap[sortConfig.field] || sortConfig.field;
+            
+            currentData.sort((a, b) => {
+                const valA = a[sortKey];
+                const valB = b[sortKey];
+
+                if (valA === undefined || valA === null) return sortConfig.order === 'desc' ? 1 : -1;
+                if (valB === undefined || valB === null) return sortConfig.order === 'desc' ? -1 : 1;
+
+                if (typeof valA === 'string') {
+                    return sortConfig.order === 'desc' 
+                        ? valB.localeCompare(valA) 
+                        : valA.localeCompare(valB);
+                } else {
+                    return sortConfig.order === 'desc' ? (valB - valA) : (valA - valB);
+                }
+            });
+        }
+        
+        return currentData;
+    }, [data, filterText, sortConfig]);
+    // --- END: Filtered and Sorted Data Logic ---
+
 
     const toggleColumn = (colName) => {
         setVisibleColumns(prev =>
@@ -179,11 +171,13 @@ const CancelOrder = () => {
 
     const columnsToShow = allColumns.filter(col => visibleColumns.includes(col.name));
 
-    const counters = [
-        { title: 'All Cancelled', count: data.length, icon: <FaList size={30} color="#fff" />, bgColor: '#6c757d', textColor: '#fff' },
-        { title: 'Refund Processed', count: data.filter(o => o.refundStatus === 'Refunded').length, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
-        { title: 'Refund Pending', count: data.filter(o => o.refundStatus != 'Refunded').length, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
-    ];
+    // --- NEW: Updated Counter Logic ---
+    const counters = useMemo(() => [
+        { title: 'All Cancellations', count: data.length, icon: <FaList size={30} color="#fff" />, bgColor: '#6c757d', textColor: '#fff' },
+        { title: 'Refunded', count: data.filter(o => o.refundStatus === 'Refunded').length, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
+        { title: 'Refund Pending', count: data.filter(o => o.refundStatus === 'Pending').length, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
+    ], [data]);
+    // --- END: Updated Counter Logic ---
 
     return (
         <div>
@@ -199,6 +193,8 @@ const CancelOrder = () => {
                     </Breadcrumb>
                 </Col>
             </Row>
+
+            <hr />
 
             {/* Counters */}
             <Row>
@@ -218,6 +214,8 @@ const CancelOrder = () => {
                     </Col>
                 ))}
             </Row>
+
+            <hr />
 
             <Row className='mt-4'>
                 <Col md="6" className='mb-2'>
@@ -239,9 +237,10 @@ const CancelOrder = () => {
                             </button>
                             {sortDropdownOpen && (
                                 <div className="position-absolute bg-white border rounded shadow-sm mt-1 p-2" style={{ width: '200px', zIndex: 1000 }}>
-                                    <div className="dropdown-item" onClick={() => handleSortSelect('date')}>Date</div>
-                                    <div className="dropdown-item" onClick={() => handleSortSelect('amount')}>Amount</div>
-                                    <div className="dropdown-item" onClick={() => handleSortSelect('customerName')}>Customer Name</div>
+                                    {/* Using keys that map to the data for sorting */}
+                                    <div className="dropdown-item" onClick={() => handleSortSelect('Date')}>Date</div>
+                                    <div className="dropdown-item" onClick={() => handleSortSelect('Amount')}>Amount</div>
+                                    <div className="dropdown-item" onClick={() => handleSortSelect('Customer Name')}>Customer Name</div>
                                 </div>
                             )}
                         </div>
@@ -276,7 +275,7 @@ const CancelOrder = () => {
 
                         {/* Export CSV */}
                         <CSVLink
-                            data={selectedRows.length ? selectedRows : filteredData}
+                            data={selectedRows.length ? selectedRows : filteredAndSortedData}
                             filename="cancel_orders.csv"
                             style={{ backgroundColor: '#02339a' }}
                             className="btn btn-success btn-sm text-white"
@@ -295,7 +294,7 @@ const CancelOrder = () => {
                         <CardBody>
                             <DataTable
                                 columns={columnsToShow}
-                                data={filteredData}
+                                data={filteredAndSortedData}
                                 pagination
                                 striped
                                 responsive

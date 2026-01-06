@@ -19,10 +19,10 @@ export const StoreVendorOrder = async (data) => {
   }
 };
 
-export const GetVendorOrders = async (VendorOrderCategoryId) => {
+export const GetVendorOrders = async (data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_CONFIG.baseURL}/vendor-orders`
+      `${API_CONFIG.baseURL}/vendor-orders?orderStatus=${data?.orderStatus}`
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {

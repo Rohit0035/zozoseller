@@ -53,12 +53,12 @@ const allColumns = [
     selector: row => row.productInfo,
     sortable: true
   },
-  { name: "Amount", selector: row => row.amount, sortable: true, right: true },
-  {
-    name: "Dispatch By Date",
-    selector: row => row.dispatchDate,
-    sortable: true
-  },
+  { name: "Amount", selector: row => row.amount, sortable: true },
+  // {
+  //   name: "Dispatch By Date",
+  //   selector: row => row.dispatchDate,
+  //   sortable: true
+  // },
   { name: "Status", selector: row => row.status, sortable: true }
 ];
 
@@ -163,12 +163,6 @@ const AllOrderList = ({ orders }) => {
                     onClick={() => handleSortSelect("orderId")}
                   >
                     Order ID
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("dispatchDate")}
-                  >
-                    Dispatch Date
                   </div>
                   <div
                     className="dropdown-item"

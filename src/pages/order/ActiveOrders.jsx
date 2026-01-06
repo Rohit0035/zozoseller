@@ -1,45 +1,60 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Col, Input, InputGroup, Row } from 'reactstrap';
 import Select from 'react-select';
 import { FaSearch } from 'react-icons/fa';
 
-// Import your separate components
-import PendingLabelsList from '../../components/activeorder/PendingLabelsList';
+// Import your list components
+// Keeping the component imports
+import PendingLabelsList from '../../components/activeorder/PendingLabelsList'; 
 import PendingRTDList from '../../components/activeorder/PendingRTDList';
 import PendingHandoverList from '../../components/activeorder/PendingHandoverList';
 import InTransitList from '../../components/activeorder/InTransitList';
 import PendingServicesList from '../../components/activeorder/PendingServicesList';
-import CompletedOrdersList from '../../components/activeorder/PendingLabelsList';
-import { GetOrders } from '../../api/orderAPI';
+import AllOrderList from '../../components/activeorder/AllOrderList';
+
+// API and Toast imports
+import { GetVendorOrders } from '../../api/vendorOrderAPI';
 import { showToast } from '../../components/ToastifyNotification';
 import { useDispatch } from 'react-redux';
-import { GetVendorOrders } from '../../api/vendorOrderAPI';
-import AllOrderList from '../../components/activeorder/AllOrderList';
 
 const warehouseOptions = [
     { value: 'WH001', label: 'Warehouse - New York' },
     { value: 'WH002', label: 'Warehouse - Los Angeles' },
-    { value: 'WH003', label: 'Warehouse - Chicago' },
-    { value: 'WH004', label: 'Warehouse - Houston' },
-    { value: 'WH005', label: 'Warehouse - Miami' },
+    // ... rest of the options
 ];
+
+// Define ACTIVE and FULFILLED standard counter keys
+const FOCUS_STATUSES = {
+    PENDING: 'Pending',
+    PROCESSING: 'Processing',
+    SHIPPED: 'Shipped',
+    OUT_FOR_DELIVERY: 'Out For Delivery',
+    DELIVERED: 'Delivered', // ADDED: Delivered status
+    ALL: 'all',
+};
+
+// List of statuses considered active/in-progress/fulfilled
+const FOCUS_STATUS_KEYS = Object.values(FOCUS_STATUSES).filter(s => s !== 'all');
+
+// List of statuses we want to EXCLUDE
+const EXCLUDED_STATUSES = ['Cancelled', 'Returned', 'Refunded', 'Payment Failed'];
+
 
 const ActiveOrders = () => {
     const [selectedWarehouse, setSelectedWarehouse] = useState(null);
-    const [selectedStat, setSelectedStat] = useState('all');
+    const [selectedStat, setSelectedStat] = useState(FOCUS_STATUSES.ALL); 
     const [data, setData] = useState([]);
     const [filteredData, setFilteredData] = useState([]);
-    const [orderStatusData, setOrderStatusData] = useState({
-        Pending: [],
-        'PendingRTD':[],
-        'PendingHandover': [],
-        'InTransit': [],
-        'PendingServices': [],
-        'Inlast30days': [],
-        'upcomingOrder': [],
-        'ProcessingQueued': [],
-    });
+    
+    // UPDATED: Only include FOCUS statuses in the state
+    const [orderStatusData, setOrderStatusData] = useState(
+        FOCUS_STATUS_KEYS.reduce((acc, status) => {
+            acc[status] = [];
+            return acc;
+        }, {})
+    );
+
     const [searchTerm, setSearchTerm] = useState('');
     const dispatch = useDispatch();
 
@@ -48,27 +63,22 @@ const ActiveOrders = () => {
     };
 
     const handleCounterClick = (statName) => {
-        setSelectedStat(statName === selectedStat ? 'all' : statName);
+        setSelectedStat(statName === selectedStat ? FOCUS_STATUSES.ALL : statName);
     };
 
     const renderSelectedComponent = () => {
+        // UPDATED: Map only focus statuses to components.
         switch (selectedStat) {
-            case 'Pending Labels':
-                return <PendingLabelsList orders={orderStatusData.Pending}/>;
-            case 'Pending RTD':
-                return <PendingRTDList orders={orderStatusData.PendingRTD}/>;
-            case 'Pending Handover':
-                return <PendingHandoverList orders={orderStatusData.PendingHandover}/>;
-            case 'In Transit':
-                return <InTransitList orders={orderStatusData.InTransit}/>;
-            case 'Pending Services':
-                return <PendingServicesList orders={orderStatusData.PendingServices}/>;
-            case 'In last 30 days':
-                return <InTransitList orders={orderStatusData.Inlast30days}/>;
-            case 'upcomingorder':
-                return <PendingLabelsList orders={orderStatusData.upcomingOrder}/>;
-            case 'Processing Queued':
-                return <PendingLabelsList orders={orderStatusData.ProcessingQueued}/>;
+            case FOCUS_STATUSES.PENDING:
+                return <AllOrderList orders={orderStatusData[FOCUS_STATUSES.PENDING]} title="Pending Orders"/>;
+            case FOCUS_STATUSES.PROCESSING:
+                return <AllOrderList orders={orderStatusData[FOCUS_STATUSES.PROCESSING]} title="Processing Orders"/>;
+            case FOCUS_STATUSES.SHIPPED:
+                return <AllOrderList orders={orderStatusData[FOCUS_STATUSES.SHIPPED]} title="Shipped Orders"/>;
+            case FOCUS_STATUSES.OUT_FOR_DELIVERY:
+                return <AllOrderList orders={orderStatusData[FOCUS_STATUSES.OUT_FOR_DELIVERY]} title="Out For Delivery Orders"/>;
+            case FOCUS_STATUSES.DELIVERED:
+                return <AllOrderList orders={orderStatusData[FOCUS_STATUSES.DELIVERED]} title="Delivered Orders"/>; // ADDED
             default:
                 return null;
         }
@@ -79,52 +89,68 @@ const ActiveOrders = () => {
         return `mb-2 border py-1 px-2 ${selectedStat === item ? 'border-primary bg-light' : ''}`;
     };
 
-    const fetchOrders = async (data) => {
-		dispatch({ type: 'loader', loader: true })
+    const fetchOrders = async (query = {}) => {
+        dispatch({ type: 'loader', loader: true })
 
-		try {
-			const response = await GetVendorOrders(data); // Make sure login function returns token
-			console.log(response);
-			if (response.success == true) {
-				showToast('success', response.message)
-				const formattedData = response.data.map((item, index) => ({
-					index: index + 1,
-					id: item._id,
-					orderId: item.orderId?.orderUniqueId,
-					productInfo: item.orderItems[0]?.productId?.name,
-					quantity: item.orderItems[0]?.quantity,
-					amount: item.total,
-					status: item.orderStatus,
-					vendorId: item.vendorId?._id,
-					vendorName: item.vendorId?.name,
-				}));
-				setData(formattedData);
-				setFilteredData(formattedData);
-                setOrderStatusData({
-                    Pending: formattedData.filter(order => order.status === 'Pending'),
-                    'PendingRTD': formattedData.filter(order => order.status === 'Pending RTD'),
-                    'PendingHandover': formattedData.filter(order => order.status === 'Pending Handover'),
-                    'InTransit': formattedData.filter(order => order.status === 'In Transit'),
-                    'PendingServices': formattedData.filter(order => order.status === 'Pending Services'),
-                    'Inlast30days': formattedData.filter(order => order.status === 'In last 30 days'),
-                    'upcomingOrder': formattedData.filter(order => order.status === 'upcomingorder'),
-                    'ProcessingQueued': formattedData.filter(order => order.status === 'Processing Queued')
-                })
-			} else {
-				// setError(response.message);
-				showToast('error', response.message)
-			}
-		} catch (error) {
-			// setError(error); // Handle login errors
-			showToast('error', error)
-		} finally {
-			dispatch({ type: 'loader', loader: false })
-		}
-	}
+        try {
+            const response = await GetVendorOrders(query); 
+            console.log(response);
+            if (response.success === true) {
+                showToast('success', response.message);
+                
+                const formattedData = response.data.map((item, index) => ({
+                    index: index + 1,
+                    id: item._id,
+                    orderId: item.orderId?.orderUniqueId,
+                    productInfo: item.orderItems[0]?.productId?.name,
+                    quantity: item.orderItems[0]?.quantity,
+                    amount: item.total,
+                    status: item.orderStatus, 
+                    vendorId: item.vendorId?._id,
+                    vendorName: item.vendorId?.name,
+                    createdAt: item.createdAt, 
+                }));
 
-	useEffect(() => {
-		fetchOrders();
-	}, []);
+                // Filter data to only include FOCUS orders (Active + Delivered)
+                const focusOrders = formattedData.filter(order => FOCUS_STATUS_KEYS.includes(order.status));
+                
+                setData(focusOrders);
+                setFilteredData(focusOrders); 
+
+                // Filter logic to use only the focus standard statuses
+                const newStatusData = FOCUS_STATUS_KEYS.reduce((acc, statusName) => {
+                    acc[statusName] = focusOrders.filter(order => order.status === statusName);
+                    return acc;
+                }, {});
+                
+                setOrderStatusData(newStatusData);
+
+            } else {
+                showToast('error', response.message)
+            }
+        } catch (error) {
+            showToast('error', error.toString())
+        } finally {
+            dispatch({ type: 'loader', loader: false })
+        }
+    }
+
+    const counterValues = useMemo(() => {
+        return Object.fromEntries(
+            Object.entries(orderStatusData).map(([key, value]) => [key, value.length])
+        );
+    }, [orderStatusData]);
+
+
+    useEffect(() => {
+        fetchOrders({orderStatus: ['Pending', 'Processing', 'Shipped', 'Out For Delivery', 'Delivered']});
+    }, []);
+
+    // Split focus statuses into groups for UI layout
+    const processingStatuses = [FOCUS_STATUSES.PENDING, FOCUS_STATUSES.PROCESSING];
+    const dispatchedStatuses = [FOCUS_STATUSES.SHIPPED, FOCUS_STATUSES.OUT_FOR_DELIVERY];
+    const fulfilledStatus = [FOCUS_STATUSES.DELIVERED];
+
 
     return (
         <>
@@ -139,7 +165,12 @@ const ActiveOrders = () => {
                     <Row>
                         <Col md="4" className='mb-1'>
                             <InputGroup className='w-100'>
-                                <Input type='search' placeholder='Search By Order ID / Order Item ID' />
+                                <Input 
+                                    type='search' 
+                                    placeholder='Search By Order ID / Order Item ID' 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                                 <span className='p-2 border'>
                                     <FaSearch style={{ cursor: 'pointer' }} />
                                 </span>
@@ -164,20 +195,23 @@ const ActiveOrders = () => {
                 </Col>
             </Row>
 
-            {/* Counter */}
+            <hr/>
+
+            {/* Counter - Showing Active Orders + Delivered */}
             <Row className='mt-3'>
-                {/* Order Processing */}
+                
+                {/* Processing Pipeline */}
                 <Col md="4">
                     <small className="mb-1">Order Processing</small>
                     <Row>
-                        {['Pending Labels', 'Pending RTD', 'Pending Handover'].map((item) => (
-                            <Col xs="6" sm="6" md="4" key={item} className='pe-1'>
+                        {processingStatuses.map((item) => (
+                            <Col xs="6" sm="6" md="6" key={item} className='pe-1'>
                                 <div
                                     className={`bg-info bg-opacity-10 ${getCounterClass(item)}`}
                                     onClick={() => handleCounterClick(item)}
                                     style={{ cursor: 'pointer' }}
                                 >
-                                    <h5 className='mb-0'>0</h5>
+                                    <h5 className='mb-0'>{counterValues[item] || 0}</h5>
                                     <small style={{ fontSize: '12px' }}>{item}</small>
                                 </div>
                             </Col>
@@ -185,74 +219,55 @@ const ActiveOrders = () => {
                     </Row>
                 </Col>
 
-                {/* Dispatched Orders */}
-                <Col md="3">
+                {/* Dispatch/Transit */}
+                <Col md="4">
                     <small className="mb-1">Dispatched Orders</small>
                     <Row>
-                        {['In Transit', 'Pending Services'].map((item) => (
+                        {dispatchedStatuses.map((item) => (
                             <Col xs="6" sm="6" md="6" key={item}>
                                 <div
                                     className={`bg-danger bg-opacity-10 ${getCounterClass(item)}`}
                                     onClick={() => handleCounterClick(item)}
                                     style={{ cursor: 'pointer' }}
                                 >
-                                    <h5 className='mb-0'>0</h5>
+                                    <h5 className='mb-0'>{counterValues[item] || 0}</h5>
                                     <small style={{ fontSize: '12px' }}>{item}</small>
                                 </div>
                             </Col>
                         ))}
                     </Row>
                 </Col>
-
-                {/* Completed / Upcoming / Processing */}
-                <Col md="5">
+                
+                {/* Delivered/Fulfilled */}
+                <Col md="4">
+                    <small className="mb-1">Fulfilled Orders</small>
                     <Row>
-                        <Col md="4" className='mb-2'>
-                            <small className="mb-1 d-block">Completed Orders</small>
-                            <div
-                                className={`bg-primary bg-opacity-10 ${getCounterClass('In last 30 days')}`}
-                                onClick={() => handleCounterClick('In last 30 days')}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <h5 className='mb-0'>0</h5>
-                                <small style={{ fontSize: '12px' }}>In last 30 days</small>
-                            </div>
-                        </Col>
-                        <Col md="4" className='mb-2'>
-                            <small className="mb-1 d-block">Upcoming Orders</small>
-                            <div
-                                className={`bg-warning bg-opacity-10 ${getCounterClass('upcomingorder')}`}
-                                onClick={() => handleCounterClick('upcomingorder')}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <h5 className='mb-0'>0</h5>
-                                <small style={{ fontSize: '12px' }}>---</small>
-                            </div>
-                        </Col>
-                        <Col md="4" className='mb-2'>
-                            <small className="mb-1 d-block">Orders under process..</small>
-                            <div
-                                className={`bg-success bg-opacity-10 ${getCounterClass('Processing Queued')}`}
-                                onClick={() => handleCounterClick('Processing Queued')}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <h5 className='mb-0'>0</h5>
-                                <small style={{ fontSize: '12px' }}>Processing Queued</small>
-                            </div>
-                        </Col>
+                        {fulfilledStatus.map((item) => (
+                            <Col xs="12" sm="12" md="6" key={item}>
+                                <div
+                                    className={`bg-success bg-opacity-10 ${getCounterClass(item)}`}
+                                    onClick={() => handleCounterClick(item)}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <h5 className='mb-0'>{counterValues[item] || 0}</h5>
+                                    <small style={{ fontSize: '12px' }}>{item}</small>
+                                </div>
+                            </Col>
+                        ))}
                     </Row>
                 </Col>
             </Row>
+            
+            <hr/>
 
             {/* Bottom Component Row */}
             {selectedStat && (
                 <Row className='mt-2'>
                     <Col md="12">
                         {
-                            selectedStat.toLowerCase() === 'all' ? <AllOrderList orders={filteredData}/>:
+                            selectedStat === FOCUS_STATUSES.ALL ? <AllOrderList orders={filteredData}/>:
                             renderSelectedComponent()
                         }
-
                     </Col>
                 </Row>
             )}
@@ -261,4 +276,3 @@ const ActiveOrders = () => {
 };
 
 export default ActiveOrders;
-

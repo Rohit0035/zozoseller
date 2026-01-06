@@ -79,7 +79,7 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
         </div>
 
         {/* <NavbarBrand className="mb-0 h1">DEFAULT</NavbarBrand> */}
-        <div className='text-center w-100 bg-light py-2 mt-1'>
+        {/* <div className='text-center w-100 bg-light py-2 mt-1'>
           <IoMdAlert size={22} className='me-2' color='#fc0' />
           <small>
             Provide and verify your bank details to receive payments on your orders
@@ -88,7 +88,7 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
             Provide bank detail
             <FaLongArrowAltRight size={22} className='text-primary ms-2' />
           </Link>
-        </div>
+        </div> */}
       </Navbar>
     </>
 

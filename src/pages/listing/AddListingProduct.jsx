@@ -72,7 +72,7 @@ const AddListingProduct = () => {
               </DropdownToggle>
               <DropdownMenu>
                 <DropdownItem tag={Link} to="/add-single-listing">Add Single Listing</DropdownItem>
-                <DropdownItem>Add Bulk Listing</DropdownItem>
+                <DropdownItem tag={Link} to="/add-bulk-listing">Add Bulk Listing</DropdownItem>
               </DropdownMenu>
             </UncontrolledDropdown>
           </div>
