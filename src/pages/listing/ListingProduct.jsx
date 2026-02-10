@@ -25,8 +25,8 @@ const ListingProduct = ({setListingCounts,activeFilter}) => {
     const allColumns = [
         { name: 'S.No', selector: row => row.index, sortable: true, width: "8%" },
         { name: 'Product Title', selector: row => row.name, sortable: true }, // Changed from 'title' to 'name'
-        { name: 'Creation Time', selector: row => row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A', sortable: true }, // Assuming 'createdAt' from API
-        { name: 'Update Time', selector: row => row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : 'N/A', sortable: true }, // Assuming 'updatedAt' from API
+        { name: 'Creation Time', selector: row => row.createdAt, sortable: true }, // Assuming 'createdAt' from API
+        { name: 'Update Time', selector: row => row.updatedAt, sortable: true }, // Assuming 'updatedAt' from API
         { name: 'Sales', selector: row => row.sales || 0, sortable: true, right: true }, // Assuming 'sales' might come from API, default to 0
         { name: 'Product Details', selector: row => row.description, sortable: true }, // Assuming 'description' from API
         { name: 'Listing Price', selector: row => row.regularPrice, sortable: true, right: true },

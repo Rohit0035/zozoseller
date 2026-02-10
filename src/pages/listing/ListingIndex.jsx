@@ -20,7 +20,7 @@ const ListingIndex = () => {
         archived: 0,
     });
 
-    const [activeFilter, setActiveFilter] = useState("Active"); // New state for counter filters
+    const [activeFilter, setActiveFilter] = useState("All"); // New state for counter filters
     const [isProfileComplete, setIsProfileComplete] = useState(false); // New state to track profile completion
     const navigate = useNavigate();
     
@@ -66,9 +66,9 @@ const ListingIndex = () => {
                 </Col>
                 <Col md="6">
                     <div className="d-flex justify-content-end justify-content-md-end">
-                        <Link className="me-2" onClick={() => handleVideoClick('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}>
+                        {/* <Link className="me-2" onClick={() => handleVideoClick('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}>
                             Learn about listing
-                        </Link>
+                        </Link> */}
                         {/* <InputGroup className='me-2' style={{ maxWidth: '300px' }}>
                             <Input type="search" placeholder="Search for FSN, Title or SKU ID" />
                             <Button color='primary'>

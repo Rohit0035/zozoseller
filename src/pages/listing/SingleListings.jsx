@@ -5,114 +5,25 @@ import { RiArrowDropDownLine } from "react-icons/ri";
 import { CSVLink } from 'react-csv';
 import { Link } from 'react-router-dom';
 import { FaTrash } from 'react-icons/fa';
-import { GetProducts } from '../../api/productAPI';
+import { DeleteProduct, GetProducts } from '../../api/productAPI';
 import { showToast } from '../../components/ToastifyNotification';
 import { useDispatch } from 'react-redux';
 import { IMAGE_URL } from '../../utils/api-config';
 import { formatDate, formatDateWithTime } from '../../utils/dateFormatter';
-import { GetCategories } from '../../api/categoryAPI';
+import { FaPencil } from 'react-icons/fa6';
+import Swal from 'sweetalert2';
 
-const demoProducts = [
-	{
-		id: 1,
-		title: 'Gown',
-		sku: 'SKU001',
-		image: 'https://picsum.photos/seed/picsum/536/354',
-		created: 'May 29, 2025, 04:08PM',
-		updated: 'May 29, 2025, 04:08PM',
-		status: 'Draft',
-		improvement: 'Complete it & send for QC',
-		category: 'Ethnic wear',
-	},
-	{
-		id: 2,
-		title: 'Book',
-		sku: 'SKU002',
-		image: 'https://picsum.photos/seed/picsum/536/354',
-		created: 'Mar 26, 2025, 05:15PM',
-		updated: 'Mar 26, 2025, 05:15PM',
-		status: 'Active',
-		improvement: 'Complete it & send for QC',
-		category: 'Books & media',
-	},
-];
 
-// const categories = ['Clothing', 'Ethnic wear', 'Books & media'];
-const statuses = ['Draft', 'Active', 'Pending'];
 
-const columns = [
-	{
-		name: 'Product Detail',
-		selector: row => (
-			<div className="d-flex align-items-center">
-				<img
-					src={row.image}
-					alt={row.title}
-					style={{ width: '25px', height: '25px', objectFit: 'cover', marginRight: '10px', borderRadius: '5px' }}
-				/>
-				<div>
-					{row.title} <br />
-					<strong>SKU ID:</strong> {row.skuId}
-				</div>
-			</div>
-		),
-		sortable: true,
-		wrap: true,
-	},
-	{
-		name: 'Status',
-		selector: row => row.status,
-		cell: row => (
-			<Badge color="secondary" pill>
-				{row.status}
-			</Badge>
-		),
-		sortable: true,
-	},
-	{
-		name: 'Created On',
-		selector: row => row.created,
-		sortable: true,
-	},
-	{
-		name: 'Updated On',
-		selector: row => row.updated,
-		sortable: true,
-	},
-	{
-		name: 'Listing Improvement',
-		selector: row => row.improvement,
-		sortable: false,
-		wrap: true,
-	},
-	{
-		name: 'Actions',
-		cell: row => (
-			<>
-				<Link className='btn btn-success text-white btn-sm me-1'>
-					Continue
-				</Link>
-				<Button className='btn btn-danger btn-sm'>
-					<FaTrash />
-				</Button>
-			</>
-
-		),
-	},
-];
-
-const SingleListings = () => {
+const SingleListings = ({categories, statuses}) => {
 	const [filterText, setFilterText] = useState('');
-	const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-	const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-	const [selectedCategories, setSelectedCategories] = useState([]);
-	const [selectedStatuses, setSelectedStatuses] = useState([]);
+	const [selectedCategory, setSelectedCategory] = useState([]);
+	const [selectedStatus, setSelectedStatus] = useState([]);
 	const [selectedRows, setSelectedRows] = useState([]);
 	const [sortField, setSortField] = useState('status');
 	const [sortOrder, setSortOrder] = useState('asc');
 	const [data, setData] = useState([]);
 	const [filteredData, setFilteredData] = useState([]);
-	const [categories, setCategories] = useState([]);
 	const dispatch = useDispatch();
 
 	const toggleCategoryDropdown = () => setCategoryDropdownOpen(!categoryDropdownOpen);
@@ -143,73 +54,23 @@ const SingleListings = () => {
 		setSelectedRows(state.selectedRows);
 	};
 
-	// Filter Logic
-	// let filteredData = demoProducts.filter((item) => {
-	// 	const textMatch = Object.values(item).some((val) =>
-	// 		val.toString().toLowerCase().includes(filterText.toLowerCase())
-	// 	);
-
-	// 	const categoryMatch =
-	// 		selectedCategories.length === 0 || selectedCategories.includes(item.category);
-
-	// 	const statusMatch =
-	// 		selectedStatuses.length === 0 || selectedStatuses.includes(item.status);
-
-	// 	return textMatch && categoryMatch && statusMatch;
-	// });
-
-	// Sort Logic
-	// filteredData.sort((a, b) => {
-	// 	if (sortOrder === 'asc') return a[sortField] > b[sortField] ? 1 : -1;
-	// 	else return a[sortField] < b[sortField] ? 1 : -1;
-	// });
-
-	const fetchCategories = async (data) => {
-		dispatch({ type: 'loader', loader: true })
-
-		try {
-			const response = await GetCategories(data); // Make sure login function returns token
-			console.log(response);
-			if (response.success == true) {
-				// showToast('success', response.message)
-				const formattedData = response.data.map((item, index) => ({
-					index: index + 1,
-					id: item._id,
-					name: item.name,
-				}));
-				setCategories(formattedData);
-			} else {
-				// setError(response.message);
-				showToast('error', response.message)
-			}
-		} catch (error) {
-			// setError(error); // Handle login errors
-			showToast('error', error)
-		} finally {
-			dispatch({ type: 'loader', loader: false })
-		}
-	}
-
-	useEffect(() => {
-		fetchCategories();
-	}, []);
+	
 	
 	const fetchProducts = async () => {
 		dispatch({ type: 'loader', loader: true });
 		try {
-			const response = await GetProducts();
+			const response = await GetProducts({ listingTyle:"Single"});
 			if (response.success) {
 				showToast('success', response.message);
 				const formattedData = response.data.map((item, index) => ({
 					index: index + 1,
 					id: item._id,
 					title: item.name,
-					skuId: item.skuId,
+					skuId: item.sku,
 					image: `${IMAGE_URL}/${item.images?.mainImage}`,
 					created: formatDateWithTime(item.createdAt),
 					updated: formatDateWithTime(item.updatedAt),
 					status: item.status,
-					improvement: item.improvement,
 					category: item.categoryId?.name,
 				}));
 				setData(formattedData);
@@ -228,6 +89,100 @@ const SingleListings = () => {
 		fetchProducts();
 	}, []); // Fetch products on component mount
 
+	const handleDeleteClick = async (id) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "You won't be able to revert this!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, delete it!"
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                dispatch({ type: 'loader', loader: true });
+                try {
+                    const response = await DeleteProduct(id);
+                    if (response.success) {
+                        showToast('success', response.message);
+                        setData(data.filter(item => item._id !== id));
+                        setFilteredData(filteredData.filter(item => item._id !== id));
+                    } else {
+                        showToast('error', response.message);
+                    }
+                } catch (error) {
+                    console.error("Error deleting product:", error);
+                    showToast('error', error.message || 'Failed to delete product');
+                } finally {
+                    dispatch({ type: 'loader', loader: false });
+                }
+            }
+        });
+    };
+
+	const columns = [
+	{
+		name: 'Product Detail',
+		selector: row => (
+			<div className="d-flex align-items-center">
+				<img
+					src={row.image}
+					alt={row.title}
+					style={{ width: '25px', height: '25px', objectFit: 'cover', marginRight: '10px', borderRadius: '5px' }}
+				/>
+				<div>
+					{row.title} <br />
+					<strong>SKU ID:</strong> {row.skuId}
+				</div>
+			</div>
+		),
+		sortable: true,
+		wrap: true,
+	},
+	{
+		name:'Category',
+		selector: row => row.category,
+		sortable: true,
+	},
+	{
+		name: 'Status',
+		selector: row => row.status,
+		cell: row => (
+			<Badge color="secondary" pill>
+				{row.status}
+			</Badge>
+		),
+		sortable: true,
+	},
+	{
+		name: 'Created On',
+		selector: row => row.created,
+		sortable: true,
+	},
+	{
+		name: 'Updated On',
+		selector: row => row.updated,
+		sortable: true,
+	},
+	{
+		name: 'Actions',
+		cell: row => (
+			<>
+				<Link to={`/listing/edit/${row.id}`} className='btn btn-success text-white btn-sm me-1'>
+					<FaPencil />
+				</Link>
+				<Button 
+					className='btn btn-danger btn-sm'
+					onClick={() => handleDeleteClick(row.id)}
+				>
+					<FaTrash />
+				</Button>
+			</>
+
+		),
+	},
+];
+
 	return (
 		<div className="p-2">
 			<Row className="mb-2">
@@ -241,70 +196,35 @@ const SingleListings = () => {
 					/>
 				</Col>
 
-				{/* Category Dropdown */}
-				<Col md="2" className="mb-2">
-					<div className="position-relative">
-						<button
-							className="btn btn-outline-secondary opecity-10 btn-sm w-100 text-start"
-							style={{ height: '38px' }}
-							onClick={toggleCategoryDropdown}
-						>
-							Category <RiArrowDropDownLine size={20} style={{ float: 'right' }} />
-						</button>
-
-						{categoryDropdownOpen && (
-							<div
-								className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-								style={{ width: '100%', zIndex: 1000 }}
-							>
-								<Input type="text" placeholder="Search category" className="mb-2" />
-								{categories.map((cat) => (
-									<label key={cat} className="dropdown-item d-flex align-items-center">
-										<input
-											type="checkbox"
-											className="form-check-input me-2"
-											checked={selectedCategories.includes(cat.id)}
-											onChange={() => handleCategoryToggle(cat.id)}
-										/>
-										{cat.name}
-									</label>
-								))}
-							</div>
-						)}
-					</div>
-				</Col>
-
-				{/* Status Dropdown */}
-				<Col md="2" className="mb-2">
-					<div className="position-relative">
-						<button
-							className="btn btn-outline-secondary btn-sm w-100 text-start"
-							style={{ height: '38px' }}
-							onClick={toggleStatusDropdown}
-						>
-							Status <RiArrowDropDownLine size={20} style={{ float: 'right' }} />
-						</button>
-
-						{statusDropdownOpen && (
-							<div
-								className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-								style={{ width: '100%', zIndex: 1000 }}
-							>
-								{statuses.map((status) => (
-									<label key={status} className="dropdown-item d-flex align-items-center">
-										<input
-											type="checkbox"
-											className="form-check-input me-2"
-											checked={selectedStatuses.includes(status)}
-											onChange={() => handleStatusToggle(status)}
-										/>
-										{status}
-									</label>
-								))}
-							</div>
-						)}
-					</div>
-				</Col>
+				<Col md="2">
+									<Input
+										type="select"
+										value={selectedCategory}
+										onChange={(e) => setSelectedCategory(e.target.value)}
+									>
+										<option value="">All Categories</option>
+										{categories.map(cat => (
+											<option key={cat._id} value={cat.name}>
+												{cat.name}
+											</option>
+										))}
+									</Input>
+								</Col>
+				
+								<Col md="2">
+									<Input
+										type="select"
+										value={selectedStatus}
+										onChange={(e) => setSelectedStatus(e.target.value)}
+									>
+										<option value="">All Status</option>
+										{statuses.map(status => (
+											<option key={status} value={status}>
+												{status}
+											</option>
+										))}
+									</Input>
+								</Col>
 
 				{/* Export CSV */}
 				<Col md="5" className="mb-2 d-flex justify-content-end">

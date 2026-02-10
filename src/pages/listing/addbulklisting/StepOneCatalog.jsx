@@ -1,59 +1,142 @@
 import React, { useState } from 'react';
-import { FaFileExcel, FaUpload } from 'react-icons/fa';
-import { Card, CardBody, Col, Row, Button } from 'reactstrap';
-import ImageUploader from './ImageUploader';
-import ExcelTemplate from './ExcelTemplate'; // import your Excel component
+import { Button, Input, Table } from 'reactstrap';
+import * as XLSX from 'xlsx';
+import { showToast } from '../../../components/ToastifyNotification';
 
-const StepOneCatalog = () => {
-  const [view, setView] = useState('main'); // 'main', 'excel', 'image'
+const REQUIRED_FIELDS = ['sku', 'name', 'regularPrice', 'stockQty'];
+
+const StepOneCatalog = ({ listingData, onListingDataChange }) => {
+  const [products, setProducts] = useState([]);
+  const [errors, setErrors] = useState([]);
+
+  // ⬇️ Download format
+  const downloadTemplate = () => {
+    const headers = [[
+      'sku',
+      'name',
+      'description',
+      'regularPrice',
+      'salePrice',
+      'stockQty'
+    ]];
+
+    const ws = XLSX.utils.aoa_to_sheet(headers);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Products');
+    XLSX.writeFile(wb, 'bulk-upload-format.xlsx');
+  };
+
+  // ⬆️ Upload & validate
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const wb = XLSX.read(evt.target.result, { type: 'binary' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(sheet);
+
+      validateData(data);
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const validateData = (data) => {
+    const tempErrors = [];
+
+    data.forEach((row, index) => {
+      REQUIRED_FIELDS.forEach((field) => {
+        if (!row[field]) {
+          tempErrors.push({
+            row: index + 2,
+            message: `${field} is required`
+          });
+        }
+      });
+    });
+
+    if (tempErrors.length > 0) {
+      setErrors(tempErrors);
+      setProducts([]);
+      showToast('error', 'Please fix errors in file');
+    } else {
+      setErrors([]);
+      setProducts(data);
+
+      onListingDataChange({
+        bulkProducts: data.map(item => ({
+          ...item,
+          categoryId: listingData.categoryId,
+          subCategoryOneId: listingData.subCategoryOneId,
+          subCategoryTwoId: listingData.subCategoryTwoId,
+          brandId: listingData.brandId
+        }))
+      });
+
+      showToast('success', 'File uploaded successfully');
+    }
+  };
+
 
   return (
     <>
-      {view === 'main' && (
-        <Row>
-          <Col md='6'>
-            <div className='text-center rounded' style={{ border: '1px dashed #ccc', cursor:'pointer' }}>
-              <div className='mb-2 text-decoration-none' onClick={() => setView('excel')}>
-                <Card>
-                  <CardBody className='py-5'>
-                    <FaFileExcel size={24} />
-                    <p>With Excel Template</p>
-                  </CardBody>
-                </Card>
-              </div>
-            </div>
-          </Col>
-          <Col md='6'>
-            <div className='text-center' style={{ border: '1px dashed #ccc', cursor:'pointer'}}>
-              <div className='mb-2 text-decoration-none' onClick={() => setView('image')}>
-                <Card>
-                  <CardBody className='py-5'>
-                    <FaUpload size={24} />
-                    <p>With Image Uploader</p>
-                  </CardBody>
-                </Card>
-              </div>
-            </div>
-          </Col>
-        </Row>
+      <Button color="primary" className="mb-3" onClick={downloadTemplate}>
+        Download Format
+      </Button>
+
+      <Input
+        type="file"
+        accept=".xlsx,.csv"
+        onChange={handleFileUpload}
+        className="mb-3"
+      />
+
+      {/* ❌ Errors */}
+      {errors.length > 0 && (
+        <Table bordered>
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            {errors.map((err, i) => (
+              <tr key={i}>
+                <td>{err.row}</td>
+                <td className="text-danger">{err.message}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       )}
 
-      {view === 'image' && (
-        <div className='mt-4 text-end'>
-          <Button className="btn btn-primary btn-sm mb-3" onClick={() => setView('main')}>
-            &larr; Back
-          </Button>
-          <ImageUploader />
-        </div>
-      )}
-
-      {view === 'excel' && (
-        <div className='mt-4 text-end'>
-          <Button className="btn btn-primary btn-sm mb-3" onClick={() => setView('main')} >
-            &larr; Back
-          </Button>
-          <ExcelTemplate />
-        </div>
+      {/* ✅ Product Preview */}
+      {products.length > 0 && (
+        <>
+          <h6 className="mt-4">Products to be uploaded</h6>
+          <Table bordered>
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p, i) => (
+                <tr key={i}>
+                  <td>{p.sku}</td>
+                  <td>{p.name}</td>
+                  <td>{p.regularPrice}</td>
+                  <td>{p.stockQty}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </>
       )}
     </>
   );

@@ -8,6 +8,7 @@ import CustomerReturnsReduction from "./pages/order/CustomerReturnsReduction";
 import AddListingIndex from "./pages/listing/addlisting/AddListingIndex";
 import AddListingBulkIndex from "./pages/listing/addbulklisting/AddListingBulkIndex";
 import { useSelector } from "react-redux";
+import EditListingIndex from "./pages/listing/editlisting/EditListingIndex";
 
 // Lazy loaded pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -64,7 +65,7 @@ const PrivateRoute = ({ children }) => {
 
 export default function AppRoutes() {
   const location = useLocation();
-  const isAuthPage = ["/login", "/register", "/otp","/register-otp-verification"].includes(
+  const isAuthPage = ["/login", "/register", "/otp", "/register-otp-verification"].includes(
     location.pathname
   );
 
@@ -123,6 +124,14 @@ export default function AppRoutes() {
           element={
             <PrivateRoute>
               <AddListingIndex />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/listing/edit/:id"
+          element={
+            <PrivateRoute>
+              <EditListingIndex />
             </PrivateRoute>
           }
         />
@@ -274,7 +283,7 @@ export default function AppRoutes() {
             </PrivateRoute>
           }
         />
-       
+
         <Route
           path="/add-service-request"
           element={

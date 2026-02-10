@@ -5,6 +5,9 @@ import SelectVerticalTabs from './SelectVerticalTabs';
 import SelectBrand from './SelectBrand';
 import AddProductInfo from './AddProductInfo';
 import { showToast } from '../../../components/ToastifyNotification';
+import { useDispatch } from 'react-redux';
+import { StoreBulkProducts } from '../../../api/productAPI';
+import { useNavigate } from 'react-router-dom';
 
 const steps = [
     { label: 'SELECT VERTICAL' },
@@ -12,7 +15,22 @@ const steps = [
     { label: 'ADD PRODUCT INFO' },
 ];
 
+const REQUIRED_PRODUCT_FIELDS = [
+  "name",
+  "sku",
+  "regularPrice",
+  "stockQty",
+  "minStockQty",
+  "minOrderQuantity",
+  "packageLength",
+  "packageBreadth",
+  "packageHeight",
+  "packageWeight",
+];
+
 const AddListingBulkIndex = () => {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(0);
     const [listingData, setListingData] = useState({
         categoryId: null,
@@ -27,7 +45,7 @@ const AddListingBulkIndex = () => {
         
         name: "",
         sku: "",
-        status: "",
+        status: "ReadyForActivation",
         regularPrice: "",
         productPrice: "",
         comissionRate: "",
@@ -102,22 +120,169 @@ const AddListingBulkIndex = () => {
         setCurrentStep(prev => prev - 1);
     };
 
-    const handleFinalSubmit = () => {
-        // Final validation before sending data to backend
-        if (!listingData.categoryId || !listingData.subCategoryTwoId || !listingData.brandId ||
-            !listingData.title || !listingData.description || !listingData.regularPrice || !listingData.stockQty) {
-            showToast('error', 'Please complete all required product information before submitting.');
+    const handleFinalSubmit = async () => {
+        console.log("Raw Listing Data:", listingData);
+        try {
+        dispatch({ type: 'loader', loader: true }); // Activate loader before API call
+
+        /* ================= BASIC VALIDATION ================= */
+        if (
+            !listingData.categoryId ||
+            !listingData.subCategoryOneId ||
+            !listingData.subCategoryTwoId ||
+            !listingData.brandId
+        ) {
+            showToast("error", "Category or brand information is missing.");
             return;
         }
 
-        console.log("Final Listing Data for Submission:", listingData);
-        // Here you would typically send `listingData` to your backend API
-        // Example: await createProduct(listingData);
-        showToast('success', 'Listing data submitted successfully!');
-        // Optionally reset form or navigate away
-        // setCurrentStep(0);
-        // setListingData({ /* reset to initial state for a new listing */ });
+        if (
+            !listingData.bulkProducts ||
+            !Array.isArray(listingData.bulkProducts) ||
+            listingData.bulkProducts.length === 0
+        ) {
+            showToast("error", "No products uploaded.");
+            return;
+        }
+
+        /* ================= PRODUCT VALIDATION ================= */
+        for (let i = 0; i < listingData.bulkProducts.length; i++) {
+            const product = listingData.bulkProducts[i];
+
+            for (const field of REQUIRED_PRODUCT_FIELDS) {
+            if (
+                product[field] === undefined ||
+                product[field] === null ||
+                product[field] === ""
+            ) {
+                showToast(
+                "error",
+                `Missing ${field} in product row ${i + 1}`
+                );
+                return;
+            }
+            }
+
+            // Optional but recommended
+            if (!product.mainImage) {
+            showToast(
+                "error",
+                `Main image is required for product row ${i + 1}`
+            );
+            return;
+            }
+        }
+
+        /* ================= BUILD FORMDATA ================= */
+        const formData = new FormData();
+
+        listingData.bulkProducts.forEach((product, index) => {
+            /* ===== CATEGORY & BRAND ===== */
+            formData.append(`products[${index}][categoryId]`, listingData.categoryId);
+            formData.append(`products[${index}][subCategoryOneId]`, listingData.subCategoryOneId);
+            formData.append(`products[${index}][subCategoryTwoId]`, listingData.subCategoryTwoId);
+            formData.append(`products[${index}][brandId]`, listingData.brandId);
+
+            /* ===== CORE PRODUCT ===== */
+            formData.append(`products[${index}][name]`, product.name);
+            formData.append(`products[${index}][sku]`, product.sku);
+            formData.append(`products[${index}][description]`, product.description || "");
+            formData.append(`products[${index}][status]`, listingData.status || "ReadyForActivation");
+            formData.append(`products[${index}][type]`, listingData.type || "simple");
+
+            /* ===== PRICING ===== */
+            formData.append(`products[${index}][regularPrice]`, product.regularPrice);
+            formData.append(`products[${index}][salePrice]`, product.salePrice || "");
+            formData.append(`products[${index}][productPrice]`, listingData.productPrice || "");
+            formData.append(`products[${index}][comissionRate]`, listingData.comissionRate || "");
+            formData.append(`products[${index}][comissionAmount]`, listingData.comissionAmount || "");
+
+            /* ===== TAX ===== */
+            formData.append(`products[${index}][gstAmount]`, listingData.gstAmount || "");
+            formData.append(`products[${index}][tcsAmount]`, listingData.tcsAmount || "");
+            formData.append(`products[${index}][luxuryCess]`, product.luxuryCess || "");
+            formData.append(`products[${index}][taxCode]`, listingData.taxCode || "");
+            formData.append(`products[${index}][hsn]`, listingData.hsn || "");
+            formData.append(`products[${index}][countryOfOrigin]`, product.countryOfOrigin);
+
+            /* ===== INVENTORY ===== */
+            formData.append(`products[${index}][stockQty]`, product.stockQty);
+            formData.append(`products[${index}][minStockQty]`, product.minStockQty);
+            formData.append(`products[${index}][minOrderQuantity]`, product.minOrderQuantity);
+
+            /* ===== SHIPPING ===== */
+            formData.append(`products[${index}][shippingCharge]`, listingData.shippingCharge || "");
+            formData.append(`products[${index}][shippingProvider]`, listingData.shippingProvider || "");
+
+            /* ===== FULFILLMENT ===== */
+            formData.append(`products[${index}][fulfillmentBy]`, listingData.fulfillmentBy || "");
+            formData.append(`products[${index}][procurementType]`, listingData.procurementType || "");
+            formData.append(`products[${index}][procurementSLA]`, listingData.procurementSLA || "");
+
+            /* ===== PACKAGE DETAILS ===== */
+            formData.append(`products[${index}][packageLength]`, product.packageLength);
+            formData.append(`products[${index}][packageBreadth]`, product.packageBreadth);
+            formData.append(`products[${index}][packageHeight]`, product.packageHeight);
+            formData.append(`products[${index}][packageWeight]`, product.packageWeight);
+
+            /* ===== MEDIA ===== */
+            formData.append(`products[${index}][mainImage]`, product.mainImage);
+
+            product.galleryImages?.forEach((img, i) => {
+            formData.append(`products[${index}][galleryImages][${i}]`, img);
+            });
+
+            product.videos?.forEach((vid, i) => {
+            formData.append(`products[${index}][videos][${i}]`, vid);
+            });
+
+            /* ===== LEGAL ===== */
+            formData.append(
+            `products[${index}][manufacturerDetails]`,
+            product.manufacturerDetails || ""
+            );
+            formData.append(
+            `products[${index}][packerDetails]`,
+            product.packerDetails || ""
+            );
+            formData.append(
+            `products[${index}][importerDetails]`,
+            product.importerDetails || ""
+            );
+        });
+
+        /* ================= DEBUG ================= */
+        console.log("✅ FINAL FORMDATA:");
+        for (let pair of formData.entries()) {
+            console.log(pair[0], pair[1]);
+        }
+
+        /* ================= API CALL ================= */
+        // Assuming StoreProduct is your API call
+        const response = await StoreBulkProducts(formData);
+        if (response.success === true) {
+            showToast('success', response.message);
+
+            navigate('/listing');
+            // Temporarily uncommenting for local testing feedback
+            console.log("FormData contents:");
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}:`, value);
+            }
+
+        } else {
+            showToast('error', response.message);
+        }
+        }catch (error) {
+            showToast('error', 'Failed to save product details.');
+            console.error("Save error:", error);
+        }finally {
+            dispatch({ type: "loader", loader: false });
+        }
     };
+
+
+
 
     const renderStepComponent = () => {
         switch (currentStep) {
@@ -211,7 +376,7 @@ const AddListingBulkIndex = () => {
                             color="success"
                             onClick={handleFinalSubmit}
                             // Disable until all critical product details are filled
-                            disabled={!listingData.title || !listingData.description || !listingData.regularPrice || !listingData.stockQty}
+                            disabled={!listingData.categoryId || !listingData.subCategoryOneId || !listingData.subCategoryTwoId || !listingData.brandId}
                         >
                             Submit Listing
                         </Button>

@@ -104,7 +104,6 @@ const Register = () => {
                         placeholder="Enter your GSTIN"
                         value={formData.gstin}
                         onChange={e => setFormData({ ...formData, gstin: e.target.value })}
-                        required
                       />
                     </FormGroup>
 

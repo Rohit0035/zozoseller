@@ -11,14 +11,18 @@ import { FaBell } from 'react-icons/fa';
 import SingleListings from './SingleListings';
 import BulkListings from './BulkListings';
 import BulkVariantGroupings from './BulkVariantGroupings';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { checkProfileCompletion } from '../../utils/common';
+import { GetCategories } from '../../api/categoryAPI';
 
+const statuses = ['Draft', 'Active', 'ReadyForActivation', 'Inactive'];
 
 const AddListingProduct = () => {
   const [activeTab, setActiveTab] = useState('1');
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const toggle = (tab) => {
     if (activeTab !== tab) setActiveTab(tab);
@@ -35,14 +39,44 @@ const AddListingProduct = () => {
         }
     }, [user, navigate]);
 
-    // Conditional rendering check
+    
+
+    const fetchCategories = async () => {
+        dispatch({ type: 'loader', loader: true })
+    
+        try {
+          const response = await GetCategories(); // Make sure login function returns token
+          console.log(response);
+          if (response.success == true) {
+            // showToast('success', response.message)
+            const formattedData = response.data.map((item, index) => ({
+              index: index + 1,
+              id: item._id,
+              name: item.name,
+            }));
+            setCategories(formattedData);
+          } else {
+            // setError(response.message);
+            showToast('error', response.message)
+          }
+        } catch (error) {
+          // setError(error); // Handle login errors
+          showToast('error', error)
+        } finally {
+          dispatch({ type: 'loader', loader: false })
+        }
+      }
+    
+      useEffect(() => {
+        fetchCategories();
+      }, []);
+
+      // Conditional rendering check
     if (!isProfileComplete) {
         return null; // Or a loading spinner/message
     }
 
   return (
-
-
     <>
      <Row>
         <Col md="6">
@@ -57,9 +91,9 @@ const AddListingProduct = () => {
         </Col>
         <Col md="6">
           <div className="d-flex justify-content-end justify-content-md-end">
-            <Link className="me-3 mt-2" >
+            {/* <Link className="me-3 mt-2" >
                <FaBell size={18} color="#fc0" className='me-2' /> Partner Services
-            </Link>
+            </Link> */}
             {/* <InputGroup className='me-2' style={{ maxWidth: '300px' }}>
                             <Input type="search" placeholder="Search for FSN, Title or SKU ID" />
                             <Button color='primary'>
@@ -99,7 +133,7 @@ const AddListingProduct = () => {
             Bulk Listings
           </NavLink>
         </NavItem>
-        <NavItem>
+        {/* <NavItem>
           <NavLink
             className={classnames('text-dark font-weight-bold',{ active: activeTab === '3' })}
             onClick={() => toggle('3')}
@@ -107,19 +141,19 @@ const AddListingProduct = () => {
           >
             Bulk Variant Groupings
           </NavLink>
-        </NavItem>
+        </NavItem> */}
       </Nav>
 
       <TabContent activeTab={activeTab} className="mt-3">
         <TabPane tabId="1">
-           <SingleListings/>
+           <SingleListings categories={categories} statuses={statuses}/>
         </TabPane>
         <TabPane tabId="2">
-           <BulkListings/>
+           <BulkListings categories={categories} statuses={statuses}/>
         </TabPane>
-        <TabPane tabId="3">
+        {/* <TabPane tabId="3">
             <BulkVariantGroupings/>
-        </TabPane>
+        </TabPane> */}
       </TabContent>
     </div>
       </>

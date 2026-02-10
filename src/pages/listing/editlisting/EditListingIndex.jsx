@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Button, Breadcrumb, BreadcrumbItem } from 'reactstrap';
 import '../../../assets/styles/HorizontalStepper.css';
 import SelectVerticalTabs from './SelectVerticalTabs';
 import SelectBrand from './SelectBrand';
 import AddProductInfo from './AddProductInfo';
 import { showToast } from '../../../components/ToastifyNotification';
+import { useParams } from 'react-router-dom';
+import { GetProductById } from '../../../api/productAPI';
 import { getDefaultListingData } from '../../../utils/productInitialize';
+import { parseJSON } from 'date-fns';
 
 const steps = [
     { label: 'SELECT VERTICAL' },
@@ -13,9 +16,50 @@ const steps = [
     { label: 'ADD PRODUCT INFO' },
 ];
 
-const AddListingIndex = () => {
+const EditListingIndex = () => {
+    const { id } = useParams();
+    const [loading, setLoading] = useState(true);
+
     const [currentStep, setCurrentStep] = useState(0);
     const [listingData, setListingData] = useState(getDefaultListingData());
+
+    useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        // fetch product
+        const prodRes = await GetProductById(id);
+        if (prodRes?.success && prodRes.data) {
+          const product = prodRes.data;
+            // console.log(product);
+          // set product data
+          setListingData(product);
+          setListingData({
+                ...product,
+                categoryId: product.categoryId?._id,
+                subCategoryOneId: product.subCategoryOneId?._id,
+                subCategoryTwoId: product.subCategoryTwoId?._id,
+                brandId: product.brandId?._id,
+                hsn: product.hsn?._id,
+                productDetails: [],
+            });
+
+            console.log("listingData",product);
+        } else {
+          showToast('error', prodRes.message || 'Failed to fetch product details');
+          // optionally navigate back
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('error', 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Re-call fetchProduct to ensure all data is loaded
+    fetchProduct();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]); // Added setValue to dependencies for useEffect calls
 
     // A more generic handler to update any part of the listingData state
     // This allows child components to update multiple fields at once if needed,
@@ -56,23 +100,6 @@ const AddListingIndex = () => {
         setCurrentStep(prev => prev - 1);
     };
 
-    const handleFinalSubmit = () => {
-        // Final validation before sending data to backend
-        if (!listingData.categoryId || !listingData.subCategoryTwoId || !listingData.brandId ||
-            !listingData.title || !listingData.description || !listingData.regularPrice || !listingData.stockQty) {
-            showToast('error', 'Please complete all required product information before submitting.');
-            return;
-        }
-
-        console.log("Final Listing Data for Submission:", listingData);
-        // Here you would typically send `listingData` to your backend API
-        // Example: await createProduct(listingData);
-        showToast('success', 'Listing data submitted successfully!');
-        // Optionally reset form or navigate away
-        // setCurrentStep(0);
-        // setListingData({ /* reset to initial state for a new listing */ });
-    };
-
     const renderStepComponent = () => {
         switch (currentStep) {
             case 0:
@@ -107,16 +134,19 @@ const AddListingIndex = () => {
         }
     };
 
+    if (loading) return <div>Loading product...</div>;
+
+
     return (
         <>
             <Row>
                 <Col md="12">
                     <Breadcrumb className='my-2'>
                         <BreadcrumbItem>
-                            <h5>Add Single Listing</h5>
+                            <h5>Edit Product</h5>
                         </BreadcrumbItem>
                         <BreadcrumbItem active>
-                            Listings
+                            Product
                         </BreadcrumbItem>
                     </Breadcrumb>
                 </Col>
@@ -160,20 +190,11 @@ const AddListingIndex = () => {
                         >
                             Next
                         </Button>
-                    ) : (
-                        <Button
-                            color="success"
-                            onClick={handleFinalSubmit}
-                            // Disable until all critical product details are filled
-                            disabled={!listingData.title || !listingData.description || !listingData.regularPrice || !listingData.stockQty}
-                        >
-                            Submit Listing
-                        </Button>
-                    )}
+                    ) : ""}
                 </Col>
             </Row>
         </>
     );
 };
 
-export default AddListingIndex;
+export default EditListingIndex;

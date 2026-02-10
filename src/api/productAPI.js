@@ -19,10 +19,26 @@ export const StoreProduct = async (data) => {
   }
 };
 
+export const StoreBulkProducts = async (data) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_MULTIPART_CONFIG.baseURL}/products/bulk-create`,'POST',data,'multipart'
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "signup failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};
+
 export const GetProducts = async (data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_MULTIPART_CONFIG.baseURL}/products`
+      `${API_MULTIPART_CONFIG.baseURL}/products?listingType=${data?.listingType || ''}`
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {
