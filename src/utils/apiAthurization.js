@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_CONFIG, API_MULTIPART_CONFIG } from './api-config';
+import { LOGOUT } from '../reducers/authReducer';
 
 const fetchWithAuth = async (url, method = 'GET', data = null, contentType = 'json') => {
   let config;
@@ -39,6 +40,10 @@ const fetchWithAuth = async (url, method = 'GET', data = null, contentType = 'js
   } catch (error) {
     if (error.response) {
       const data = error.response.data
+      if(data.message == "jwt expired" || data.message == "jwt malformed" || data.message == "invalid signature"){
+        store.dispatch({ type: LOGOUT });
+        throw new Error(`Session expired. Please login again.`);
+      }
       throw new Error(`${data.message}`);
     } else if (error.request) {
       throw new Error("No response received from the server.");

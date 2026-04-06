@@ -3,7 +3,6 @@ import {
     Container, Row, Col, Card, CardBody, Button, Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, Label, Input
 } from 'reactstrap';
 import { FaEdit, FaCheckCircle, FaTrashAlt } from 'react-icons/fa';
-import { UpdateSellerProfile } from '../../api/sellerProfileAPI';
 import { showToast } from '../ToastifyNotification';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';

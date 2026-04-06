@@ -56,8 +56,10 @@ const ApprovalRequests = () => {
         };
     
         useEffect(() => {
-            fetchProducts();
-        }, []); // Fetch products on component mount
+            if (isProfileComplete) {
+                fetchProducts();
+            }
+        }, [isProfileComplete]); // Fetch products on component mount
 
     const toggleModal = () => setModalOpen(!modalOpen);
 
@@ -67,20 +69,6 @@ const ApprovalRequests = () => {
         { title: 'Pending', count: data.filter(item => item.status === 'Pending').length, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
         { title: 'Approved', count: data.filter(item => item.status === 'Approved').length, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
     ];
-
-    // const demoData = [
-    //     { id: 143434443, brand: 'Nike', vertical: 'Sportswear', status: 'Pending', comments: 'Awaiting manager approval', lastUpdated: '2025-06-28' },
-    //     { id: 243434434, brand: 'Apple', vertical: 'Electronics', status: 'Approved', comments: 'Approved by admin', lastUpdated: '2025-06-27' },
-    //     { id: 356576764, brand: 'Samsung', vertical: 'Electronics', status: 'Action Required', comments: 'Need clarification', lastUpdated: '2025-06-26' },
-    // ];
-
-    // const filteredData = demoData.filter(
-    //     (item) =>
-    //         item.brand.toLowerCase().includes(filterText.toLowerCase()) ||
-    //         item.vertical.toLowerCase().includes(filterText.toLowerCase()) ||
-    //         item.status.toLowerCase().includes(filterText.toLowerCase()) ||
-    //         item.comments.toLowerCase().includes(filterText.toLowerCase())
-    // );
 
     const columns = [
         { name: 'Request ID', selector: row => row.id, sortable: true },

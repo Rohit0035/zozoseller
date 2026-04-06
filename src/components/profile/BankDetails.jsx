@@ -1,217 +1,157 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
-  Row,
-  Col,
-  Card,
-  CardBody,
-  Button,
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Input,
-  Label,
-  Form
-} from "reactstrap";
-import { buildFormData } from "../../utils/common";
-import { IMAGE_URL } from "../../utils/api-config";
+  Row, Col, Card, CardBody, Button, Modal, ModalHeader, ModalBody, ModalFooter,
+  Form, FormGroup, Label, Input
+} from 'reactstrap';
+import { FaEdit } from 'react-icons/fa';
+import { IMAGE_URL } from '../../utils/api-config';
+import { buildFormData } from '../../utils/common';
+import { bankList } from '../../utils/data';
+import { renderFilePreview } from '../../utils/filePreview';
+
+// SAME imports as above
 
 const BankDetails = ({ profileData, handleSubmit }) => {
-  const [editModal, setEditModal] = useState(false);
-  const [ldcModal, setLdcModal] = useState(false);
 
-  const toggleEditModal = () => setEditModal(!editModal);
-  const toggleLdcModal = () => setLdcModal(!ldcModal);
-  const [bankDetails, setBankDetails] = useState({
-    bankName: profileData?.bankName,
-    accountNo: profileData?.accountNo,
-    ifscCode: profileData?.ifscCode,
-    branchName: profileData?.branchName
+  const [modal, setModal] = useState(false);
+  const toggle = () => setModal(!modal);
+
+  const [files, setFiles] = useState({});
+  const [previews, setPreviews] = useState({});
+  const [errors, setErrors] = useState({});
+
+  const [bankData, setBankData] = useState({
+    bankName: '',
+    accountName: '',
+    accountNumber: '',
+    ifscCode: '',
+    cancelCheque: '',
   });
-  const [ldcDetails, setLdcDetails] = useState(profileData?.ldcDetails);
+
   useEffect(() => {
-    setBankDetails({
-      bankName: profileData?.bankName,
-      accountNo: profileData?.accountNo,
-      ifscCode: profileData?.ifscCode,
-      branchName: profileData?.branchName
+    const data = profileData?.bankDetails || {};
+    data.cancelCheque = data.cancelCheque ? `${IMAGE_URL}/${data.cancelCheque}` : ''
+    setBankData(data);
+
+    setPreviews({
+      cancelCheque: data.cancelCheque ? `${IMAGE_URL}/${data.cancelCheque}` : '',
     });
-    setLdcDetails(profileData?.ldcDetails);
-  }, [profileData])
+  }, [profileData]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFiles({ cancelCheque: file });
+      setPreviews({ cancelCheque: URL.createObjectURL(file) });
+    }
+  };
+
+  const validate = () => {
+    let newErrors = {};
+
+    if (!bankData.bankName) newErrors.bankName = "Bank Name is required";
+    if (!bankData.accountName) newErrors.accountName = "Account Name is required";
+    if (!bankData.accountNumber) newErrors.accountNumber = "Account Number is required";
+    if (!bankData.ifscCode) newErrors.ifscCode = "IFSC Code is required";
+
+    if (!files.cancelCheque && !bankData.cancelCheque)
+      newErrors.cancelCheque = "Cancel Cheque is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   return (
-    <div className="p-2">
-      <Row>
-        {/* Bank Account Verification */}
-        <Col md="6" className="mb-3">
-          <Card className="bg-light h-100" style={{ border: "unset" }}>
-            <CardBody>
-              <h6 className="mb-3">Bank Account Verification</h6>
-              <div className="mb-2">
-                <strong>Account Number:</strong> {bankDetails?.accountNo}
-              </div>
-              <div className="mb-3">
-                <strong>IFSC Code:</strong> {bankDetails?.ifscCode}
-              </div>
-              <div
-                className="mb-3 text-primary"
-                style={{ cursor: "pointer" }}
-                onClick={toggleEditModal}
-              >
-                <i className="fa fa-pencil mr-1" /> Edit Account Details (Faster
-                and recommended)
-              </div>
-              <p className="text-muted">OR</p>
-              <div className="mb-3">
-                <strong className="text-primary" style={{ cursor: "pointer" }}>
-                  Upload Cancelled Cheque, Account Statement or Passbook
-                </strong>
-              </div>
-              <div>
-                <Button color="primary" className="mr-2">
-                  Submit
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </Col>
+    <Card className="h-100 bg-light shadow-sm border-0">
+      <CardBody>
 
-        {/* LDC Card */}
-        <Col md="6" className="mb-3">
-          <Card className="bg-light h-100" style={{ border: "unset" }}>
-            <CardBody>
-              <h6 className="mb-3 d-flex justify-content-between align-items-center">
-                Claim LDC for TDS under 194O{" "}
-                <span className="text-danger">ⓘ</span>
-              </h6>
-              <p className="text-muted">Please provide us your LDC details</p>
-              <Button className="btn btn-primary" onClick={toggleLdcModal}>
-                Add Details
-              </Button>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+        <div className="d-flex justify-content-between mb-2">
+          <h6 className="fw-bold">Bank Details</h6>
+          <Button color="link" onClick={toggle}>
+            <FaEdit size={14} /> EDIT
+          </Button>
+        </div>
 
-      {/* Edit Bank Account Modal */}
-      <Modal isOpen={editModal} toggle={toggleEditModal}>
-        <ModalHeader toggle={toggleEditModal}>
-          Edit Bank Account Details
-        </ModalHeader>
+        <div className="mb-2"><strong>Bank:</strong> {bankData.bankName}</div>
+        <div className="mb-2"><strong>Account Name:</strong> {bankData.accountName}</div>
+        <div className="mb-2"><strong>Account No:</strong> {bankData.accountNumber}</div>
+        <div className="mb-2"><strong>IFSC:</strong> {bankData.ifscCode}</div>
+
+        <div className="mb-2">
+          <strong>Cancel Cheque:</strong><br />
+          {previews.cancelCheque && <img src={previews.cancelCheque} width={120} alt="" />}
+        </div>
+
+      </CardBody>
+      <Modal isOpen={modal} toggle={toggle}>
+        <ModalHeader toggle={toggle}>Edit Bank Details</ModalHeader>
+
         <Form>
           <ModalBody>
-            <Label>Bank Name</Label>
-            <Input type="text" className="mb-3" value={bankDetails?.bankName} onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })} />
 
-            <Label>Account Number</Label>
-            <Input type="text" className="mb-3" value={bankDetails?.accountNo} onChange={(e) => setBankDetails({ ...bankDetails, accountNo: e.target.value })} />
+            <FormGroup>
+              <Label>Bank Name *</Label>
+              <Input type='select' value={bankData.bankName || ''} invalid={!!errors.bankName}
+                onChange={(e) => setBankData({ ...bankData, bankName: e.target.value })}
+              >
+                {bankList.map((bank) => <option key={bank}>{bank}</option>)}
+              </Input>
+              <div className="text-danger">{errors.bankName}</div>
+            </FormGroup>
 
-            <Label>IFSC Code</Label>
-            <Input type="text" className="mb-3" value={bankDetails?.ifscCode} onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value })} />
+            <FormGroup>
+              <Label>Account Name *</Label>
+              <Input value={bankData.accountName || ''} invalid={!!errors.accountName}
+                onChange={(e) => setBankData({ ...bankData, accountName: e.target.value })}
+              />
+              <div className="text-danger">{errors.accountName}</div>
+            </FormGroup>
 
-            <Label>Branch Name</Label>
-            <Input type="text" className="mb-3" value={bankDetails?.branchName} onChange={(e) => setBankDetails({ ...bankDetails, branchName: e.target.value })} />
+            <FormGroup>
+              <Label>Account Number *</Label>
+              <Input value={bankData.accountNumber || ''} invalid={!!errors.accountNumber}
+                onChange={(e) => setBankData({ ...bankData, accountNumber: e.target.value })}
+              />
+              <div className="text-danger">{errors.accountNumber}</div>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>IFSC Code *</Label>
+              <Input value={bankData.ifscCode || ''} invalid={!!errors.ifscCode}
+                onChange={(e) => setBankData({ ...bankData, ifscCode: e.target.value })}
+              />
+              <div className="text-danger">{errors.ifscCode}</div>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Cancel Cheque * <small>(Only .jpg, .jpeg, .png, .pdf formats are allowed)</small></Label>
+              <Input type="file" onChange={handleFileChange} accept='image/*, application/pdf' />
+              <div className="text-danger">{errors.cancelCheque}</div>
+              {renderFilePreview(files.cancelCheque || bankData.cancelCheque)}
+            </FormGroup>
+
           </ModalBody>
+
           <ModalFooter>
-            <Button color="primary" onClick={() => { 
-                const formData = buildFormData('bankDetails', bankDetails);
-								handleSubmit(formData);
-                toggleEditModal() 
-              }}>
-              Save
-            </Button>
-            <Button color="secondary" onClick={toggleEditModal}>
-              Cancel
-            </Button>
+            <Button color="primary" onClick={() => {
+              if (!validate()) return;
+
+              const formData = buildFormData('bankDetails', bankData);
+              if (files.cancelCheque)
+                formData.append('cancelCheque', files.cancelCheque);
+
+              handleSubmit(formData);
+              toggle();
+            }}>Save</Button>
+
+            <Button onClick={toggle}>Cancel</Button>
           </ModalFooter>
         </Form>
       </Modal>
+    </Card>
 
-      {/* LDC Modal */}
-      <Modal isOpen={ldcModal} toggle={toggleLdcModal}>
-        <ModalHeader toggle={toggleLdcModal}>Provide LDC Details</ModalHeader>
-        <Form 
-          onSubmit={() => {
-              const formData = buildFormData('ldcDetails', ldcDetails);
-              handleSubmit(formData);
-              toggleLdcModal();
-          }}>
-        <ModalBody>
-          <Label>Certificate Number</Label>
-          <Input
-            type="text"
-            className="mb-3"
-            placeholder="Enter Certificate Number"
-            value={ldcDetails?.certificateNo}
-            onChange={(e) => setLdcDetails({ ...ldcDetails, certificateNo: e.target.value })}
-          />
 
-          <Label>Lower Tax Rate (%)</Label>
-          <Input type="number" className="mb-3" placeholder="Enter Tax Rate" 
-            value={ldcDetails?.lowerTaxRate}
-            onChange={(e) => setLdcDetails({ ...ldcDetails, lowerTaxRate: e.target.value })}
-          />
 
-          <Label>Validity</Label>
-          <div className="d-flex mb-3">
-            <Input type="date" className="mr-2" 
-              value={ldcDetails?.validity?.fromDate?.slice(0,10)}
-              onChange={(e) => setLdcDetails({
-                ...ldcDetails,
-                validity: {
-                  ...ldcDetails.validity,
-                  fromDate: e.target.value,
-                },
-              })}
-            />
-            <span className="mx-2">→</span>
-            <Input type="date" 
-              value={ldcDetails?.validity?.toDate?.slice(0,10)}
-              onChange={(e) => setLdcDetails({
-                ...ldcDetails,
-                validity: {
-                  ...ldcDetails.validity,
-                  toDate: e.target.value,
-                },
-              })}
-            />
-          </div>
-
-          <Label>Amount</Label>
-          <Input type="number" className="mb-3" placeholder="Enter Amount" 
-            value={ldcDetails?.amount}
-            onChange={(e) => setLdcDetails({ ...ldcDetails, amount: e.target.value })}
-          />
-
-          <Label>Upload Document</Label>
-          <div className="mb-3">
-            <Input type="file" 
-              onChange={(e) => setLdcDetails({ ...ldcDetails, document: e.target.files[0] })}
-            />
-          </div>
-          {
-            ldcDetails?.document && 
-            <a href={`${IMAGE_URL}/${ldcDetails?.document}`} target="_blank">
-              View Document
-            </a>
-          }
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary"
-          onClick={() => { 
-                const formData = buildFormData('ldcDetails', ldcDetails, 'document', ldcDetails?.document);
-								handleSubmit(formData);
-                toggleLdcModal() 
-              }}
-          >
-            Upload and Save
-          </Button>
-          <Button color="secondary" onClick={toggleLdcModal}>
-            Cancel
-          </Button>
-        </ModalFooter>
-        </Form>
-      </Modal>
-    </div>
   );
 };
 

@@ -7,29 +7,9 @@ import DashboardCards from "../components/DashboardCards";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { GetSellerDashboardData } from "../api/sellerAPI";
+import { GetDashboardData } from "../api/authAPI";
 
 const Dashboard = () => {
-  const carouselItems = [
-    {
-      altText: "Slide 1",
-      caption: "Slide 1",
-      key: 1,
-      src: "https://picsum.photos/id/1011/1200/600"
-    },
-    {
-      altText: "Slide 2",
-      caption: "Slide 2",
-      key: 2,
-      src: "https://picsum.photos/id/1012/1200/600"
-    },
-    {
-      altText: "Slide 3",
-      caption: "Slide 3",
-      key: 3,
-      src: "https://picsum.photos/id/1013/1200/600"
-    }
-  ];
 
   const [dashboardData, setDashboardData] = useState([]);
   const dispatch = useDispatch();
@@ -45,7 +25,7 @@ const Dashboard = () => {
     dispatch({ type: "loader", loader: true });
     
     try {
-      const response = await GetSellerDashboardData();
+      const response = await GetDashboardData();
       console.log(response)
         if (response.success) {
           setDashboardData(response.data);

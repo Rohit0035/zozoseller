@@ -23,7 +23,7 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
   const handleLogout = () => {
     // Dispatch the logout action
     dispatch({ type: LOGOUT });
-    navigate('/'); // Redirect upon successful login
+    navigate('/login'); // Redirect upon successful login
     showToast('success', 'You have been logged out successfully')
   };
   return (

@@ -247,3 +247,73 @@ export const countries = [
   { code: "ZM", name: "Zambia" },
   { code: "ZW", name: "Zimbabwe" }
 ];
+
+export const bankList = [
+  // Public Sector Banks
+  "State Bank of India",
+  "Bank of Baroda",
+  "Punjab National Bank",
+  "Canara Bank",
+  "Union Bank of India",
+  "Indian Bank",
+  "Bank of India",
+  "Central Bank of India",
+  "Indian Overseas Bank",
+  "UCO Bank",
+  "Bank of Maharashtra",
+  "Punjab & Sind Bank",
+
+  // Private Sector Banks
+  "HDFC Bank",
+  "ICICI Bank",
+  "Axis Bank",
+  "Kotak Mahindra Bank",
+  "IndusInd Bank",
+  "Yes Bank",
+  "IDFC FIRST Bank",
+  "Bandhan Bank",
+  "Federal Bank",
+  "South Indian Bank",
+  "RBL Bank",
+  "City Union Bank",
+  "DCB Bank",
+  "Karur Vysya Bank",
+  "Tamilnad Mercantile Bank",
+  "CSB Bank",
+  "Dhanlaxmi Bank",
+  "Nainital Bank",
+
+  // Small Finance Banks
+  "AU Small Finance Bank",
+  "Ujjivan Small Finance Bank",
+  "Equitas Small Finance Bank",
+  "Jana Small Finance Bank",
+  "ESAF Small Finance Bank",
+  "Suryoday Small Finance Bank",
+  "Fincare Small Finance Bank",
+  "Utkarsh Small Finance Bank",
+  "North East Small Finance Bank",
+  "Capital Small Finance Bank",
+  "Unity Small Finance Bank",
+
+  // Payments Banks
+  "Airtel Payments Bank",
+  "India Post Payments Bank",
+  "Paytm Payments Bank",
+  "Fino Payments Bank",
+  "Jio Payments Bank",
+  "NSDL Payments Bank",
+
+  // Foreign Banks (Major ones operating in India)
+  "Citibank India",
+  "HSBC India",
+  "Standard Chartered Bank India",
+  "Deutsche Bank India",
+  "Barclays Bank India",
+  "BNP Paribas India",
+  "Bank of America India",
+  "JPMorgan Chase Bank India",
+  "Credit Suisse India",
+  "UBS India",
+  "Other"
+];

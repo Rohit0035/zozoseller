@@ -508,7 +508,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 		// Validate main mandatory fields from listingData
 		const mandatoryFields = [
-			"name", "sku", "status", "regularPrice", "salePrice",
+			"name", "sku", "status", "regularPrice", "productPrice","salePrice",
 			"minOrderQuantity", "stockQty", "minStockQty", "shippingProvider",
 			"packageLength", "packageBreadth", "packageHeight", "packageWeight",
 			"hsn", "luxuryCess", "taxCode", "countryOfOrigin",
@@ -599,11 +599,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			return;
 		}
 
-		if (!Array.isArray(listingData.galleryImages) || listingData.galleryImages.length < 3 || listingData.galleryImages.length > 7) { // Using listingData.galleryImages
-			showToast('error', 'You must upload between 3 and 7 gallery images.');
-			// dispatch({ type: 'loader', loader: false });
-			return;
-		}
+		// if (!Array.isArray(listingData.galleryImages) || listingData.galleryImages.length < 3 || listingData.galleryImages.length > 7) { // Using listingData.galleryImages
+		// 	showToast('error', 'You must upload between 3 and 7 gallery images.');
+		// 	return;
+		// }
 
 		try {
 			const formData = new FormData();
@@ -768,8 +767,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="text"
 													placeholder="Enter Product Name"
 													name="name"
-													value={listingData.name || ""}
+													value={listingData.name}
 													onChange={handleChange}
+													invalid={errors.name}
 												/>
 											</InputGroup>
 											{renderError('name')}
@@ -784,8 +784,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="text"
 													placeholder="Enter SKU ID"
 													name="sku"
-													value={listingData.sku || ""}
+													value={listingData.sku}
 													onChange={handleChange}
+													invalid={errors.sku}
 												/>
 											</InputGroup>
 											{renderError('sku')}
@@ -802,8 +803,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="select"
 													name="status"
-													value={listingData.status || ""}
+													value={listingData.status}
 													onChange={handleChange}
+													invalid={errors.status}
 												>
 													<option value="">-- Select One --</option>
 													<option value="ReadyForActivation">Ready For Activation</option>
@@ -825,11 +827,13 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="select"
 													name="fulfillmentBy"
-													value={listingData.fulfillmentBy || ""}
+													value={listingData.fulfillmentBy}
 													onChange={handleChange}
+													invalid={errors.fulfillmentBy}
 												>
 													<option value="">-- Select One --</option>
 													<option value="Seller">Seller</option>
+													<option value="Zozokart">Zozokart</option>
 													{/* Add other options like 'Flipkart' if applicable */}
 												</Input>
 											</InputGroup>
@@ -844,8 +848,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="select"
 													name="procurementType"
-													value={listingData.procurementType || ""}
+													value={listingData.procurementType}
 													onChange={handleChange}
+													invalid={errors.procurementType}
 												>
 													<option value="">-- Select One --</option>
 													<option value="instock">Instock</option>
@@ -864,8 +869,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number" // Assuming SLA is a number of days
 													placeholder=""
 													name="procurementSLA"
-													value={listingData.procurementSLA || ""}
+													value={listingData.procurementSLA}
 													onChange={handleChange}
+													invalid={errors.procurementSLA}
 												/>
 												<span className="px-1 py-2">DAY</span>
 											</InputGroup>
@@ -881,8 +887,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="stockQty"
-													value={listingData.stockQty || ""}
+													value={listingData.stockQty}
 													onChange={handleChange}
+													invalid={errors.stockQty}
 												/>
 											</InputGroup>
 											{renderError('stockQty')}
@@ -900,8 +907,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="minStockQty"
-													value={listingData.minStockQty || ""}
+													value={listingData.minStockQty}
 													onChange={handleChange}
+													invalid={errors.minStockQty}
 												/>
 											</InputGroup>
 											{renderError('minStockQty')}
@@ -922,8 +930,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="select"
 													name="shippingProvider"
-													value={listingData.shippingProvider || ""}
+													value={listingData.shippingProvider}
 													onChange={handleChange}
+													invalid={errors.shippingProvider}
 												>
 													<option value="">-- Select One --</option>
 													<option value="Zozokart">Zozokart</option>
@@ -946,8 +955,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number" // Assuming dimensions are numbers
 													placeholder=""
 													name="packageLength"
-													value={listingData.packageLength || ""}
+													value={listingData.packageLength}
 													onChange={handleChange}
+													invalid={errors.packageLength}
 												/>
 												<span className="px-1 py-2">CM</span>
 											</InputGroup>
@@ -963,8 +973,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="packageBreadth"
-													value={listingData.packageBreadth || ""}
+													value={listingData.packageBreadth}
 													onChange={handleChange}
+													invalid={errors.packageBreadth}
 												/>
 												<span className="px-1 py-2">CM</span>
 											</InputGroup>
@@ -980,8 +991,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="packageHeight"
-													value={listingData.packageHeight || ""}
+													value={listingData.packageHeight}
 													onChange={handleChange}
+													invalid={errors.packageHeight}
 												/>
 												<span className="px-1 py-2">CM</span>
 											</InputGroup>
@@ -997,8 +1009,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="packageWeight"
-													value={listingData.packageWeight || ""}
+													value={listingData.packageWeight}
 													onChange={handleChange}
+													invalid={errors.packageWeight}
 												/>
 												<span className="px-1 py-2">KG</span>
 											</InputGroup>
@@ -1036,8 +1049,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="number" // Assuming percentage is a number
 													name="luxuryCess"
-													value={listingData.luxuryCess || ""}
+													value={listingData.luxuryCess}
 													onChange={handleChange}
+													invalid={errors.luxuryCess}
 												/>
 												<span className="px-1 py-2">PERCENTAGE</span>
 											</InputGroup>
@@ -1053,7 +1067,8 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="text"
 													name="taxCode"
 													readOnly
-													value={listingData.taxCode || ""}
+													value={listingData.taxCode}
+													invalid={errors.taxCode}
 												// onChange={handleChange}
 												/>
 											</InputGroup>
@@ -1073,8 +1088,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="regularPrice"
-													value={listingData.regularPrice || ""}
+													value={listingData.regularPrice}
 													onChange={handleChange}
+													invalid={errors.regularPrice}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1090,8 +1106,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="productPrice"
-													value={listingData.productPrice || ""}
+													value={listingData.productPrice}
 													onChange={handleChange}
+													invalid={errors.productPrice}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1108,9 +1125,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="commissionAmount"
-													value={listingData.commissionAmount || ""}
+													value={listingData.commissionAmount}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.commissionAmount}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1127,9 +1145,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="gstAmount"
-													value={listingData.gstAmount || ""}
+													value={listingData.gstAmount}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.gstAmount}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1146,9 +1165,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="tcsAmount"
-													value={listingData.tcsAmount || ""}
+													value={listingData.tcsAmount}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.tcsAmount}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1165,9 +1185,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="shippingCharge"
-													value={listingData.shippingCharge || ""}
+													value={listingData.shippingCharge}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.shippingCharge}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1184,9 +1205,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="salePrice"
-													value={listingData.salePrice || ""}
+													value={listingData.salePrice}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.salePrice}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1201,8 +1223,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="select"
 													name="minOrderQuantity"
-													value={listingData.minOrderQuantity || ""}
+													value={listingData.minOrderQuantity}
 													onChange={handleChange}
+													invalid={errors.minOrderQuantity}
 												>
 													<option value="">-- Select One --</option>
 													<option value="1">1</option>
@@ -1225,8 +1248,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="select"
 													name="countryOfOrigin"
-													value={listingData.countryOfOrigin || ""}
+													value={listingData.countryOfOrigin}
 													onChange={handleChange}
+													invalid={errors.countryOfOrigin}
 												>
 													<option value="">Select One</option>
 													{/* ... all your country options ... */}
@@ -1246,8 +1270,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="text"
 													name="manufacturerDetails"
-													value={listingData.manufacturerDetails || ""}
+													value={listingData.manufacturerDetails}
 													onChange={handleChange}
+													invalid={errors.manufacturerDetails}
 												/>
 											</InputGroup>
 											{renderError('manufacturerDetails')}
@@ -1261,8 +1286,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="text"
 													name="packerDetails"
-													value={listingData.packerDetails || ""}
+													value={listingData.packerDetails}
 													onChange={handleChange}
+													invalid={errors.packerDetails}
 												/>
 											</InputGroup>
 											{renderError('packerDetails')}
@@ -1276,8 +1302,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="text"
 													name="importerDetails"
-													value={listingData.importerDetails || ""}
+													value={listingData.importerDetails}
 													onChange={handleChange}
+													invalid={errors.importerDetails}
 												/>
 											</InputGroup>
 											{renderError('importerDetails')}
@@ -1419,7 +1446,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 										style={{ fontSize: "14px" }}
 										className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 									>
-										Description *
+										Description (Optional)
 									</span>
 									<Input
 										type="textarea"
@@ -1431,72 +1458,76 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 								</InputGroup>
 								{renderError('description')}
 							</Col>
-							<Col sm={12} className="mb-3">
-								<Label className="mb-1">Product Details</Label>
-								<Row className="mb-3">
-									<div className="col-12">
-										{(listingData.productDetails || []).map((detail, index) =>
-											<div
-												className="d-flex align-items-center mb-2"
-												key={index}
-											>
-												<Input
-													name="key"
-													type="text"
-													value={detail.key || ""}
-													onChange={e =>
-														handleAdditionalDescriptionChange(
-															index,
-															e
-														)}
-													className="me-2"
-													placeholder="Key"
-												/>
-												<Input
-													name="value"
-													type="text"
-													value={detail.value || ""}
-													onChange={e =>
-														handleAdditionalDescriptionChange(
-															index,
-															e
-														)}
-													className="me-2"
-													placeholder="Value"
-												/>
-												<Button
-													color="success"
-													size="sm"
-													className="me-1"
-													onClick={handleAddAdditionalDescription}
-													disabled={
-														(listingData.productDetails || []).length >= 10
-													} // Optional: Limit number of bullet points
+							{
+								listingData.productDetails?.length > 0 &&
+
+								<Col sm={12} className="mb-3">
+									<Label className="mb-1">Product Details (Optional)</Label>
+									<Row className="mb-3">
+										<div className="col-12">
+											{(listingData.productDetails || []).map((detail, index) =>
+												<div
+													className="d-flex align-items-center mb-2"
+													key={index}
 												>
-													<FaPlus />
-												</Button>
-												{(listingData.productDetails || []).length > 1 &&
+													<Input
+														name="key"
+														type="text"
+														value={detail.key || ""}
+														onChange={e =>
+															handleAdditionalDescriptionChange(
+																index,
+																e
+															)}
+														className="me-2"
+														placeholder="Key"
+													/>
+													<Input
+														name="value"
+														type="text"
+														value={detail.value || ""}
+														onChange={e =>
+															handleAdditionalDescriptionChange(
+																index,
+																e
+															)}
+														className="me-2"
+														placeholder="Value"
+													/>
 													<Button
-														color="danger"
+														color="success"
 														size="sm"
-														onClick={() =>
-															handleRemoveAdditionalDescription(index)}
+														className="me-1"
+														onClick={handleAddAdditionalDescription}
+														disabled={
+															(listingData.productDetails || []).length >= 10
+														} // Optional: Limit number of bullet points
 													>
-														<FaMinus />
-													</Button>}
-											</div>
-										)}
-										{renderError('productDetails')}
-									</div>
-								</Row>
-							</Col>
+														<FaPlus />
+													</Button>
+													{(listingData.productDetails || []).length > 1 &&
+														<Button
+															color="danger"
+															size="sm"
+															onClick={() =>
+																handleRemoveAdditionalDescription(index)}
+														>
+															<FaMinus />
+														</Button>}
+												</div>
+											)}
+											{renderError('productDetails')}
+										</div>
+									</Row>
+								</Col>
+							}
 							<Col sm={12} className="mb-3">
 								<InputGroup className="mt-1">
 									<span
 										style={{ fontSize: "14px" }}
 										className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 									>
-										More *
+										More (Optional)
 									</span>
 									<Input
 										type="textarea"
@@ -1683,10 +1714,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 															</Col>
 
 															<Col md={12} className="mb-2">
-																<Label>Regular Price</Label>
+																<Label>MRP</Label>
 																<Input
 																	type="number"
-																	placeholder="Regular Price"
+																	placeholder="MRP"
 																	value={variation.regularPrice}
 																	onChange={(e) => handleVariationChange(index, 'regularPrice', e.target.value)}
 																/>

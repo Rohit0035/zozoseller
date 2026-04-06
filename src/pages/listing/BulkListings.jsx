@@ -4,7 +4,7 @@ import { Row, Col, Button, Input, Badge } from 'reactstrap';
 import { CSVLink } from 'react-csv';
 import { Link } from 'react-router-dom';
 import { FaTrash } from 'react-icons/fa';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { DeleteProduct, GetProducts } from '../../api/productAPI';
 import { showToast } from '../../components/ToastifyNotification';
@@ -13,14 +13,16 @@ import { formatDateWithTime } from '../../utils/dateFormatter';
 import Swal from 'sweetalert2';
 import { FaPencil } from 'react-icons/fa6';
 
-const BulkListings = ({categories,statuses}) => {
+const BulkListings = ({ categories, statuses }) => {
     const dispatch = useDispatch();
 
     const [data, setData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
     const [filterText, setFilterText] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
+    const loading = useSelector(state => state.loader.loader);
 
     const handleRowSelected = (state) => {
         setSelectedRows(state.selectedRows);
@@ -60,53 +62,43 @@ const BulkListings = ({categories,statuses}) => {
         fetchBulkProducts();
     }, []);
 
-    const handleDeleteClick = async (id) => {
-            Swal.fire({
-                title: "Are you sure?",
-                text: "You won't be able to revert this!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Yes, delete it!"
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    dispatch({ type: 'loader', loader: true });
-                    try {
-                        const response = await DeleteProduct(id);
-                        if (response.success) {
-                            showToast('success', response.message);
-                            setData(data.filter(item => item._id !== id));
-                            setFilteredData(filteredData.filter(item => item._id !== id));
-                        } else {
-                            showToast('error', response.message);
-                        }
-                    } catch (error) {
-                        console.error("Error deleting product:", error);
-                        showToast('error', error.message || 'Failed to delete product');
-                    } finally {
-                        dispatch({ type: 'loader', loader: false });
-                    }
-                }
-            });
-        };
-
     // 🔍 Filtering
-    const filteredData = data.filter(item => {
-        const textMatch =
-            item.title.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.sku.toLowerCase().includes(filterText.toLowerCase());
+    useEffect(() => {
+        let updatedData = data;
 
-        const categoryMatch =
-            !selectedCategory || item.category === selectedCategory;
+        // Search filter (Title or SKU)
+        if (filterText) {
+            updatedData = updatedData.filter(item =>
+                item.title.toLowerCase().includes(filterText.toLowerCase()) ||
+                item.skuId.toLowerCase().includes(filterText.toLowerCase())
+            );
+        }
 
-        const statusMatch =
-            !selectedStatus || item.status === selectedStatus;
+        // Category filter
+        if (selectedCategory) {
+            updatedData = updatedData.filter(
+                (item) => item.category === selectedCategory
+            );
+        }
 
-        return textMatch && categoryMatch && statusMatch;
-    });
+        // Status filter
+        if (selectedStatus) {
+            updatedData = updatedData.filter(
+                item => item.status == selectedStatus
+            );
+        }
+
+        // 🔥 Recalculate index after filtering
+        const reIndexedData = updatedData.map((item, index) => ({
+            ...item,
+            index: index + 1
+        }));
+
+        setFilteredData(reIndexedData);
+    }, [filterText, selectedCategory, selectedStatus, data]);
 
     const columns = [
+		{ name: 'S.No', selector: row => row.index, sortable: true,width: "5%" },
         {
             name: 'Product Detail',
             selector: row => (
@@ -126,7 +118,7 @@ const BulkListings = ({categories,statuses}) => {
             wrap: true,
         },
         {
-            name:'Category',
+            name: 'Category',
             selector: row => row.category,
             sortable: true,
         },
@@ -150,23 +142,6 @@ const BulkListings = ({categories,statuses}) => {
             selector: row => row.updated,
             sortable: true,
         },
-        {
-            name: 'Actions',
-            cell: row => (
-                <>
-                    <Link to={`/listing/edit/${row.id}`} className='btn btn-success text-white btn-sm me-1'>
-                        <FaPencil />
-                    </Link>
-                    <Button 
-                        className='btn btn-danger btn-sm'
-                        onClick={() => handleDeleteClick(row.id)}
-                    >
-                        <FaTrash />
-                    </Button>
-                </>
-    
-            ),
-        },
     ];
 
     return (
@@ -189,7 +164,7 @@ const BulkListings = ({categories,statuses}) => {
                     >
                         <option value="">All Categories</option>
                         {categories.map(cat => (
-                            <option key={cat._id} value={cat.name}>
+                            <option key={cat.name} value={cat.name}>
                                 {cat.name}
                             </option>
                         ))}
@@ -227,8 +202,9 @@ const BulkListings = ({categories,statuses}) => {
                 data={filteredData}
                 pagination
                 striped
-                selectableRows
-                onSelectedRowsChange={handleRowSelected}
+                // selectableRows
+                // onSelectedRowsChange={handleRowSelected}
+                progressPending={loading}
             />
         </div>
     );

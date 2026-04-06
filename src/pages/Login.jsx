@@ -16,14 +16,14 @@ import LogoLg from "../assets/images/logo-lg.png";
 import Loginimg from "../assets/images/common/login-img.jpg";
 import { useDispatch, useSelector } from "react-redux";
 import { showToast } from "../components/ToastifyNotification";
-import { sellerLogin } from "../api/sellerAPI";
+import { LoginApi } from "../api/authAPI";
 
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
-  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [email, setEmail] = useState("");
   const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
 
   useEffect(() => {
@@ -34,17 +34,17 @@ const Login = () => {
   const sendOtp = async e => {
     e.preventDefault();
     try {
-      if (!emailOrPhone) {
-        showToast("error", "Email or Phone number is required");
+      if (!email) {
+        showToast("error", "Email is required");
         return;
       }
       const data = {
-        emailOrPhone: emailOrPhone
+        email: email
       };
-      const response = await sellerLogin(data);
-      if (response.success == true) {
+      const response = await LoginApi(data);
+      if (response.status == true) {
         showToast("success", response.message);
-        navigate("/otp", { state: { emailOrPhone } }); // Redirect upon successful login
+        navigate("/otp", { state: { email } }); // Redirect upon successful login
       } else {
         // setError(response.message);
         showToast("error", response.message);
@@ -73,20 +73,20 @@ const Login = () => {
                   <hr />
                   <Form onSubmit={sendOtp}>
                     <FormGroup>
-                      <Label for="emailOrMobile">Email or Mobile Number</Label>
+                      <Label for="email">Email</Label>
                       <Input
-                        id="emailOrMobile"
+                        id="email"
                         type="text"
-                        placeholder="Enter your email or mobile number"
-                        value={emailOrPhone}
-                        onChange={e => setEmailOrPhone(e.target.value)}
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
                         required
                       />
                     </FormGroup>
-                    <Button className="btn btn-primary" block type="submit">
+                    <Button className="btn btn-primary mb-3" block type="submit">
                       Send OTP
                     </Button>
-                    <Link to="/register">New Here? Click to Register</Link>
+                    <Link to="/sign-up">New Here? Click to Sign Up</Link>
                   </Form>
                 </Col>
               </Row>

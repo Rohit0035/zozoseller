@@ -51,8 +51,8 @@ const PartnerServicesHelp = lazy(() =>
 
 const Login = lazy(() => import("./pages/Login"));
 const OtpVerification = lazy(() => import("./pages/OtpVerification"));
-const Register = lazy(() => import("./pages/Register"));
-const RegisterOtpVerification = lazy(() => import("./pages/RegisterOtpVerification"));
+const Signup = lazy(() => import("./pages/Signup"));
+const SignupOtpVerification = lazy(() => import("./pages/SignupOtpVerification"));
 
 
 // Dummy auth check
@@ -65,7 +65,7 @@ const PrivateRoute = ({ children }) => {
 
 export default function AppRoutes() {
   const location = useLocation();
-  const isAuthPage = ["/login", "/register", "/otp", "/register-otp-verification"].includes(
+  const isAuthPage = ["/login", "/sign-up", "/otp", "/sign-up-otp-verification"].includes(
     location.pathname
   );
 
@@ -75,8 +75,8 @@ export default function AppRoutes() {
         {/* Public auth routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/otp" element={<OtpVerification />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/register-otp-verification" element={<RegisterOtpVerification />} />
+        <Route path="/sign-up" element={<Signup />} />
+        <Route path="/sign-up-otp-verification" element={<SignupOtpVerification />} />
 
         {/* Protected app routes inside layout */}
         <Route

@@ -16,9 +16,9 @@ export default function App() {
 
   const isAuthPage = [
     "/login",
-    "/register",
+    "/sign-up",
     "/otp",
-    "/register-otp-verification"
+    "/sign-up-otp-verification"
   ].includes(location.pathname);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);

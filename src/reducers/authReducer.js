@@ -18,7 +18,7 @@ const authReducer = (state = initialState, action) => {
       localStorage.setItem("isAuthenticated", "true"); // Boolean should be string
       localStorage.setItem(
         "user",
-        JSON.stringify(action.payload.response.data)
+        JSON.stringify(action.payload.response.user)
       ); // Store as string
       localStorage.setItem("loginTime", Date.now().toString()); // Store as string
       localStorage.setItem(
@@ -28,7 +28,7 @@ const authReducer = (state = initialState, action) => {
       return {
         ...state,
         isAuthenticated: true,
-        user: action.payload.response.data,
+        user: action.payload.response.user,
         loginTime: Date.now(),
         token: action.payload.response.token
       }; // Store the login time

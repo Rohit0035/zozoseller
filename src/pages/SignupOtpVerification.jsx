@@ -17,7 +17,7 @@ import Loginimg from "../assets/images/common/login-img.jpg";
 import { useDispatch } from "react-redux";
 import { showToast } from "../components/ToastifyNotification";
 import { LOGIN_SUCCESS } from "../reducers/authReducer";
-import {sellerVerifyLoginOtp, sellerVerifyRegistrationOtp} from '../api/sellerAPI'
+import { VerifySignupOtpApi } from "../api/authAPI";
 
 const OtpVerification = () => {
 
@@ -30,13 +30,13 @@ const OtpVerification = () => {
 
     const email = location.state?.email || '';
     const phone = location.state?.phone || '';
-    const gstin = location.state?.gstin || '';
+    const name = location.state?.name || '';
 
     useEffect(() => {
-        if(!email || !phone || !gstin) {
+        if(!email || !phone || !name) {
             navigate('/sign-in')
         }
-    }, [email, phone, gstin]);
+    }, [email, phone, name]);
 
     const handleInputChange = (value, index) => {
         if (value.length > 1) return; // Ensure single character input
@@ -84,16 +84,16 @@ const OtpVerification = () => {
             const data = {
                 email,
                 phone,
-                gstin,
+                name,
                 otp: otp.join(""),
             }
             if(!otp.join("")){
                 showToast('error','Otp is required')
                 return;
             }
-            const response = await sellerVerifyRegistrationOtp(data); // Make sure login function returns token
+            const response = await VerifySignupOtpApi(data); // Make sure login function returns token
 
-            if (response.success == true) {
+            if (response.status == true) {
                 showToast('success', response.message)
                 localStorage.setItem('token', response.token); // Store token in localStorage
                 // localStorage.setItem('user', JSON.stringify(response.data.customer));

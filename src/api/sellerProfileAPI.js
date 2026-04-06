@@ -3,10 +3,10 @@ import { API_MULTIPART_CONFIG } from "../utils/api-config";
 import axios from "axios";
 import fetchWithAuth from "../utils/apiAthurization";
 
-export const GetSellerProfileData = async (data) => {
+export const GetProfileData = async (data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_MULTIPART_CONFIG.baseURL}/seller/get-seller-profile-data`
+      `${API_MULTIPART_CONFIG.baseURL}/seller/get-profile`
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {
@@ -19,10 +19,10 @@ export const GetSellerProfileData = async (data) => {
   }
 };
 
-export const UpdateSellerProfile = async (data) => {
+export const UpdateProfile = async (data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_MULTIPART_CONFIG.baseURL}/seller/update-seller-profile-data`,'POST',data,'multipart'
+      `${API_MULTIPART_CONFIG.baseURL}/seller/update-profile`,'POST',data,'multipart'
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {

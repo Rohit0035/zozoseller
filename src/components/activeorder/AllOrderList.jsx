@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import DataTable from "react-data-table-component";
 import { CSVLink } from "react-csv";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
   Card,
   CardBody,
   Col,
@@ -11,98 +9,90 @@ import {
 } from "reactstrap";
 import { RiArrowDropDownLine } from "react-icons/ri";
 
-const demoOrders = [
-  {
-    id: 1,
-    orderId: "ORD-1001",
-    productInfo: "iPhone 14 - 128GB - Black",
-    amount: "$799",
-    dispatchDate: "2025-07-02",
-    status: "Pending"
-  },
-  {
-    id: 2,
-    orderId: "ORD-1002",
-    productInfo: "Galaxy S23 - 256GB - Grey",
-    amount: "$699",
-    dispatchDate: "2025-07-03",
-    status: "Processing"
-  },
-  {
-    id: 3,
-    orderId: "ORD-1003",
-    productInfo: "MacBook Air - 13 inch",
-    amount: "$999",
-    dispatchDate: "2025-07-05",
-    status: "Pending"
-  },
-  {
-    id: 4,
-    orderId: "ORD-1004",
-    productInfo: "Dell XPS 15",
-    amount: "$850",
-    dispatchDate: "2025-07-04",
-    status: "Completed"
-  }
-];
-
-const allColumns = [
-  { name: "Order ID", selector: row => row.orderId, sortable: true },
-  {
-    name: "Product Information",
-    selector: row => row.productInfo,
-    sortable: true
-  },
-  { name: "Amount", selector: row => row.amount, sortable: true },
-  // {
-  //   name: "Dispatch By Date",
-  //   selector: row => row.dispatchDate,
-  //   sortable: true
-  // },
-  { name: "Status", selector: row => row.status, sortable: true }
-];
-
-const presets = {
-  "Default View": allColumns.map(col => col.name),
-  "Full View": allColumns.map(col => col.name)
-};
+// ✅ QR Dependencies
+import { QRCodeCanvas } from "qrcode.react";
 
 const AllOrderList = ({ orders }) => {
-  const [visibleColumns, setVisibleColumns] = useState(presets["Default View"]);
+  const [visibleColumns, setVisibleColumns] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [selectedRows, setSelectedRows] = useState([]);
-  const [sortConfig, setSortConfig] = useState({
-    field: "orderId",
-    order: "desc"
-  });
 
-  const filteredData = orders
-    .filter(item =>
-      Object.values(item).some(val =>
-        val.toString().toLowerCase().includes(filterText.toLowerCase())
-      )
-    )
-    .sort((a, b) => {
-      const field = sortConfig.field;
-      const valA = a[field];
-      const valB = b[field];
-      if (sortConfig.order === "desc") return valA < valB ? 1 : -1;
-      else return valA > valB ? 1 : -1;
+  // ✅ QR DATA
+  const getQrData = (row) =>
+    JSON.stringify({
+      orderUniqueId: row.orderUniqueId,
+      subOrderUniqueId: row.subOrderUniqueId,
+      skuNo: row.skuNo,
     });
 
+  // ✅ SINGLE QR DOWNLOAD
+  const downloadQR = async (row) => {
+    const div = document.createElement("div");
+    document.body.appendChild(div);
+
+    const { createRoot } = await import("react-dom/client");
+    const root = createRoot(div);
+
+    root.render(
+      <QRCodeCanvas value={getQrData(row)} size={150} />
+    );
+
+    setTimeout(() => {
+      const canvas = div.querySelector("canvas");
+      const link = document.createElement("a");
+
+      link.download = `${row.orderUniqueId}_${row.skuNo}_qr.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+
+      root.unmount();
+      div.remove();
+    }, 300);
+  };
+
+  // ✅ TABLE COLUMNS (UPDATED WITH QR BUTTON)
+  const allColumns = [
+    { name: "S.No", selector: row => row.index, width: "8%" },
+    { name: "Order ID", selector: row => row.orderUniqueId, width: "10%" },
+    { name: "Sub Order ID", selector: row => row.subOrderUniqueId, width: "25%" },
+    { name: "Product Info", selector: row => row.productInfo, width: "25%" },
+    { name: "SKU No", selector: row => row.skuNo, width: "20%" },
+    { name: "Amount", selector: row => row.amount, width: "10%" },
+    { name: "Status", selector: row => row.status, width: "10%" },
+
+    // ✅ NEW QR COLUMN
+    {
+      name: "QR",
+      cell: (row) => (
+        <button
+          className="btn btn-sm btn-success"
+          onClick={() => downloadQR(row)}
+        >
+          Download QR
+        </button>
+      ),
+      width: "12%",
+    }
+  ];
+
+  // Default visible columns
+  const presets = {
+    "Default View": allColumns.map(col => col.name),
+  };
+
+  const [visibleCols, setVisibleCols] = useState(presets["Default View"]);
+
   const toggleColumn = colName => {
-    setVisibleColumns(
-      prev =>
-        prev.includes(colName)
-          ? prev.filter(c => c !== colName)
-          : [...prev, colName]
+    setVisibleCols(prev =>
+      prev.includes(colName)
+        ? prev.filter(c => c !== colName)
+        : [...prev, colName]
     );
   };
 
   const applyPreset = preset => {
-    setVisibleColumns(presets[preset]);
+    setVisibleCols(presets[preset]);
     setDropdownOpen(false);
   };
 
@@ -110,69 +100,35 @@ const AllOrderList = ({ orders }) => {
     setSelectedRows(state.selectedRows);
   };
 
-  const handleSortSelect = (field, order = "desc") => {
-    setSortConfig({ field, order });
-    setSortDropdownOpen(false);
-  };
+  // ✅ FILTER
+  const filteredData = orders.filter(item =>
+    item.orderId?.toLowerCase().includes(filterText.toLowerCase()) ||
+    item.productInfo?.toLowerCase().includes(filterText.toLowerCase()) ||
+    item.skuNo?.toLowerCase().includes(filterText.toLowerCase()) ||
+    item.amount?.toLowerCase().includes(filterText.toLowerCase()) ||
+    item.status?.toLowerCase().includes(filterText.toLowerCase())
+  );
 
   const columnsToShow = allColumns.filter(col =>
-    visibleColumns.includes(col.name)
+    visibleCols.includes(col.name)
   );
 
   return (
     <div>
-      {/* <Row>
-        <Col md="12">
-          <Breadcrumb className='my-2'>
-            <BreadcrumbItem>
-              <h5>Pending Labels</h5>
-            </BreadcrumbItem>
-            <BreadcrumbItem active>Home</BreadcrumbItem>
-          </Breadcrumb>
-        </Col>
-      </Row> */}
-
       <Row className="mt-2">
         <Col md="6" className="mb-2">
           <input
             type="text"
             className="form-control"
-            placeholder="Search by Order ID, Product Info, Status"
+            placeholder="Search..."
             style={{ maxWidth: "250px" }}
             value={filterText}
             onChange={e => setFilterText(e.target.value)}
           />
         </Col>
-        <Col md="6">
-          <div className="d-flex align-items-end justify-content-end">
-            {/* Sort Dropdown */}
-            <div className="position-relative me-2">
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              >
-                Sort By <RiArrowDropDownLine size={20} />
-              </button>
-              {sortDropdownOpen &&
-                <div
-                  className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                  style={{ width: "180px", zIndex: 1000 }}
-                >
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("orderId")}
-                  >
-                    Order ID
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("amount")}
-                  >
-                    Amount
-                  </div>
-                </div>}
-            </div>
 
+        <Col md="6">
+          <div className="d-flex justify-content-end">
             {/* Customize Columns */}
             <div className="position-relative me-2">
               <button
@@ -181,7 +137,8 @@ const AllOrderList = ({ orders }) => {
               >
                 Customize Columns <RiArrowDropDownLine size={20} />
               </button>
-              {dropdownOpen &&
+
+              {dropdownOpen && (
                 <div
                   className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
                   style={{
@@ -191,7 +148,8 @@ const AllOrderList = ({ orders }) => {
                   }}
                 >
                   <strong className="px-2 d-block">Select Columns</strong>
-                  {allColumns.map(col =>
+
+                  {allColumns.map(col => (
                     <label
                       key={col.name}
                       className="dropdown-item d-flex align-items-center"
@@ -199,34 +157,29 @@ const AllOrderList = ({ orders }) => {
                       <input
                         type="checkbox"
                         className="form-check-input me-2"
-                        checked={visibleColumns.includes(col.name)}
+                        checked={visibleCols.includes(col.name)}
                         onChange={() => toggleColumn(col.name)}
                       />
                       {col.name}
                     </label>
-                  )}
+                  ))}
+
                   <hr />
-                  <div className="px-2">
-                    <div
-                      className="dropdown-item text-primary"
-                      onClick={() => applyPreset("Default View")}
-                    >
-                      Default View
-                    </div>
-                    <div
-                      className="dropdown-item text-primary"
-                      onClick={() => applyPreset("Full View")}
-                    >
-                      Full View
-                    </div>
+
+                  <div
+                    className="dropdown-item text-primary"
+                    onClick={() => applyPreset("Default View")}
+                  >
+                    Reset View
                   </div>
-                </div>}
+                </div>
+              )}
             </div>
 
-            {/* Export CSV */}
+            {/* CSV Export */}
             <CSVLink
               data={selectedRows.length ? selectedRows : filteredData}
-              filename="pending_labels.csv"
+              filename="orders.csv"
               className="btn btn-primary btn-sm"
             >
               Export CSV
@@ -247,9 +200,9 @@ const AllOrderList = ({ orders }) => {
                 pagination
                 striped
                 responsive
-                selectableRows
-                onSelectedRowsChange={handleRowSelected}
                 highlightOnHover
+                // selectableRows
+                // onSelectedRowsChange={handleRowSelected}
               />
             </CardBody>
           </Card>

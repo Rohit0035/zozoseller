@@ -1,6 +1,3 @@
-
-
-
 import React, { useEffect, useState } from 'react';
 import { Nav, NavItem, NavLink, TabContent, TabPane, Breadcrumb, BreadcrumbItem, Col, DropdownMenu, DropdownToggle, Row, UncontrolledDropdown, DropdownItem } from 'reactstrap';
 import { FaListAlt, FaLayerGroup, FaThLarge } from 'react-icons/fa';
@@ -15,7 +12,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { checkProfileCompletion } from '../../utils/common';
 import { GetCategories } from '../../api/categoryAPI';
 
-const statuses = ['Draft', 'Active', 'ReadyForActivation', 'Inactive'];
+const statuses = ['Draft', 'ReadyForActivation','Active',  'Inactive','Deleted'];
 
 const AddListingProduct = () => {
   const [activeTab, setActiveTab] = useState('1');
@@ -29,15 +26,16 @@ const AddListingProduct = () => {
   };
 
   const user = useSelector(state => state.auth.user) || '';
+  const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
+
     useEffect(() => {
         const profileComplete = checkProfileCompletion(user);
-        console.log('Profile Completion:', profileComplete);
         if (!profileComplete.isComplete) {
             navigate('/profile', { state: { showPopup: true } });
         } else {
             setIsProfileComplete(true);
         }
-    }, [user, navigate]);
+    }, [isAuthenticated, user, navigate]);
 
     
 
@@ -68,8 +66,10 @@ const AddListingProduct = () => {
       }
     
       useEffect(() => {
-        fetchCategories();
-      }, []);
+        if (isProfileComplete){
+          fetchCategories();
+        }
+      }, [isProfileComplete]);
 
       // Conditional rendering check
     if (!isProfileComplete) {

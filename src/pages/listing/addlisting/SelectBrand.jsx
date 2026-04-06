@@ -12,92 +12,77 @@ import {
 import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { showToast } from '../../../components/ToastifyNotification'; // Assuming you have this
-import { GetBrands } from '../../../api/brandAPI';
+import { GetBrandById, GetBrands } from '../../../api/brandAPI';
 import { useDispatch } from 'react-redux';
 import { IMAGE_URL } from '../../../utils/api-config';
+import { CheckVendorBrand } from '../../../api/vendorBrandAPI';
 
 const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataChange }) => {
     const [brandNameInput, setBrandNameInput] = useState('');
     const [checkedBrandStatus, setCheckedBrandStatus] = useState(null); // 'success', 'error', null
     const [confirmedBrandId, setConfirmedBrandId] = useState(listingData.brandId || null); // Store the ID of the brand that passed check or was selected
-    const [availableBrands, setAvailableBrands] = useState([]); // List of available brands
+    const [brandDetails, setBrandDetails] = useState(null); // List of available brands
     const [recentlyUsedBrands, setRecentlyUsedBrands] = useState([]);
 
     const dispatch = useDispatch();
 
-    const fetchBrands = async (data) => {
-        dispatch({ type: 'loader', loader: true })
-
-        try {
-            const response = await GetBrands(data); // Make sure login function returns token
-            console.log(response);
-            if (response.success == true) {
-                // showToast('success', response.message)
-                const formattedData = response.data.map((item, index) => ({
-                    index: index + 1,
-                    id: item._id,
-                    name: item.name,
-                    image: `${IMAGE_URL}${item.image}`,
-                }));
-                setAvailableBrands(formattedData);
-            } else {
-                // setError(response.message);
-                showToast('error', response.message)
-            }
-        } catch (error) {
-            // setError(error); // Handle login errors
-            showToast('error', error)
-        } finally {
-            dispatch({ type: 'loader', loader: false })
-        }
-    }
-
-    useEffect(() => {
-        fetchBrands({ categoryId: listingData?.categoryId });
-    }, []);
-
     // Effect to update local state if listingData.brandId changes from parent
     useEffect(() => {
-        if (listingData.brandId && availableBrands.length > 0 && !confirmedBrandId) {
-            const foundBrand = availableBrands.find(b => b.id === listingData.brandId);
-            if (foundBrand) {
-                setConfirmedBrandId(listingData.brandId);
-                setBrandNameInput(foundBrand.name);
+    const loadBrand = async () => {
+        if (!listingData.brandId) return;
+
+        try {
+            dispatch({ type: 'loader', loader: true });
+
+            const res = await GetBrandById(listingData.brandId);
+
+            if (res.success) {
+                setBrandDetails(res.data);
+                setBrandNameInput(res.data.name);
+                setConfirmedBrandId(res.data._id);
                 setCheckedBrandStatus('success');
             }
-        } else if (listingData.brandId && availableBrands.length > 0 && confirmedBrandId && confirmedBrandId === listingData.brandId) {
-            // This case handles when the component re-renders and listingData.brandId is already set
-            // It prevents resetting the input and status if the brand is already confirmed
-            const foundBrand = availableBrands.find(b => b.id === listingData.brandId);
-            if (foundBrand) {
-                setBrandNameInput(foundBrand.name);
-                setCheckedBrandStatus('success');
-            }
+        } catch (err) {
+            showToast('error', err);
+        } finally {
+            dispatch({ type: 'loader', loader: false });
         }
-    }, [listingData.brandId, availableBrands, confirmedBrandId]);
+    };
+
+    loadBrand();
+}, [listingData.brandId]);
 
 
-    const handleBrandCheck = () => {
-        console.log('availableBrands', availableBrands);
+    const handleBrandCheck = async () => {
         if (!brandNameInput.trim()) {
-            showToast('error', 'Please enter a brand name to check.');
-            setCheckedBrandStatus(null);
+            showToast('error', 'Please enter a brand name');
             return;
         }
 
-        // Simulate API call to check brand existence/permission
-        const foundBrand = availableBrands.find(
-            (b) => b.name.toLowerCase() == brandNameInput.trim().toLowerCase()
-        );
+        dispatch({ type: 'loader', loader: true });
 
-        if (foundBrand) {
-            setCheckedBrandStatus('success');
-            setConfirmedBrandId(foundBrand.id);
-            showToast('success', `You can sell under ${foundBrand.name}.`);
-        } else {
-            setCheckedBrandStatus('error');
-            setConfirmedBrandId(null);
-            showToast('error', `Brand "${brandNameInput}" not found or not allowed.`);
+        try {
+            const res = await CheckVendorBrand({
+                brandName: brandNameInput,
+                categoryId: listingData?.categoryId
+            });
+
+            if (res.success) {
+                setCheckedBrandStatus('success');
+                setConfirmedBrandId(res.data?._id || null);
+                setBrandDetails(res.data || {});
+                setBrandNameInput(res.data?.name);
+                showToast('success', res.message);
+            } else {
+                setCheckedBrandStatus('error');
+                setConfirmedBrandId(null);
+
+                showToast('error', res.message);
+            }
+        } catch (err) {
+            showToast('error', err);
+        } finally {
+            dispatch({ type: 'loader', loader: false });
         }
     };
 

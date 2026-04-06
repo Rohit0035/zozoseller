@@ -114,3 +114,19 @@ export const DeleteProduct = async (id) => {
     };
   }
 };
+
+export const BulkDeleteProduct = async (data) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_MULTIPART_CONFIG.baseURL}/products/bulk-delete`,'POST', data
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "signup failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};
