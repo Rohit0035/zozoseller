@@ -64,7 +64,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
     if (listingData.attributes && attributeOptions.length > 0) {
         // 1. Map saved attribute IDs to the full options (value/label) for React-Select
         const selectedOptions = listingData.attributes.map(savedAttr => {
-            const match = attributeOptions.find(opt => opt.value === savedAttr.id);
+            const match = attributeOptions.find(
+				opt => opt.value === savedAttr.id._id
+			);
             return match ? { value: match.value, label: match.label } : null;
         }).filter(Boolean);
 
@@ -73,7 +75,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
         // 2. Map the specific values selected for those attributes
         const newMap = {};
         listingData.attributes.forEach(savedAttr => {
-            newMap[savedAttr.id] = savedAttr.values; 
+            newMap[savedAttr.id._id] = savedAttr.values;
         });
         setAttributeValueMap(newMap);
     }
@@ -192,19 +194,25 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 	// Effect to sync selected attributes with full attribute data
 	useEffect(() => {
-		const selectedIds = selectedAttributeOptions.map(option => option.value);
-		const selectedFullAttrs = attributeOptions.filter(attr => selectedIds.includes(attr.value));
-		// console.log(attributeOptions)
-		setSelectedAttributes(selectedFullAttrs);
+  if (listingData.attributes && attributeOptions.length > 0) {
 
-		const updatedMap = {};
-		selectedFullAttrs.forEach(attr => {
-			// Preserve existing values if they exist in listingData.variations or previously selected
-			const existingValues = attributeValueMap[attr._id] || [];
-			updatedMap[attr._id] = existingValues;
-		});
-		setAttributeValueMap(updatedMap);
-	}, [selectedAttributeOptions, attributeOptions]);
+    const selectedOptions = listingData.attributes.map(savedAttr => {
+      const match = attributeOptions.find(
+        opt => opt.value === savedAttr.id._id
+      );
+      return match ? { value: match.value, label: match.label } : null;
+    }).filter(Boolean);
+
+    setSelectedAttributeOptions(selectedOptions);
+
+    const newMap = {};
+    listingData.attributes.forEach(savedAttr => {
+      newMap[savedAttr.id._id] = savedAttr.values;
+    });
+
+    setAttributeValueMap(newMap);
+  }
+}, [attributeOptions, listingData.attributes]);
 
 	// Update selectedTypeOption when listingData.type changes
 	useEffect(() => {
@@ -1710,10 +1718,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 															</Col>
 
 															<Col md={12} className="mb-2">
-																<Label>Regular Price</Label>
+																<Label>MRP</Label>
 																<Input
 																	type="number"
-																	placeholder="Regular Price"
+																	placeholder="MRP"
 																	value={variation.regularPrice}
 																	onChange={(e) => handleVariationChange(index, 'regularPrice', e.target.value)}
 																/>

@@ -11,8 +11,12 @@ import { RiArrowDropDownLine } from "react-icons/ri";
 
 // ✅ QR Dependencies
 import { QRCodeCanvas } from "qrcode.react";
+import { FaDownload } from "react-icons/fa";
+import { UpdateVendorOrderStatus } from "../../api/vendorOrderAPI";
+import { useDispatch } from "react-redux";
 
-const AllOrderList = ({ orders }) => {
+const AllOrderList = ({ orders,fetchOrders }) => {
+  const dispatch = useDispatch();
   const [visibleColumns, setVisibleColumns] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterText, setFilterText] = useState("");
@@ -49,7 +53,31 @@ const AllOrderList = ({ orders }) => {
       root.unmount();
       div.remove();
     }, 300);
+
+    await handleChangeOrderStatus("Processing", row.id);
   };
+
+  const handleChangeOrderStatus = async (status, id) => {		
+      dispatch({ type: 'loader', loader: true })
+
+      try {
+        const statusData = {
+          status: status,
+          id: id
+        }
+        const response = await UpdateVendorOrderStatus(statusData);
+
+        if (response.success == true) {
+          fetchOrders({orderStatus: ['Pending', 'Processing', 'Shipped', 'Out For Delivery', 'Delivered']});
+        } else {
+          console.log(response.message);
+        }
+      } catch (error) {
+        console.error("Error updating order status:", error);
+      } finally {
+        dispatch({ type: 'loader', loader: false })
+      }
+	};
 
   // ✅ TABLE COLUMNS (UPDATED WITH QR BUTTON)
   const allColumns = [
@@ -65,14 +93,17 @@ const AllOrderList = ({ orders }) => {
     {
       name: "QR",
       cell: (row) => (
+        
+        (row.status=="Pending" || row.status=="Processing") && 
         <button
           className="btn btn-sm btn-success"
           onClick={() => downloadQR(row)}
         >
-          Download QR
+          {row.status=="Pending" && "Download QR"}
+          {row.status=="Processing" && "Re-Download QR"}
         </button>
       ),
-      width: "12%",
+      width: "15%",
     }
   ];
 

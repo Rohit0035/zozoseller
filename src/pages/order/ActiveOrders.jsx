@@ -267,7 +267,7 @@ const ActiveOrders = () => {
                 <Row className='mt-2'>
                     <Col md="12">
                         {
-                            selectedStat === FOCUS_STATUSES.ALL ? <AllOrderList orders={filteredData}/>:
+                            selectedStat === FOCUS_STATUSES.ALL ? <AllOrderList orders={filteredData} fetchOrders={fetchOrders}/>:
                             renderSelectedComponent()
                         }
                     </Col>
