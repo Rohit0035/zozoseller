@@ -98,3 +98,19 @@ export const CheckVendorBrand = async (data) => {
     };
   }
 };
+
+export const GetVendorApprovedBrands = async (data) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_MULTIPART_CONFIG.baseURL}/vendor-brands/get-vendor-approved-brands/${data?.categoryId}`
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.message || "signup failed",
+      statusCode: error.response?.status || 500 // Preserve status code
+    };
+  }
+};

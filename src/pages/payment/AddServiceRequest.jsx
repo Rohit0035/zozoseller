@@ -37,14 +37,17 @@ const AddServiceRequest = () => {
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState([]);
   const [productOptions, setProductOptions] = useState([]);
-  const [selectedProductOptions, setSelectedProductOptions] = useState([]);
+  const [selectedProductOption, setSelectedProductOption] = useState(null);
   const [adPlans, setAdPlans] = useState([]);
-const navigate = useNavigate();
-const user = useSelector(state => state.auth?.user) || {};
+
+  const [bannerImage, setBannerImage] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
+  const navigate = useNavigate();
+  const user = useSelector(state => state.auth?.user) || {};
   // State for form data and validation errors
   const [formData, setFormData] = useState({
     sellerId: "",
-    productIds: [],
+    productId: "",
     adPlanId: "",
     startDate: "",
     endDate: "",
@@ -90,97 +93,99 @@ const user = useSelector(state => state.auth?.user) || {};
   // Handle input changes
   const handleChange = e => {
     const { name, value, type, selectedOptions } = e.target;
+    setFormData(prevData => ({ ...prevData, [name]: value }));
 
-    // Handle multi-select for products
-    if (type === "select-multiple") {
-      const selectedIds = Array.from(selectedOptions, option => option.value);
-      setFormData(prevData => ({ ...prevData, [name]: selectedIds }));
-    } else {
-      setFormData(prevData => ({ ...prevData, [name]: value }));
-    }
     // Clear the error for the field being changed
     setFormErrors(prevErrors => ({ ...prevErrors, [name]: "" }));
   };
 
-  useEffect(() => {
-    if (selectedProductOptions.length > 0) {
-      setFormData(prevData => ({
-        ...prevData,
-        productIds: selectedProductOptions.map(option => option.value)
-      }));
-    }
-  }, [selectedProductOptions]);
+  const handleProductChange = (selectedOption) => {
+    setSelectedProductOption(selectedOption);
+    setFormData(prev => ({
+      ...prev,
+      productId: selectedOption ? selectedOption.value : ""
+    }));
+  };
 
-  const handleProductChange = (selectedOptions) => {
-        setSelectedProductOptions(selectedOptions);
-    };
+  const handleBannerChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setBannerImage(file);
+      setBannerPreview(URL.createObjectURL(file)); // preview
+      setFormData(prev => ({ ...prev, bannerImage: file }));
+    }
+  };
 
   // Basic form validation
   const validateForm = () => {
     const errors = {};
-    if (formData.productIds.length === 0)
-      errors.productIds = "At least one product is required.";
+    if (!formData.productId)
+      errors.productId = "Product is required.";
     if (!formData.adPlanId) errors.adPlanId = "Ad Plan is required.";
     if (!formData.startDate) errors.startDate = "Start date is required.";
+    if (!formData.endDate) errors.endDate = "End date is required.";
+    if (!formData.price) errors.price = "Price is required.";
+    if(!formData.keywords) errors.keywords = "Keywords is required"
+    if (!formData.bannerImage) errors.bannerImage = "Banner File is required.";
     // Add other validations as needed
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   // ⚠️ Razorpay needs window.Razorpay script
-const loadRazorpayScript = () => {
-  return new Promise(resolve => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-};
+  const loadRazorpayScript = () => {
+    return new Promise(resolve => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
-// 🟡 Fix duplicated and inconsistent `endDate` and `price` logic
-useEffect(() => {
-  if (formData.startDate && formData.adPlanId && adPlans.length > 0) {
-    const selectedPlan = adPlans.find(plan => plan._id === formData.adPlanId);
-    if (selectedPlan) {
-      const startDate = moment(formData.startDate);
-      const endDate = startDate.clone().add(selectedPlan.duration, "days");
-      setFormData(prev => ({
-        ...prev,
-        endDate: endDate.format("YYYY-MM-DD"),
-        price: selectedPlan.price
-      }));
+  // 🟡 Fix duplicated and inconsistent `endDate` and `price` logic
+  useEffect(() => {
+    if (formData.startDate && formData.adPlanId && adPlans.length > 0) {
+      const selectedPlan = adPlans.find(plan => plan._id === formData.adPlanId);
+      if (selectedPlan) {
+        const startDate = moment(formData.startDate);
+        const endDate = startDate.clone().add(selectedPlan.duration, "days");
+        setFormData(prev => ({
+          ...prev,
+          endDate: endDate.format("YYYY-MM-DD"),
+          price: selectedPlan.price
+        }));
+      }
     }
-  }
-}, [formData.startDate, formData.adPlanId, adPlans]);
+  }, [formData.startDate, formData.adPlanId, adPlans]);
 
-// 🟢 Razorpay Payment Trigger Function
-const initiatePayment = async () => {
-  const isLoaded = await loadRazorpayScript();
-  if (!isLoaded) {
-    showToast("error", "Failed to load Razorpay SDK");
-    return;
-  }
+  // 🟢 Razorpay Payment Trigger Function
+  const initiatePayment = async () => {
+    const isLoaded = await loadRazorpayScript();
+    if (!isLoaded) {
+      showToast("error", "Failed to load Razorpay SDK");
+      return;
+    }
 
-  const selectedPlan = adPlans.find(plan => plan._id === formData.adPlanId);
-  const paymentAmount = selectedPlan?.price || 0;
+    const selectedPlan = adPlans.find(plan => plan._id === formData.adPlanId);
+    const paymentAmount = selectedPlan?.price || 0;
 
-  const options = {
-    key: "rzp_test_sbbCHuQzenmT45", // 🔁 Replace with your Razorpay key
-    amount: paymentAmount * 100, // In paisa
-    currency: "INR",
-    name: "ZozoKart",
-    description: "Payment for your service",
-    image: {LogoSm}, // Replace with your logo URL
-    handler: async response => {
+    const options = {
+      key: "rzp_test_sbbCHuQzenmT45", // 🔁 Replace with your Razorpay key
+      amount: paymentAmount * 100, // In paisa
+      currency: "INR",
+      name: "ZozoKart",
+      description: "Payment for your service",
+      image: { LogoSm }, // Replace with your logo URL
+      handler: async response => {
         const updatedFormData = {
-            ...formData,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpayOrderId: response.razorpay_order_id,
-            razorpaySignature: response.razorpay_signature,
-            amount: paymentAmount,
-            currency: "INR",
-            method: "razorpay"
+          ...formData,
+          razorpayPaymentId: response.razorpay_payment_id,
+          razorpayOrderId: response.razorpay_order_id,
+          razorpaySignature: response.razorpay_signature,
+          amount: paymentAmount,
+          currency: "INR",
+          method: "razorpay"
         };
 
         // Optionally update UI state (but don't wait for it)
@@ -188,66 +193,87 @@ const initiatePayment = async () => {
 
         // Submit directly with the full updated form data
         await submitFormWithPayment(updatedFormData);
-    },
-    prefill: {
+      },
+      prefill: {
         name: user?.name || "",
         email: user?.email || "",
-        contact:user?.mobile || "",
-    },
-    theme: {
-      color: "#3399cc"
+        contact: user?.mobile || "",
+      },
+      theme: {
+        color: "#3399cc"
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  };
+
+  // 🟢 Form submission after payment success
+  const submitFormWithPayment = async (dataToSubmit = formData) => {
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("sellerId", dataToSubmit.sellerId);
+      formData.append("productId", dataToSubmit.productId);
+      formData.append("adPlanId", dataToSubmit.adPlanId);
+      formData.append("startDate", dataToSubmit.startDate);
+      formData.append("endDate", dataToSubmit.endDate);
+      formData.append("price", dataToSubmit.price);
+      formData.append("status", dataToSubmit.status);
+      formData.append("keywords", dataToSubmit.keywords);
+      formData.append("bannerImage", dataToSubmit.bannerImage);
+      formData.append("paymentStatus", dataToSubmit.paymentStatus);
+      formData.append("razorpayPaymentId", dataToSubmit.razorpayPaymentId);
+      formData.append("razorpayOrderId", dataToSubmit.razorpayOrderId);
+      formData.append("razorpaySignature", dataToSubmit.razorpaySignature);
+      formData.append("amount", dataToSubmit.amount);
+      formData.append("currency", dataToSubmit.currency);
+      formData.append("method", dataToSubmit.method);
+      const response = await StoreAdServiceRequest(formData);
+      if (response.success) {
+        showToast("success", "Ad service request created successfully.");
+        navigate("/service-transaction");
+        // setFormData({
+        //   sellerId: "",
+        //   productIds: [],
+        //   adPlanId: "",
+        //   startDate: "",
+        //   endDate: "",
+        //   price: "",
+        //   status: "Pending",
+        //   keywords: "",
+        //   paymentStatus: "Pending",
+        //   razorpayPaymentId: "",
+        //   razorpayOrderId: "",
+        //   razorpaySignature: "",
+        //   amount: "",
+        //   currency: "",
+        //   method: ""
+        // });
+      } else {
+        showToast("error", response.message);
+        // setMessageType("danger");
+        // setMessage(response.message || "Submission failed.");
+      }
+    } catch (error) {
+      showToast("error", "Submission failed.");
+      console.error(error);
+      // setMessageType("danger");
+      // setMessage("Submission failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const rzp = new window.Razorpay(options);
-  rzp.open();
-};
-
-// 🟢 Form submission after payment success
-const submitFormWithPayment = async (dataToSubmit = formData) => {
-  try {
-    setLoading(true);
-    const response = await StoreAdServiceRequest(dataToSubmit);
-    if (response.success) {
-      showToast("success", "Ad service request created successfully.");
-      setFormData({
-        sellerId: "",
-        productIds: [],
-        adPlanId: "",
-        startDate: "",
-        endDate: "",
-        price: "",
-        status: "Pending",
-        keywords: "",
-        paymentStatus: "Pending",
-        razorpayPaymentId: "",
-        razorpayOrderId: "",
-        razorpaySignature: "",
-        amount: "",
-        currency: "",
-        method: ""
-      });
-    } else {
-      setMessageType("danger");
-      setMessage(response.message || "Submission failed.");
+  // 🔄 Overwrite form submit to first validate and initiate payment
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!validateForm()) {
+      showToast("error", "Please fill in all required fields.");
+      return;
     }
-  } catch (error) {
-    setMessageType("danger");
-    setMessage("Submission failed.");
-  } finally {
-    setLoading(false);
-  }
-};
-
-// 🔄 Overwrite form submit to first validate and initiate payment
-const handleSubmit = async e => {
-  e.preventDefault();
-  if (!validateForm()) {
-    showToast("error", "Please fill in all required fields.");
-    return;
-  }
-  await initiatePayment(); // 💸 Trigger Razorpay
-};
+    await initiatePayment(); // 💸 Trigger Razorpay
+  };
 
   if (loading && vendors.length === 0) {
     return (
@@ -307,18 +333,17 @@ const handleSubmit = async e => {
 
             <Col md={6}>
               <FormGroup>
-                <Label for="productIds">Product</Label>
+                <Label for="productId">Product</Label>
                 <Select
-                    name="productIds"
-                    options={productOptions}
-                    classNamePrefix="select"
-                    isMulti
-                    onChange={handleProductChange}
-                    value={selectedProductOptions}
+                  name="productId"
+                  options={productOptions}
+                  classNamePrefix="select"
+                  onChange={handleProductChange}
+                  value={selectedProductOption}
                 />
-                {formErrors.productIds &&
+                {formErrors.productId &&
                   <div className="text-danger">
-                    {formErrors.productIds}
+                    {formErrors.productId}
                   </div>}
               </FormGroup>
             </Col>
@@ -349,9 +374,14 @@ const handleSubmit = async e => {
                   id="endDate"
                   name="endDate"
                   value={formData.endDate}
+                  invalid={!!formErrors.endDate}
                   readOnly
                 />
               </FormGroup>
+              {formErrors.endDate &&
+                <div className="text-danger">
+                  {formErrors.endDate}
+                </div>}
             </Col>
 
             <Col md={6}>
@@ -384,8 +414,48 @@ const handleSubmit = async e => {
                   value={formData.keywords}
                   onChange={handleChange}
                   placeholder="Keywords"
+                  invalid={!!formErrors.keywords}
                 />
               </FormGroup>
+              {formErrors.keywords &&
+                <div className="text-danger">
+                  {formErrors.keywords}
+                </div>}
+            </Col>
+
+            <Col md={6}>
+              <FormGroup>
+                <Label for="banner">Upload Ad Banner</Label>
+                <Input
+                  type="file"
+                  id="bannerImage"
+                  name="bannerImage"
+                  accept="image/*"
+                  onChange={handleBannerChange}
+                  invalid={!!formErrors.bannerImage}
+                />
+              </FormGroup>
+              {formErrors.bannerImage &&
+                <div className="text-danger">
+                  {formErrors.bannerImage}
+                </div>}
+
+              {bannerPreview && (
+                <div className="mt-2">
+                  <Label>Preview:</Label>
+                  <img
+                    src={bannerPreview}
+                    alt="Banner Preview"
+                    style={{
+                      width: "100%",
+                      maxHeight: "200px",
+                      objectFit: "contain",
+                      border: "1px solid #ddd",
+                      padding: "5px"
+                    }}
+                  />
+                </div>
+              )}
             </Col>
 
             <Col xs={12}>

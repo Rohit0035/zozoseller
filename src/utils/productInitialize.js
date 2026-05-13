@@ -53,5 +53,10 @@ export const getDefaultListingData = () => ({
   more: "",
 
   specifications: [],
-  attributes: []
+  attributes: [],
+
+  returnable: false,
+  returnableDays: 0,
+  exchangeable: false,
+  refundable: false
 });

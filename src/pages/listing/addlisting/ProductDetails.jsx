@@ -1308,6 +1308,79 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												/>
 											</InputGroup>
 											{renderError('importerDetails')}
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Returnable*
+												</span>
+												<Input
+													type="select"
+													name="returnable"
+													value={listingData.returnable}
+													onChange={handleChange}
+													invalid={errors.returnable}
+												>
+													<option value="true">Yes</option>
+													<option value="false">No</option>
+												</Input>
+											</InputGroup>
+											{renderError('returnable')}
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Returnable Days*
+												</span>
+												<Input
+													type="number"
+													name="returnableDays"
+													value={listingData.returnableDays}
+													onChange={handleChange}
+													invalid={errors.returnableDays}
+												/>
+											</InputGroup>
+											{renderError('returnableDays')}
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Exchangeable*
+												</span>
+												<Input
+													type="select"
+													name="exchangeable"
+													value={listingData.exchangeable}
+													onChange={handleChange}
+													invalid={errors.exchangeable}
+												>
+													<option value="true">Yes</option>
+													<option value="false">No</option>
+												</Input>
+											</InputGroup>
+											{renderError('exchangeable')}
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Refundable*
+												</span>
+												<Input
+													type="select"
+													name="refundable"
+													value={listingData.refundable}
+													onChange={handleChange}
+													invalid={errors.refundable}
+												>
+													<option value="true">Yes</option>
+													<option value="false">No</option>
+												</Input>
+											</InputGroup>
+											{renderError('refundable')}
 										</Col>
 										{/* <Col sm={12} className="mb-3">
                       <Button

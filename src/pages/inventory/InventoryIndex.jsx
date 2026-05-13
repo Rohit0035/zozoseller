@@ -89,7 +89,6 @@ const allColumns = [
     selector: (row) => row.additionalInfo,
     sortable: false,
   },
-  { name: "Action", selector: (row) => row.action, sortable: false },
 ];
 
 const presets = {
@@ -169,7 +168,6 @@ const InventoryIndex = () => {
           returns: `${item.returned || 0}%`,
           listingQuality: item.status,
           additionalInfo: item.description,
-          action: "Edit/Delete",
         }));
 
         showToast(
@@ -370,53 +368,6 @@ const InventoryIndex = () => {
         </Col>
         <Col md="6">
           <div className="d-flex align-items-end justify-content-end">
-            {/* Sort Dropdown */}
-            <div className="position-relative me-2">
-              <button
-                className="btn btn-outline-secondary text-white btn-sm"
-                style={{ backgroundColor: "#02339a" }}
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              >
-                Sort By <RiArrowDropDownLine size={20} />
-              </button>
-              {sortDropdownOpen && (
-                <div
-                  className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                  style={{ width: "220px", zIndex: 1000, cursor: "pointer" }}
-                >
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("title")}
-                  >
-                    Product Title
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("created")}
-                  >
-                    Creation Time
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("updated")}
-                  >
-                    Update Time
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("stock")}
-                  >
-                    Current Stock
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("sales")}
-                  >
-                    Sales
-                  </div>
-                </div>
-              )}
-            </div>
             {/* Customize Columns Dropdown */}
             <div className="position-relative me-2">
               <button

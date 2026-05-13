@@ -11,54 +11,19 @@ import {
 } from "reactstrap";
 import { RiArrowDropDownLine } from "react-icons/ri";
 
-const demoLast30DaysOrders = [
-  {
-    id: 1,
-    orderId: "LD-6001",
-    productInfo: "iPhone 14 - 128GB - Black",
-    amount: "$799",
-    dispatchByDetails: "2025-06-15 by FedEx",
-    status: "Delivered"
-  },
-  {
-    id: 2,
-    orderId: "LD-6002",
-    productInfo: "Galaxy S23 - 256GB - Grey",
-    amount: "$699",
-    dispatchByDetails: "2025-06-18 by BlueDart",
-    status: "In Transit"
-  },
-  {
-    id: 3,
-    orderId: "LD-6003",
-    productInfo: "MacBook Air - 13 inch",
-    amount: "$999",
-    dispatchByDetails: "2025-06-20 by Delhivery",
-    status: "Delivered"
-  },
-  {
-    id: 4,
-    orderId: "LD-6004",
-    productInfo: "Dell XPS 15",
-    amount: "$850",
-    dispatchByDetails: "2025-06-22 by DTDC",
-    status: "Out for Delivery"
-  }
-];
-
 const allColumns = [
-  { name: "Order ID", selector: row => row.orderId, sortable: true },
+  {
+    name: "S.No.",
+    cell: (row, index) => index + 1,
+    width: "80px"
+  },
+  { name: "Order ID", selector: row => row.orderUniqueId, sortable: true },
   {
     name: "Product Information",
     selector: row => row.productInfo,
     sortable: true
   },
   { name: "Amount", selector: row => row.amount, sortable: true, right: true },
-  {
-    name: "Dispatch By Details",
-    selector: row => row.dispatchByDetails,
-    sortable: true
-  },
   { name: "Status", selector: row => row.status, sortable: true }
 ];
 
@@ -67,7 +32,7 @@ const presets = {
   "Full View": allColumns.map(col => col.name)
 };
 
-const InLast30DaysList = ({ orders }) => {
+const InLast30DaysList = ({ orders = [], fetchOrders }) => {
   const [visibleColumns, setVisibleColumns] = useState(presets["Default View"]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -134,44 +99,10 @@ const InLast30DaysList = ({ orders }) => {
         </Col>
         <Col md="6">
           <div className="d-flex align-items-end justify-content-end">
-            {/* Sort Dropdown */}
-            <div className="position-relative me-2">
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              >
-                Sort By <RiArrowDropDownLine size={20} />
-              </button>
-              {sortDropdownOpen &&
-                <div
-                  className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                  style={{ width: "180px", zIndex: 1000 }}
-                >
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("orderId")}
-                  >
-                    Order ID
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("dispatchByDetails")}
-                  >
-                    Dispatch By Details
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("amount")}
-                  >
-                    Amount
-                  </div>
-                </div>}
-            </div>
-
             {/* Customize Columns */}
             <div className="position-relative me-2">
               <button
-                className="btn btn-outline-primary btn-sm"
+                className="btn btn-primary btn-sm"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
                 Customize Columns <RiArrowDropDownLine size={20} />
@@ -242,8 +173,8 @@ const InLast30DaysList = ({ orders }) => {
                 pagination
                 striped
                 responsive
-                selectableRows
-                onSelectedRowsChange={handleRowSelected}
+                // selectableRows
+                // onSelectedRowsChange={handleRowSelected}
                 highlightOnHover
               />
             </CardBody>

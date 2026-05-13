@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Navbar, NavbarBrand, Button, UncontrolledDropdown,
   DropdownToggle,
@@ -14,18 +14,41 @@ import { FaLongArrowAltRight } from "react-icons/fa";
 import { useDispatch, useSelector } from 'react-redux';
 import { LOGOUT } from '../reducers/authReducer';
 import { showToast } from './ToastifyNotification';
+import { GetNotifications } from '../api/notificationAPI';
+import { formatDistanceToNow } from 'date-fns';
 export default function Header({ toggleSidebar, toggleCollapse }) {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
   const user = useSelector(state => state.auth?.user) || {};
   const navigate = useNavigate();
-  
+
   const handleLogout = () => {
     // Dispatch the logout action
     dispatch({ type: LOGOUT });
     navigate('/login'); // Redirect upon successful login
     showToast('success', 'You have been logged out successfully')
   };
+
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        // Replace with your actual API call
+        const response = await GetNotifications();
+        if (response.success) {
+          const responsedata = response.data;
+          setNotifications(responsedata);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+    // if(auth){
+    fetchNotifications();
+    // }
+  }, []);
+
   return (
     <>
       <Navbar className="border-bottom bg-white justify-content-between sticky-top">
@@ -50,36 +73,49 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
             >
               <FaBell size={20} color="#fc0" />
             </DropdownToggle>
-            <DropdownMenu end>
+            <DropdownMenu end style={{ maxHeight: '300px', overflowY: 'auto' }}>
               <DropdownItem header>Notifications</DropdownItem>
-              <DropdownItem>New message received</DropdownItem>
-              <DropdownItem>Server rebooted</DropdownItem>
-              <DropdownItem divider />
-              <DropdownItem>View all notifications</DropdownItem>
-            </DropdownMenu>
-          </UncontrolledDropdown>
+              {notifications.length === 0 ? (
+                <DropdownItem disabled>No new notifications</DropdownItem>
+              ) : (
+                notifications.map((notification) => (
+                  <>
+                    <DropdownItem>
+                      <div className="fw-bold">{notification.title}</div>
+                      <div>{notification.message}</div>
+                      <small className="text-muted">
+                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                      </small>
+                    </DropdownItem>
+                    <DropdownItem divider />
+                  </>
+                ))
+              )}
+              < DropdownItem > View all notifications</DropdownItem>
+          </DropdownMenu>
+        </UncontrolledDropdown>
 
-          {/* Profile Dropdown */}
-          <UncontrolledDropdown>
-            <DropdownToggle
-              // caret
-              color="light"
-              className="d-flex align-items-center border-0 bg-transparent"
-            >
-              <FaUserCircle size={20} color="#02339a" />
-            </DropdownToggle>
-            <DropdownMenu end>
-              <DropdownItem header>{user?.name}</DropdownItem>
-              <DropdownItem divider />
-              <DropdownItem tag={Link} to="/Profile">My Account</DropdownItem>
-              <DropdownItem divider />
-              <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
-            </DropdownMenu>
-          </UncontrolledDropdown>
-        </div>
+        {/* Profile Dropdown */}
+        <UncontrolledDropdown>
+          <DropdownToggle
+            // caret
+            color="light"
+            className="d-flex align-items-center border-0 bg-transparent"
+          >
+            <FaUserCircle size={20} color="#02339a" />
+          </DropdownToggle>
+          <DropdownMenu end>
+            <DropdownItem header>{user?.firstName}</DropdownItem>
+            <DropdownItem divider />
+            <DropdownItem tag={Link} to="/Profile">My Account</DropdownItem>
+            <DropdownItem divider />
+            <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
+          </DropdownMenu>
+        </UncontrolledDropdown>
+      </div>
 
-        {/* <NavbarBrand className="mb-0 h1">DEFAULT</NavbarBrand> */}
-        {/* <div className='text-center w-100 bg-light py-2 mt-1'>
+      {/* <NavbarBrand className="mb-0 h1">DEFAULT</NavbarBrand> */}
+      {/* <div className='text-center w-100 bg-light py-2 mt-1'>
           <IoMdAlert size={22} className='me-2' color='#fc0' />
           <small>
             Provide and verify your bank details to receive payments on your orders
@@ -89,7 +125,7 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
             <FaLongArrowAltRight size={22} className='text-primary ms-2' />
           </Link>
         </div> */}
-      </Navbar>
+    </Navbar >
     </>
 
   );

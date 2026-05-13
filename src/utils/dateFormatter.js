@@ -1,9 +1,9 @@
 import { format, parseISO, isValid } from "date-fns";
 
-const formatDate = dateStr => {
+const formatDate = (dateStr, formatType = "d MMM yyyy") => {
   if (!dateStr) return "N/A";
   const date = parseISO(dateStr);
-  return isValid(date) ? format(date, "d MMM yyyy") : "N/A";
+  return isValid(date) ? format(date, formatType) : "N/A";
 };
 
 const formatDateWithTime = dateStr => {

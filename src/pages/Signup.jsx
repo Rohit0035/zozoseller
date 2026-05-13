@@ -25,7 +25,8 @@ const Signup = () => {
   const [errors, setErrors] = useState({});
 
   const [formData, setFormData] = useState({
-    name: "",
+    firstName:"",
+    lastName:"",
     email: "",
     phone: "",
   });
@@ -36,8 +37,12 @@ const Signup = () => {
     // Email regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^[0-9]{10}$/;
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First Name is required";
+    }
+   
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last Name is required";
     }
 
     if (!formData.email) {
@@ -67,7 +72,7 @@ const Signup = () => {
       if (response.status == true) {
         showToast('success', response.message)
         // dispatch({ type: LOGIN_SUCCESS, payload: { response } }); // Dispatch LOGIN_SUCCESS action
-        navigate('/sign-up-otp-verification', { state: { name: formData.name, email: formData.email, phone: formData.phone } }); // Redirect upon successful login
+        navigate('/sign-up-otp-verification', { state: { firstName: formData.firstName, lastName: formData.lastName, email: formData.email, phone: formData.phone } }); // Redirect upon successful login
       } else {
         // setError(response.message);
         showToast('error', response.message)
@@ -101,21 +106,35 @@ const Signup = () => {
                 </Col>
                 <Col md="6">
                   <img src={LogoLg} alt="" width={200} className="pb-5" />
-                  <h4 className="mb-0 mt-3 text-start">Sign Up</h4>
+                  <h4 className="mb-0 text-start">Sign Up</h4>
                   <hr />
                   <Form onSubmit={e => onSubmit(e)}>
                     <FormGroup>
-                      <Label for="name">Name</Label>
+                      <Label for="firstName">First Name</Label>
                       <Input
-                        id="name"
+                        id="firstName"
                         type="text"
-                        placeholder="Enter your name"
-                        value={formData.name}
-                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                        className={errors.name ? "is-invalid" : ""}
+                        placeholder="Enter your first name"
+                        value={formData.firstName}
+                        onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                        className={errors.firstName ? "is-invalid" : ""}
                       />
-                      {errors.name && (
-                        <div className="text-danger">{errors.name}</div>
+                      {errors.firstName && (
+                        <div className="text-danger">{errors.firstName}</div>
+                      )}
+                    </FormGroup>
+                    <FormGroup>
+                      <Label for="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        type="text"
+                        placeholder="Enter your last name"
+                        value={formData.lastName}
+                        onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                        className={errors.lastName ? "is-invalid" : ""}
+                      />
+                      {errors.lastName && (
+                        <div className="text-danger">{errors.lastName}</div>
                       )}
                     </FormGroup>
                     <FormGroup>

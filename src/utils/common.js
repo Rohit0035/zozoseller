@@ -72,4 +72,64 @@ const checkProfileCompletion = (profileData) => {
   };
 };
 
-export { buildFormData, checkProfileCompletion };
+const numberToWords = (num) => {
+  if (num === 0) return "Zero Rupees Only";
+
+  const ones = [
+    "", "One", "Two", "Three", "Four", "Five",
+    "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen",
+    "Sixteen", "Seventeen", "Eighteen", "Nineteen"
+  ];
+
+  const tens = [
+    "", "", "Twenty", "Thirty", "Forty", "Fifty",
+    "Sixty", "Seventy", "Eighty", "Ninety"
+  ];
+
+  const getWords = (n) => {
+    let str = "";
+
+    if (n > 19) {
+      str += tens[Math.floor(n / 10)] + " " + ones[n % 10];
+    } else {
+      str += ones[n];
+    }
+
+    return str.trim();
+  };
+
+  const convert = (n) => {
+    let result = "";
+
+    if (n >= 10000000) {
+      result += convert(Math.floor(n / 10000000)) + " Crore ";
+      n %= 10000000;
+    }
+
+    if (n >= 100000) {
+      result += convert(Math.floor(n / 100000)) + " Lakh ";
+      n %= 100000;
+    }
+
+    if (n >= 1000) {
+      result += convert(Math.floor(n / 1000)) + " Thousand ";
+      n %= 1000;
+    }
+
+    if (n >= 100) {
+      result += ones[Math.floor(n / 100)] + " Hundred ";
+      n %= 100;
+    }
+
+    if (n > 0) {
+      result += getWords(n) + " ";
+    }
+
+    return result.trim();
+  };
+
+  return convert(num) + " Rupees Only";
+};
+
+export { buildFormData, checkProfileCompletion, numberToWords };

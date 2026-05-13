@@ -10,11 +10,13 @@ import "react-perfect-scrollbar/dist/css/styles.css";
 import ToastifyNotification from "./components/ToastifyNotification";
 import { Provider } from "react-redux";
 import store from "./store";
+import LoaderOverlay from "./components/LoaderOverlay";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <Provider store={store}>
     <BrowserRouter>
       <ToastifyNotification />
+      <LoaderOverlay />
       <App />
     </BrowserRouter>
   </Provider>

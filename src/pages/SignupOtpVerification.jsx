@@ -30,13 +30,14 @@ const OtpVerification = () => {
 
     const email = location.state?.email || '';
     const phone = location.state?.phone || '';
-    const name = location.state?.name || '';
+    const firstName = location.state?.firstName || '';
+    const lastName = location.state?.lastName || '';
 
     useEffect(() => {
-        if(!email || !phone || !name) {
+        if(!email || !phone || !firstName || !lastName){ 
             navigate('/sign-in')
         }
-    }, [email, phone, name]);
+    }, [email, phone, firstName, lastName]);
 
     const handleInputChange = (value, index) => {
         if (value.length > 1) return; // Ensure single character input
@@ -84,7 +85,8 @@ const OtpVerification = () => {
             const data = {
                 email,
                 phone,
-                name,
+                firstName,
+                lastName,
                 otp: otp.join(""),
             }
             if(!otp.join("")){

@@ -11,84 +11,109 @@ import {
 } from 'reactstrap';
 import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import { showToast } from '../../../components/ToastifyNotification';
-import { GetBrands } from '../../../api/brandAPI';
+import { showToast } from '../../../components/ToastifyNotification'; // Assuming you have this
+import { GetBrandById, GetBrands } from '../../../api/brandAPI';
 import { useDispatch } from 'react-redux';
 import { IMAGE_URL } from '../../../utils/api-config';
+import { CheckVendorBrand, GetVendorApprovedBrands } from '../../../api/vendorBrandAPI';
 
 const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataChange }) => {
     const [brandNameInput, setBrandNameInput] = useState('');
     const [checkedBrandStatus, setCheckedBrandStatus] = useState(null); // 'success', 'error', null
-    const [confirmedBrandId, setConfirmedBrandId] = useState(listingData.brandId || null); 
-    const [availableBrands, setAvailableBrands] = useState([]); 
+    const [confirmedBrandId, setConfirmedBrandId] = useState(listingData.brandId || null); // Store the ID of the brand that passed check or was selected
+    const [brandDetails, setBrandDetails] = useState(null); // List of available brands
     const [recentlyUsedBrands, setRecentlyUsedBrands] = useState([]);
+    const [vendorApprovedBrands, setVendorApprovedBrands] = useState([]);
 
     const dispatch = useDispatch();
 
-    const fetchBrands = async (data) => {
-        dispatch({ type: 'loader', loader: true });
-        try {
-            const response = await GetBrands(data);
-            if (response.success === true) {
-                const formattedData = response.data.map((item, index) => ({
-                    index: index + 1,
-                    id: item._id,
-                    name: item.name,
-                    image: `${IMAGE_URL}${item.image}`,
-                }));
-                setAvailableBrands(formattedData);
+    // Effect to update local state if listingData.brandId changes from parent
+    useEffect(() => {
+        const loadVendorApprovedBrand = async () => {
+            try {
+                dispatch({ type: 'loader', loader: true });
 
-                // EDIT MODE: If brandId exists in listingData, find the name and set status
-                if (listingData.brandId) {
-                    const foundBrand = formattedData.find(b => b.id === listingData.brandId);
-                    if (foundBrand) {
-                        setBrandNameInput(foundBrand.name);
-                        setConfirmedBrandId(foundBrand.id);
-                        setCheckedBrandStatus('success');
-                    }
+                const res = await GetVendorApprovedBrands({
+                    categoryId: listingData?.categoryId
+                });
+
+                if (res.success) {
+                    setVendorApprovedBrands(res.data);
                 }
-            } else {
-                showToast('error', response.message);
+            } catch (err) {
+                showToast('error', err);
+            } finally {
+                dispatch({ type: 'loader', loader: false });
             }
-        } catch (error) {
-            showToast('error', 'Failed to fetch brands');
+        };
+
+        loadVendorApprovedBrand();
+    }, [listingData.categoryId]);
+
+    useEffect(() => {
+        const loadBrand = async () => {
+            if (!listingData.brandId) return;
+
+            try {
+                dispatch({ type: 'loader', loader: true });
+
+                const res = await GetBrandById(listingData.brandId);
+
+                if (res.success) {
+                    setBrandDetails(res.data);
+                    setBrandNameInput(res.data.name);
+                    setConfirmedBrandId(res.data._id);
+                    setCheckedBrandStatus('success');
+                }
+            } catch (err) {
+                showToast('error', err);
+            } finally {
+                dispatch({ type: 'loader', loader: false });
+            }
+        };
+
+        loadBrand();
+    }, [listingData.brandId]);
+
+
+    const handleBrandCheck = async () => {
+        if (!brandNameInput.trim()) {
+            showToast('error', 'Please enter a brand name');
+            return;
+        }
+
+        dispatch({ type: 'loader', loader: true });
+
+        try {
+            const res = await CheckVendorBrand({
+                brandName: brandNameInput,
+                categoryId: listingData?.categoryId
+            });
+
+            if (res.success) {
+                setCheckedBrandStatus('success');
+                setConfirmedBrandId(res.data?._id || null);
+                setBrandDetails(res.data || {});
+                setBrandNameInput(res.data?.name);
+                showToast('success', res.message);
+            } else {
+                setCheckedBrandStatus('error');
+                setConfirmedBrandId(null);
+
+                showToast('error', res.message);
+            }
+        } catch (err) {
+            showToast('error', err);
         } finally {
             dispatch({ type: 'loader', loader: false });
         }
     };
 
-    useEffect(() => {
-        // Fetch brands based on the category selected in the previous step
-        fetchBrands({ categoryId: listingData?.categoryId });
-    }, [listingData?.categoryId]);
-
-    const handleBrandCheck = () => {
-        if (!brandNameInput.trim()) {
-            showToast('error', 'Please enter a brand name to check.');
-            setCheckedBrandStatus(null);
-            return;
-        }
-
-        const foundBrand = availableBrands.find(
-            (b) => b.name.toLowerCase() === brandNameInput.trim().toLowerCase()
-        );
-
-        if (foundBrand) {
-            setCheckedBrandStatus('success');
-            setConfirmedBrandId(foundBrand.id);
-            onListingDataChange({ brandId: foundBrand.id }); // Update parent immediately
-            showToast('success', `You can sell under ${foundBrand.name}.`);
-        } else {
-            setCheckedBrandStatus('error');
-            setConfirmedBrandId(null);
-            showToast('error', `Brand "${brandNameInput}" not found or not allowed.`);
-        }
-    };
-
     const handleCreateNewListing = () => {
         if (confirmedBrandId) {
+            // Update the parent's listingData with the selected brandId
             onListingDataChange({ brandId: confirmedBrandId });
-            setCurrentStep(prev => prev + 1);
+            setCurrentStep(prev => prev + 1); // Move to the next step
         } else {
             showToast('error', 'Please check and confirm a brand first.');
         }
@@ -98,8 +123,8 @@ const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataCh
         setBrandNameInput(brand.name);
         setConfirmedBrandId(brand.id);
         setCheckedBrandStatus('success');
-        onListingDataChange({ brandId: brand.id });
-        setCurrentStep(prev => prev + 1);
+        onListingDataChange({ brandId: brand.id }); // Update parent's state immediately
+        setCurrentStep(prev => prev + 1); // Move to the next step
     };
 
     return (
@@ -113,19 +138,29 @@ const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataCh
                             <FormGroup className="gap-2 mt-3">
                                 <InputGroup>
                                     <Input
-                                        type="text"
-                                        placeholder="Enter Brand Name"
-                                        value={brandNameInput}
+                                        type="select"
+                                        value={confirmedBrandId || ''}
                                         onChange={(e) => {
-                                            setBrandNameInput(e.target.value);
-                                            setCheckedBrandStatus(null);
-                                            setConfirmedBrandId(null);
+                                            const selectedId = e.target.value;
+                                            const selectedBrand = vendorApprovedBrands.find(
+                                                (b) => b._id === selectedId
+                                            );
+
+                                            setConfirmedBrandId(selectedId);
+                                            setBrandNameInput(selectedBrand?.name || '');
+                                            setCheckedBrandStatus('success');
                                         }}
-                                        style={{ minWidth: '80% !important' }}
-                                    />
-                                    <Button color="primary" onClick={handleBrandCheck}>
+                                    >
+                                        <option value="">Select a brand</option>
+                                        {vendorApprovedBrands.map((brand) => (
+                                            <option key={brand._id} value={brand._id}>
+                                                {brand.name}
+                                            </option>
+                                        ))}
+                                    </Input>
+                                    {/* <Button color="primary" onClick={handleBrandCheck}>
                                         Check Brand
-                                    </Button>
+                                    </Button> */}
                                 </InputGroup>
                             </FormGroup>
 
@@ -145,7 +180,7 @@ const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataCh
 
                             {confirmedBrandId && checkedBrandStatus === 'success' && (
                                 <Button className="mt-2 btn-primary btn-sm" onClick={handleCreateNewListing}>
-                                    {listingData.brandId ? 'Update and Continue' : 'Create new listing'}
+                                    Update and Continue
                                 </Button>
                             )}
 
@@ -172,7 +207,7 @@ const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataCh
                     </Card>
                 </Col>
 
-                {/* Right Panel (Guidelines) */}
+                {/* Right Panel (Brand Guidelines - No changes needed here for state) */}
                 <Col md={6}>
                     <Card>
                         <CardBody>

@@ -24,42 +24,48 @@ const EditListingIndex = () => {
     const [listingData, setListingData] = useState(getDefaultListingData());
 
     useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        // fetch product
-        const prodRes = await GetProductById(id);
-        if (prodRes?.success && prodRes.data) {
-          const product = prodRes.data;
-            // console.log(product);
-          // set product data
-          setListingData(product);
-          setListingData({
-                ...product,
-                categoryId: product.categoryId?._id,
-                subCategoryOneId: product.subCategoryOneId?._id,
-                subCategoryTwoId: product.subCategoryTwoId?._id,
-                brandId: product.brandId?._id,
-                hsn: product.hsn?._id,
-                productDetails: [],
-            });
+        const fetchProduct = async () => {
+            try {
+                // fetch product
+                const prodRes = await GetProductById(id);
+                console.log('prodRes', prodRes);
+                if (prodRes?.success && prodRes.data) {
+                    const product = prodRes.data;
+                    // set product data
+                    // setListingData(product);
+                    setListingData({
+                        ...product,
 
-            console.log("listingData",product);
-        } else {
-          showToast('error', prodRes.message || 'Failed to fetch product details');
-          // optionally navigate back
-        }
-      } catch (err) {
-        console.error(err);
-        showToast('error', 'Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    };
+                        // IDs
+                        categoryId: product.categoryId?._id,
+                        subCategoryOneId: product.subCategoryOneId?._id,
+                        subCategoryTwoId: product.subCategoryTwoId?._id,
+                        brandId: product.brandId?._id,
+                        hsn: product.hsn?._id,
 
-    // Re-call fetchProduct to ensure all data is loaded
-    fetchProduct();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]); // Added setValue to dependencies for useEffect calls
+                        mainImage: product.images?.mainImage || null,
+                        galleryImages: product.images?.galleryImages || [],
+                        videos: product.videos || [],
+                        productDetails: JSON.parse(product.productDetails || '[]') || [],
+                    });
+
+                    console.log("listingData", product);
+                } else {
+                    showToast('error', prodRes.message || 'Failed to fetch product details');
+                    // optionally navigate back
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('error', 'Failed to fetch data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        // Re-call fetchProduct to ensure all data is loaded
+        fetchProduct();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]); // Added setValue to dependencies for useEffect calls
 
     // A more generic handler to update any part of the listingData state
     // This allows child components to update multiple fields at once if needed,
@@ -151,7 +157,7 @@ const EditListingIndex = () => {
                     </Breadcrumb>
                 </Col>
             </Row>
-            <hr className='mt-0'/>
+            <hr className='mt-0' />
             <Row className="justify-content-left my-1">
                 {steps.map((step, index) => (
                     <Col key={index} xs="auto" className="text-start step-wrapper">

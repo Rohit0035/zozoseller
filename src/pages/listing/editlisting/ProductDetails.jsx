@@ -61,25 +61,25 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	}, [listingData.variations]);
 
 	useEffect(() => {
-    if (listingData.attributes && attributeOptions.length > 0) {
-        // 1. Map saved attribute IDs to the full options (value/label) for React-Select
-        const selectedOptions = listingData.attributes.map(savedAttr => {
-            const match = attributeOptions.find(
-				opt => opt.value === savedAttr.id._id
-			);
-            return match ? { value: match.value, label: match.label } : null;
-        }).filter(Boolean);
+		if (listingData.attributes && attributeOptions.length > 0) {
+			// 1. Map saved attribute IDs to the full options (value/label) for React-Select
+			const selectedOptions = listingData.attributes.map(savedAttr => {
+				const match = attributeOptions.find(
+					opt => opt.value === savedAttr.id._id
+				);
+				return match ? { value: match.value, label: match.label } : null;
+			}).filter(Boolean);
 
-        setSelectedAttributeOptions(selectedOptions);
+			setSelectedAttributeOptions(selectedOptions);
 
-        // 2. Map the specific values selected for those attributes
-        const newMap = {};
-        listingData.attributes.forEach(savedAttr => {
-            newMap[savedAttr.id._id] = savedAttr.values;
-        });
-        setAttributeValueMap(newMap);
-    }
-}, [attributeOptions, listingData.attributes]);
+			// 2. Map the specific values selected for those attributes
+			const newMap = {};
+			listingData.attributes.forEach(savedAttr => {
+				newMap[savedAttr.id._id] = savedAttr.values;
+			});
+			setAttributeValueMap(newMap);
+		}
+	}, [attributeOptions, listingData.attributes]);
 
 
 	//initialization end
@@ -194,25 +194,25 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 	// Effect to sync selected attributes with full attribute data
 	useEffect(() => {
-  if (listingData.attributes && attributeOptions.length > 0) {
+		if (listingData.attributes && attributeOptions.length > 0) {
 
-    const selectedOptions = listingData.attributes.map(savedAttr => {
-      const match = attributeOptions.find(
-        opt => opt.value === savedAttr.id._id
-      );
-      return match ? { value: match.value, label: match.label } : null;
-    }).filter(Boolean);
+			const selectedOptions = listingData.attributes.map(savedAttr => {
+				const match = attributeOptions.find(
+					opt => opt.value === savedAttr.id._id
+				);
+				return match ? { value: match.value, label: match.label } : null;
+			}).filter(Boolean);
 
-    setSelectedAttributeOptions(selectedOptions);
+			setSelectedAttributeOptions(selectedOptions);
 
-    const newMap = {};
-    listingData.attributes.forEach(savedAttr => {
-      newMap[savedAttr.id._id] = savedAttr.values;
-    });
+			const newMap = {};
+			listingData.attributes.forEach(savedAttr => {
+				newMap[savedAttr.id._id] = savedAttr.values;
+			});
 
-    setAttributeValueMap(newMap);
-  }
-}, [attributeOptions, listingData.attributes]);
+			setAttributeValueMap(newMap);
+		}
+	}, [attributeOptions, listingData.attributes]);
 
 	// Update selectedTypeOption when listingData.type changes
 	useEffect(() => {
@@ -865,6 +865,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												>
 													<option value="">-- Select One --</option>
 													<option value="Seller">Seller</option>
+													<option value="Zozokart">Zozokart</option>
 													{/* Add other options like 'Flipkart' if applicable */}
 												</Input>
 											</InputGroup>
@@ -1316,6 +1317,79 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												/>
 											</InputGroup>
 											{renderError('importerDetails')}
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Returnable*
+												</span>
+												<Input
+													type="select"
+													name="returnable"
+													value={listingData.returnable}
+													onChange={handleChange}
+													invalid={errors.returnable}
+												>
+													<option value="true">Yes</option>
+													<option value="false">No</option>
+												</Input>
+											</InputGroup>
+											{renderError('returnable')}
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Returnable Days*
+												</span>
+												<Input
+													type="number"
+													name="returnableDays"
+													value={listingData.returnableDays}
+													onChange={handleChange}
+													invalid={errors.returnableDays}
+												/>
+											</InputGroup>
+											{renderError('returnableDays')}
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Exchangeable*
+												</span>
+												<Input
+													type="select"
+													name="exchangeable"
+													value={listingData.exchangeable}
+													onChange={handleChange}
+													invalid={errors.exchangeable}
+												>
+													<option value="true">Yes</option>
+													<option value="false">No</option>
+												</Input>
+											</InputGroup>
+											{renderError('exchangeable')}
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Refundable*
+												</span>
+												<Input
+													type="select"
+													name="refundable"
+													value={listingData.refundable}
+													onChange={handleChange}
+													invalid={errors.refundable}
+												>
+													<option value="true">Yes</option>
+													<option value="false">No</option>
+												</Input>
+											</InputGroup>
+											{renderError('refundable')}
 										</Col>
 										{/* <Col sm={12} className="mb-3">
                       <Button

@@ -6,7 +6,7 @@ import fetchWithAuth from "../utils/apiAthurization";
 export const StoreAdServiceRequest = async (data) => {
   try {
     const response = await fetchWithAuth(
-      `${API_CONFIG.baseURL}/ad-service-requests`,'POST',data
+      `${API_CONFIG.baseURL}/ad-service-requests`,'POST',data,'multipart'
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {

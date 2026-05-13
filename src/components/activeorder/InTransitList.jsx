@@ -11,50 +11,25 @@ import {
 } from "reactstrap";
 import { RiArrowDropDownLine } from "react-icons/ri";
 
-const demoInTransitOrders = [
-  {
-    id: 1,
-    orderId: "TR-4001",
-    productInfo: "iPhone 14 - 128GB - Black",
-    amount: "$799",
-    trackingId: "TRK123456",
-    status: "In Transit"
-  },
-  {
-    id: 2,
-    orderId: "TR-4002",
-    productInfo: "Galaxy S23 - 256GB - Grey",
-    amount: "$699",
-    trackingId: "TRK123457",
-    status: "In Transit"
-  },
-  {
-    id: 3,
-    orderId: "TR-4003",
-    productInfo: "MacBook Air - 13 inch",
-    amount: "$999",
-    trackingId: "TRK123458",
-    status: "Out for Delivery"
-  },
-  {
-    id: 4,
-    orderId: "TR-4004",
-    productInfo: "Dell XPS 15",
-    amount: "$850",
-    trackingId: "TRK123459",
-    status: "In Transit"
-  }
-];
-
 const allColumns = [
-  { name: "Order ID", selector: row => row.orderId, sortable: true },
+  {
+    name: "S.No.",
+    cell: (row, index) => index + 1,
+    width: "80px"
+  },
+
+  { name: "Order ID", selector: row => row.orderUniqueId, sortable: true },
   {
     name: "Product Information",
     selector: row => row.productInfo,
     sortable: true
   },
   { name: "Amount", selector: row => row.amount, sortable: true, right: true },
-  { name: "Tracking ID", selector: row => row.trackingId, sortable: true },
+  {
+    name: "Tracking ID",
+    selector: row => row.order.awb_number,
+    sortable: true
+  },
   { name: "Status", selector: row => row.status, sortable: true }
 ];
 
@@ -63,7 +38,7 @@ const presets = {
   "Full View": allColumns.map(col => col.name)
 };
 
-const InTransitList = ({ orders }) => {
+const InTransitList = ({ orders = [], fetchOrders, ALL_ALLOWED_STATUSES }) => {
   const [visibleColumns, setVisibleColumns] = useState(presets["Default View"]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -130,40 +105,6 @@ const InTransitList = ({ orders }) => {
         </Col>
         <Col md="6">
           <div className="d-flex align-items-end justify-content-end">
-            {/* Sort Dropdown */}
-            <div className="position-relative me-2">
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              >
-                Sort By <RiArrowDropDownLine size={20} />
-              </button>
-              {sortDropdownOpen &&
-                <div
-                  className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                  style={{ width: "180px", zIndex: 1000 }}
-                >
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("orderId")}
-                  >
-                    Order ID
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("trackingId")}
-                  >
-                    Tracking ID
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("amount")}
-                  >
-                    Amount
-                  </div>
-                </div>}
-            </div>
-
             {/* Customize Columns */}
             <div className="position-relative me-2">
               <button
@@ -218,7 +159,7 @@ const InTransitList = ({ orders }) => {
             <CSVLink
               data={selectedRows.length ? selectedRows : filteredData}
               filename="in_transit_orders.csv"
-              className="btn btn-primary btn-sm"
+              className="btn btn-success btn-sm"
             >
               Export CSV
             </CSVLink>
@@ -237,9 +178,7 @@ const InTransitList = ({ orders }) => {
                 data={filteredData}
                 pagination
                 striped
-                responsive
-                selectableRows
-                onSelectedRowsChange={handleRowSelected}
+                responsive // onSelectedRowsChange={handleRowSelected} // selectableRows
                 highlightOnHover
               />
             </CardBody>

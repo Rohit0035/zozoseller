@@ -43,6 +43,16 @@ const StatsCards = ({ dashboardData }) => {
       <Row>
         <Col md="6" xl="3">
           <StatCard
+            id="todayOrders"
+            color="bg-warning"
+            icon={FaInfoCircle}
+            tooltip="Today's orders"
+            title="Today's Orders"
+            value={dashboardData?.todayOrders}
+          />
+        </Col>
+        <Col md="6" xl="3">
+          <StatCard
             id="unitsTooltip"
             color="bg-primary"
             icon={FaInfoCircle}
@@ -64,7 +74,7 @@ const StatsCards = ({ dashboardData }) => {
         <Col md="6" xl="3">
           <StatCard
             id="ordersTooltip"
-            color="bg-warning"
+            color="bg-info"
             icon={FaInfoCircle}
             tooltip="Number of new orders"
             title="New Orders"

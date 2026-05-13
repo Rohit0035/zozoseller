@@ -24,7 +24,8 @@ const PersonalDetails = ({ profileData, handleSubmit }) => {
   // PERSONAL DETAILS STATE
   const [personal, setPersonal] = useState({
     vendorUniqueId: "",
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     alternateEmail: "",
     phone: "",
@@ -37,7 +38,8 @@ const PersonalDetails = ({ profileData, handleSubmit }) => {
       if (profileData) {
         setPersonal({
           vendorUniqueId: profileData.vendorUniqueId || "",
-          name: profileData.name || "",
+          firstName: profileData.firstName || "",
+          lastName: profileData.lastName || "",
           email: profileData.email || "",
           alternateEmail: profileData.alternateEmail || "",
           phone: profileData.phone || "",
@@ -52,7 +54,8 @@ const PersonalDetails = ({ profileData, handleSubmit }) => {
   const validate = () => {
     let newErrors = {};
 
-    if (!personal.name) newErrors.name = "Name required";
+    if (!personal.firstName) newErrors.firstName = "First Name required";
+    if (!personal.lastName) newErrors.lastName = "Last Name required";
     if (!personal.email) newErrors.email = "Email required";
     if (!personal.phone) newErrors.phone = "Phone required";
     // if (!personal.vendorUniqueId)
@@ -83,7 +86,10 @@ const PersonalDetails = ({ profileData, handleSubmit }) => {
         </div>
 
         <div>
-          <strong>Name:</strong> {personal.name}
+          <strong>First Name:</strong> {personal.firstName}
+        </div>
+        <div>
+          <strong>Last Name:</strong> {personal.lastName}
         </div>
         <div>
           <strong>Email:</strong> {personal.email}
@@ -113,15 +119,27 @@ const PersonalDetails = ({ profileData, handleSubmit }) => {
         <Form>
           <ModalBody>
             <FormGroup>
-              <Label>Name *</Label>
+              <Label>First Name *</Label>
               <Input
-                value={personal.name}
-                invalid={!!errors.name}
+                value={personal.firstName}
+                invalid={!!errors.firstName}
                 onChange={e =>
-                  setPersonal({ ...personal, name: e.target.value })}
+                  setPersonal({ ...personal, firstName: e.target.value })}
               />
               <div className="text-danger">
-                {errors.name}
+                {errors.firstName}
+              </div>
+            </FormGroup>
+            <FormGroup>
+              <Label>Last Name *</Label>
+              <Input
+                value={personal.lastName}
+                invalid={!!errors.lastName}
+                onChange={e =>
+                  setPersonal({ ...personal, lastName: e.target.value })}
+              />
+              <div className="text-danger">
+                {errors.lastName}
               </div>
             </FormGroup>
 

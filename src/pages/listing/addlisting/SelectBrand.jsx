@@ -15,7 +15,7 @@ import { showToast } from '../../../components/ToastifyNotification'; // Assumin
 import { GetBrandById, GetBrands } from '../../../api/brandAPI';
 import { useDispatch } from 'react-redux';
 import { IMAGE_URL } from '../../../utils/api-config';
-import { CheckVendorBrand } from '../../../api/vendorBrandAPI';
+import { CheckVendorBrand, GetVendorApprovedBrands } from '../../../api/vendorBrandAPI';
 
 const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataChange }) => {
     const [brandNameInput, setBrandNameInput] = useState('');
@@ -23,34 +23,57 @@ const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataCh
     const [confirmedBrandId, setConfirmedBrandId] = useState(listingData.brandId || null); // Store the ID of the brand that passed check or was selected
     const [brandDetails, setBrandDetails] = useState(null); // List of available brands
     const [recentlyUsedBrands, setRecentlyUsedBrands] = useState([]);
+    const [vendorApprovedBrands, setVendorApprovedBrands] = useState([]);
 
     const dispatch = useDispatch();
 
     // Effect to update local state if listingData.brandId changes from parent
     useEffect(() => {
-    const loadBrand = async () => {
-        if (!listingData.brandId) return;
+        const loadVendorApprovedBrand = async () => {
+            try {
+                dispatch({ type: 'loader', loader: true });
 
-        try {
-            dispatch({ type: 'loader', loader: true });
+                const res = await GetVendorApprovedBrands({
+                    categoryId: listingData?.categoryId
+                });
 
-            const res = await GetBrandById(listingData.brandId);
-
-            if (res.success) {
-                setBrandDetails(res.data);
-                setBrandNameInput(res.data.name);
-                setConfirmedBrandId(res.data._id);
-                setCheckedBrandStatus('success');
+                if (res.success) {
+                    setVendorApprovedBrands(res.data);
+                }
+            } catch (err) {
+                showToast('error', err);
+            } finally {
+                dispatch({ type: 'loader', loader: false });
             }
-        } catch (err) {
-            showToast('error', err);
-        } finally {
-            dispatch({ type: 'loader', loader: false });
-        }
-    };
+        };
 
-    loadBrand();
-}, [listingData.brandId]);
+        loadVendorApprovedBrand();
+    }, []);
+
+    useEffect(() => {
+        const loadBrand = async () => {
+            if (!listingData.brandId) return;
+
+            try {
+                dispatch({ type: 'loader', loader: true });
+
+                const res = await GetBrandById(listingData.brandId);
+
+                if (res.success) {
+                    setBrandDetails(res.data);
+                    setBrandNameInput(res.data.name);
+                    setConfirmedBrandId(res.data._id);
+                    setCheckedBrandStatus('success');
+                }
+            } catch (err) {
+                showToast('error', err);
+            } finally {
+                dispatch({ type: 'loader', loader: false });
+            }
+        };
+
+        loadBrand();
+    }, [listingData.brandId]);
 
 
     const handleBrandCheck = async () => {
@@ -115,20 +138,29 @@ const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataCh
                             <FormGroup className="gap-2 mt-3">
                                 <InputGroup>
                                     <Input
-                                        type="text"
-                                        placeholder="Enter Brand Name"
-                                        value={brandNameInput}
+                                        type="select"
+                                        value={confirmedBrandId || ''}
                                         onChange={(e) => {
-                                            setBrandNameInput(e.target.value);
-                                            // Reset status when input changes
-                                            setCheckedBrandStatus(null);
-                                            setConfirmedBrandId(null);
+                                            const selectedId = e.target.value;
+                                            const selectedBrand = vendorApprovedBrands.find(
+                                                (b) => b._id === selectedId
+                                            );
+
+                                            setConfirmedBrandId(selectedId);
+                                            setBrandNameInput(selectedBrand?.name || '');
+                                            setCheckedBrandStatus('success');
                                         }}
-                                        style={{ minWidth: '80% !important' }}
-                                    />
-                                    <Button color="primary" onClick={handleBrandCheck}>
+                                    >
+                                        <option value="">Select a brand</option>
+                                        {vendorApprovedBrands.map((brand) => (
+                                            <option key={brand._id} value={brand._id}>
+                                                {brand.name}
+                                            </option>
+                                        ))}
+                                    </Input>
+                                    {/* <Button color="primary" onClick={handleBrandCheck}>
                                         Check Brand
-                                    </Button>
+                                    </Button> */}
                                 </InputGroup>
                             </FormGroup>
 

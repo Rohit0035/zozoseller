@@ -2,64 +2,61 @@ import React, { useState } from "react";
 import DataTable from "react-data-table-component";
 import { CSVLink } from "react-csv";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
   Card,
   CardBody,
   Col,
-  Row
+  Row,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button
 } from "reactstrap";
 import { RiArrowDropDownLine } from "react-icons/ri";
-
-const demoOrders = [
-  {
-    id: 1,
-    orderId: "ORD-1001",
-    productInfo: "iPhone 14 - 128GB - Black",
-    amount: "$799",
-    dispatchDate: "2025-07-02",
-    status: "Pending"
-  },
-  {
-    id: 2,
-    orderId: "ORD-1002",
-    productInfo: "Galaxy S23 - 256GB - Grey",
-    amount: "$699",
-    dispatchDate: "2025-07-03",
-    status: "Processing"
-  },
-  {
-    id: 3,
-    orderId: "ORD-1003",
-    productInfo: "MacBook Air - 13 inch",
-    amount: "$999",
-    dispatchDate: "2025-07-05",
-    status: "Pending"
-  },
-  {
-    id: 4,
-    orderId: "ORD-1004",
-    productInfo: "Dell XPS 15",
-    amount: "$850",
-    dispatchDate: "2025-07-04",
-    status: "Completed"
-  }
-];
+import {
+  generateShippingLabels,
+  UpdateVendorOrderPackageDetails,
+  UpdateVendorOrderStatus
+} from "../../api/vendorOrderAPI";
+import { useDispatch } from "react-redux";
+import { showToast } from "../ToastifyNotification";
 
 const allColumns = [
-  { name: "Order ID", selector: row => row.orderId, sortable: true },
+  {
+  name: "S.No.",
+  cell: (row, index) => index + 1,
+  width: "80px"
+},
+  {
+    name: "Order ID",
+    selector: row => row.orderUniqueId,
+    sortable: true
+  },
+  {
+    name: "Sub Order ID",
+    selector: row => row.subOrderUniqueId,
+    sortable: true
+  },
   {
     name: "Product Information",
     selector: row => row.productInfo,
     sortable: true
   },
-  { name: "Amount", selector: row => row.amount, sortable: true, right: true },
   {
-    name: "Dispatch By Date",
-    selector: row => row.dispatchDate,
+    name: "SKU",
+    selector: row => row.skuNo,
     sortable: true
   },
-  { name: "Status", selector: row => row.status, sortable: true }
+  {
+    name: "Amount",
+    selector: row => row.amount,
+    sortable: true
+  },
+  {
+    name: "Status",
+    selector: row => row.status,
+    sortable: true
+  }
 ];
 
 const presets = {
@@ -67,37 +64,44 @@ const presets = {
   "Full View": allColumns.map(col => col.name)
 };
 
-const PendingLabelsList = ({ orders }) => {
+const PendingLabelsList = ({ orders, fetchOrders, ALL_ALLOWED_STATUSES }) => {
+  const dispatch = useDispatch();
+
   const [visibleColumns, setVisibleColumns] = useState(presets["Default View"]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [selectedRows, setSelectedRows] = useState([]);
+  const [showLabelModal, setShowLabelModal] = useState(false);
+  const [packageData, setPackageData] = useState({});
   const [sortConfig, setSortConfig] = useState({
-    field: "orderId",
+    field: "orderUniqueId",
     order: "desc"
   });
 
   const filteredData = orders
     .filter(item =>
       Object.values(item).some(val =>
-        val.toString().toLowerCase().includes(filterText.toLowerCase())
+        val?.toString().toLowerCase().includes(filterText.toLowerCase())
       )
     )
     .sort((a, b) => {
       const field = sortConfig.field;
       const valA = a[field];
       const valB = b[field];
-      if (sortConfig.order === "desc") return valA < valB ? 1 : -1;
-      else return valA > valB ? 1 : -1;
+
+      if (sortConfig.order === "desc") {
+        return valA < valB ? 1 : -1;
+      }
+
+      return valA > valB ? 1 : -1;
     });
 
   const toggleColumn = colName => {
-    setVisibleColumns(
-      prev =>
-        prev.includes(colName)
-          ? prev.filter(c => c !== colName)
-          : [...prev, colName]
+    setVisibleColumns(prev =>
+      prev.includes(colName)
+        ? prev.filter(c => c !== colName)
+        : [...prev, colName]
     );
   };
 
@@ -119,67 +123,152 @@ const PendingLabelsList = ({ orders }) => {
     visibleColumns.includes(col.name)
   );
 
+  const openLabelModal = () => {
+    const init = {};
+
+    selectedRows.forEach(row => {
+      init[row.id] = {
+        length: row.order?.packageDetails?.length || "",
+        breadth: row.order?.packageDetails?.breadth || "",
+        height: row.order?.packageDetails?.height || "",
+        weight: row.order?.packageDetails?.weight || ""
+      };
+    });
+
+    setPackageData(init);
+    setShowLabelModal(true);
+  };
+
+  const handlePackageChange = (id, field, value) => {
+    setPackageData(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value
+      }
+    }));
+  };
+
+  const updateSinglePackage = async orderId => {
+    const pkg = packageData[orderId];
+
+    if (!pkg.length || !pkg.breadth || !pkg.height || !pkg.weight) {
+      return showToast("error", "Please fill all fields");
+    }
+
+    dispatch({ type: "loader", loader: true });
+
+    try {
+      const res = await UpdateVendorOrderPackageDetails({
+        orderId,
+        length: pkg.length,
+        breadth: pkg.breadth,
+        height: pkg.height,
+        weight: pkg.weight
+      });
+
+      if (res.success) {
+        showToast("success", res.message);
+        fetchOrders({
+          orderStatus: ALL_ALLOWED_STATUSES
+        });
+      }
+    } finally {
+      dispatch({ type: "loader", loader: false });
+    }
+  };
+
+  const handleGenerateLabels = async () => {
+    const payload = {
+      orders: selectedRows.map(row => ({
+        orderId: row.id,
+        packageDetails: packageData[row.id]
+      }))
+    };
+
+    for (let item of payload.orders) {
+      const p = item.packageDetails;
+      if (!p.length || !p.breadth || !p.height || !p.weight) {
+        return showToast("error", "Please fill all package details");
+      }
+    }
+
+    dispatch({ type: "loader", loader: true });
+
+    try {
+      const res = await generateShippingLabels(payload);
+
+      if (res.success) {
+        showToast("success", res.message);
+        setShowLabelModal(false);
+        setSelectedRows([]);
+        fetchOrders({
+          orderStatus: ALL_ALLOWED_STATUSES
+        });
+      } else {
+        showToast("error", res.message);
+      }
+    } finally {
+      dispatch({ type: "loader", loader: false });
+    }
+  };
+
+  const handleBulkCancel = async () => {
+  if (!selectedRows.length) return;
+
+  dispatch({ type: "loader", loader: true });
+
+  try {
+    await Promise.all(
+      selectedRows.map(row =>
+        UpdateVendorOrderStatus({
+          id: row.id,
+          status: "Cancelled"
+        })
+      )
+    );
+
+    showToast("success", "Orders cancelled successfully");
+    fetchOrders({
+      orderStatus: ALL_ALLOWED_STATUSES
+    });
+
+    setSelectedRows([]); // clear selection
+  } finally {
+    dispatch({ type: "loader", loader: false });
+  }
+};
+
   return (
     <div>
-      {/* <Row>
-        <Col md="12">
-          <Breadcrumb className='my-2'>
-            <BreadcrumbItem>
-              <h5>Pending Labels</h5>
-            </BreadcrumbItem>
-            <BreadcrumbItem active>Home</BreadcrumbItem>
-          </Breadcrumb>
-        </Col>
-      </Row> */}
-
       <Row className="mt-2">
-        <Col md="6" className="mb-2">
+        <Col md="6">
           <input
             type="text"
             className="form-control"
-            placeholder="Search by Order ID, Product Info, Status"
-            style={{ maxWidth: "250px" }}
+            placeholder="Search..."
             value={filterText}
             onChange={e => setFilterText(e.target.value)}
           />
         </Col>
-        <Col md="6">
-          <div className="d-flex align-items-end justify-content-end">
-            {/* Sort Dropdown */}
-            <div className="position-relative me-2">
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              >
-                Sort By <RiArrowDropDownLine size={20} />
-              </button>
-              {sortDropdownOpen &&
-                <div
-                  className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                  style={{ width: "180px", zIndex: 1000 }}
-                >
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("orderId")}
-                  >
-                    Order ID
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("dispatchDate")}
-                  >
-                    Dispatch Date
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("amount")}
-                  >
-                    Amount
-                  </div>
-                </div>}
-            </div>
 
-            {/* Customize Columns */}
+        <Col md="6">
+          <div className="d-flex justify-content-end">
+            <button
+              className="btn btn-danger btn-sm me-2"
+              disabled={!selectedRows.length}
+              onClick={handleBulkCancel}
+            >
+              Cancel Orders
+            </button>
+            <button
+              className="btn btn-warning btn-sm me-2"
+              disabled={!selectedRows.length}
+              onClick={openLabelModal}
+            >
+              Generate Labels
+            </button>
+
             <div className="position-relative me-2">
               <button
                 className="btn btn-primary btn-sm"
@@ -187,53 +276,31 @@ const PendingLabelsList = ({ orders }) => {
               >
                 Customize Columns <RiArrowDropDownLine size={20} />
               </button>
-              {dropdownOpen &&
-                <div
-                  className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                  style={{
+
+              {dropdownOpen && (
+                <div className="position-absolute bg-white border p-2 shadow" style={{
                     maxHeight: "250px",
                     overflowY: "auto",
                     zIndex: 1000
-                  }}
-                >
-                  <strong className="px-2 d-block">Select Columns</strong>
-                  {allColumns.map(col =>
-                    <label
-                      key={col.name}
-                      className="dropdown-item d-flex align-items-center"
-                    >
+                  }}>
+                  {allColumns.map(col => (
+                    <label key={col.name} className="dropdown-item">
                       <input
                         type="checkbox"
-                        className="form-check-input me-2"
                         checked={visibleColumns.includes(col.name)}
                         onChange={() => toggleColumn(col.name)}
                       />
                       {col.name}
                     </label>
-                  )}
-                  <hr />
-                  <div className="px-2">
-                    <div
-                      className="dropdown-item text-primary"
-                      onClick={() => applyPreset("Default View")}
-                    >
-                      Default View
-                    </div>
-                    <div
-                      className="dropdown-item text-primary"
-                      onClick={() => applyPreset("Full View")}
-                    >
-                      Full View
-                    </div>
-                  </div>
-                </div>}
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Export CSV */}
             <CSVLink
               data={selectedRows.length ? selectedRows : filteredData}
               filename="pending_labels.csv"
-              className="btn btn-primary btn-sm"
+              className="btn btn-success btn-sm"
             >
               Export CSV
             </CSVLink>
@@ -243,24 +310,103 @@ const PendingLabelsList = ({ orders }) => {
 
       <hr />
 
-      <Row>
-        <Col md="12">
-          <Card>
-            <CardBody>
-              <DataTable
-                columns={columnsToShow}
-                data={filteredData}
-                pagination
-                striped
-                responsive
-                selectableRows
-                onSelectedRowsChange={handleRowSelected}
-                highlightOnHover
-              />
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+      <Card>
+        <CardBody>
+          <DataTable
+            columns={columnsToShow}
+            data={filteredData}
+            pagination
+            selectableRows
+            onSelectedRowsChange={handleRowSelected}
+            highlightOnHover
+            responsive
+          />
+        </CardBody>
+      </Card>
+
+      <Modal isOpen={showLabelModal} size="lg">
+        <ModalHeader toggle={() => setShowLabelModal(false)}>
+          Package Details
+        </ModalHeader>
+
+        <ModalBody>
+          {selectedRows.map(row => {
+            const pkg = packageData[row.id] || {};
+
+            return (
+              <div key={row.id} className="border p-3 rounded mb-3">
+                {/* ✅ ORDER DETAILS */}
+                <div className="mb-2">
+                  <strong>Order ID:</strong> {row.orderUniqueId} <br />
+                  <strong>Sub Order:</strong> {row.subOrderUniqueId} <br />
+                  <strong>Product:</strong> {row.productInfo} <br />
+                  <strong>SKU:</strong> {row.skuNo} <br />
+                  <strong>Qty:</strong> {row.quantity}
+                </div>
+
+                <Row>
+                  <Col md="3">
+                    <input
+                      className="form-control"
+                      placeholder="Length"
+                      value={pkg.length || ""}
+                      onChange={e =>
+                        handlePackageChange(row.id, "length", e.target.value)
+                      }
+                    />
+                  </Col>
+                  <Col md="3">
+                    <input
+                      className="form-control"
+                      placeholder="Breadth"
+                      value={pkg.breadth || ""}
+                      onChange={e =>
+                        handlePackageChange(row.id, "breadth", e.target.value)
+                      }
+                    />
+                  </Col>
+                  <Col md="3">
+                    <input
+                      className="form-control"
+                      placeholder="Height"
+                      value={pkg.height || ""}
+                      onChange={e =>
+                        handlePackageChange(row.id, "height", e.target.value)
+                      }
+                    />
+                  </Col>
+                  <Col md="3">
+                    <input
+                      className="form-control"
+                      placeholder="Weight"
+                      value={pkg.weight || ""}
+                      onChange={e =>
+                        handlePackageChange(row.id, "weight", e.target.value)
+                      }
+                    />
+                  </Col>
+                </Row>
+
+                <div className="text-end mt-2">
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => updateSinglePackage(row.id)}
+                  >
+                    Update
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </ModalBody>
+
+        <ModalFooter>
+          <Button onClick={() => setShowLabelModal(false)}>Cancel</Button>
+          <Button color="warning" onClick={handleGenerateLabels}>
+            Process Labels
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 };

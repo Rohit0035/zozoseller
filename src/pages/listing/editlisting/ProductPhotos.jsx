@@ -1,219 +1,299 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Card, CardBody, Button } from 'reactstrap';
-import { FaUpload, FaTimesCircle } from 'react-icons/fa';
-import { showToast } from '../../../components/ToastifyNotification';
+import React, { useState, useRef, useEffect } from 'react';
+import { Card, CardBody, Button, Badge } from 'reactstrap';
+import { FaUpload, FaTimesCircle, FaVideo, FaImage } from 'react-icons/fa';
 import { IMAGE_URL } from '../../../utils/api-config';
 
-const MAX_IMAGES = 5;
+const ProductPhotos = ({ listingData = {}, onListingDataChange }) => {
+  const [mediaItems, setMediaItems] = useState([]);
+  const [selectedItemUrl, setSelectedItemUrl] = useState(null);
+  const [removedMedia, setRemovedMedia] = useState([]);
+  const inputRef = useRef();
 
-const ProductPhotos = ({ listingData, onListingDataChange }) => {
-    const [images, setImages] = useState([]); // UI images (existing + new)
-    const [selectedUrl, setSelectedUrl] = useState(null);
-    const [deletedImages, setDeletedImages] = useState([]); // track deleted existing images
-    const inputRef = useRef(null);
-    const initializedRef = useRef(false);
+  /* ----------------------------------------
+     INIT + SYNC
+  ----------------------------------------- */
+  useEffect(() => {
+    if (!listingData) return;
 
-    /* ----------------------------------------
-       INIT EXISTING IMAGES (ONCE)
-    ----------------------------------------- */
-    useEffect(() => {
-        if (initializedRef.current) return;
+    const initial = [];
 
-        const result = [];
+    // MAIN IMAGE
+    if (listingData.mainImage) {
+      const url =
+        listingData.mainImage instanceof File
+          ? URL.createObjectURL(listingData.mainImage)
+          : `${IMAGE_URL}/${listingData.mainImage}`;
 
-        // Existing mainImage
-        if (listingData?.existingImages?.mainImage) {
-            result.push({
-                url: `${IMAGE_URL}/${listingData.existingImages.mainImage}`,
-                value: listingData.existingImages.mainImage, // string path
-            });
-        }
+      initial.push({
+        url,
+        file: listingData.mainImage,
+        type: 'image',
+        isMain: true
+      });
+    }
 
-        // Existing galleryImages
-        if (Array.isArray(listingData?.existingImages?.galleryImages)) {
-            listingData.existingImages.galleryImages.forEach(img => {
-                result.push({
-                    url: `${IMAGE_URL}/${img}`,
-                    value: img,
-                });
-            });
-        }
+    // GALLERY IMAGES
+    if (Array.isArray(listingData.galleryImages)) {
+      listingData.galleryImages.forEach(file => {
+        const url =
+          file instanceof File
+            ? URL.createObjectURL(file)
+            : `${IMAGE_URL}/${file}`;
 
-        // New uploaded images (if any already in listingData.images)
-        if (listingData?.images?.mainImage) {
-            result.push({
-                url: typeof listingData.images.mainImage === "string"
-                    ? `${IMAGE_URL}/${listingData.images.mainImage}`
-                    : URL.createObjectURL(listingData.images.mainImage),
-                value: listingData.images.mainImage,
-            });
-        }
-        if (Array.isArray(listingData?.images?.galleryImages)) {
-            listingData.images.galleryImages.forEach(img => {
-                result.push({
-                    url: typeof img === "string" ? `${IMAGE_URL}/${img}` : URL.createObjectURL(img),
-                    value: img,
-                });
-            });
-        }
-
-        setImages(result.slice(0, MAX_IMAGES));
-        setSelectedUrl(result[0]?.url || null);
-        initializedRef.current = true;
-    }, [listingData]);
-
-    /* ----------------------------------------
-       UPLOAD NEW IMAGES
-    ----------------------------------------- */
-    const handleUpload = (e) => {
-        const files = Array.from(e.target.files);
-        if (!files.length) return;
-
-        const remaining = MAX_IMAGES - images.length;
-        if (remaining <= 0) {
-            showToast('error', 'Maximum 5 images allowed');
-            return;
-        }
-
-        const newImages = files.slice(0, remaining).map(file => ({
-            url: URL.createObjectURL(file),
-            value: file,
-        }));
-
-        syncState([...images, ...newImages], deletedImages);
-        e.target.value = '';
-    };
-
-    /* ----------------------------------------
-       REMOVE IMAGE
-    ----------------------------------------- */
-    const handleRemove = (index) => {
-        const img = images[index];
-
-        if (img?.value instanceof File) {
-            URL.revokeObjectURL(img.url);
-        }
-
-        const updated = images.filter((_, i) => i !== index);
-
-        // Track deleted existing images
-        const newDeleted = [...deletedImages];
-        if (typeof img.value === 'string') {
-            newDeleted.push(img.value);
-        }
-
-        setDeletedImages(newDeleted);
-        syncState(updated, newDeleted);
-    };
-
-    /* ----------------------------------------
-       SYNC WITH PARENT (BACKEND MATCH)
-    ----------------------------------------- */
-    const syncState = (imageList, deleted = []) => {
-        setImages(imageList);
-        setSelectedUrl(imageList[0]?.url || null);
-
-        const mainImage = imageList[0]?.value || null;
-        const galleryImages = imageList.slice(1).map(img => img.value);
-
-        onListingDataChange({
-            mainImage,
-            galleryImages,
-            deletedImages: deleted,
+        initial.push({
+          url,
+          file,
+          type: 'image',
+          isMain: false
         });
+      });
+    }
+
+    // VIDEOS
+    if (Array.isArray(listingData.videos)) {
+      listingData.videos.forEach(file => {
+        const url =
+          file instanceof File
+            ? URL.createObjectURL(file)
+            : `${IMAGE_URL}/${file}`;
+
+        initial.push({
+          url,
+          file,
+          type: 'video',
+          isMain: false
+        });
+      });
+    }
+
+    setMediaItems(initial);
+    setSelectedItemUrl(initial[0]?.url || null);
+
+  }, [listingData.mainImage, listingData.galleryImages, listingData.videos]);
+
+  /* ----------------------------------------
+     CLEANUP
+  ----------------------------------------- */
+  useEffect(() => {
+    return () => {
+      mediaItems.forEach(item => {
+        if (item.url?.startsWith('blob:')) {
+          URL.revokeObjectURL(item.url);
+        }
+      });
     };
+  }, []);
 
-    /* ----------------------------------------
-       RENDER
-    ----------------------------------------- */
-    return (
-        <Card className="mb-3">
-            <CardBody>
-                <h6 className="fw-bold mb-3">
-                    Product Photos ({images.length}/{MAX_IMAGES})
-                </h6>
+  /* ----------------------------------------
+     UPDATE PARENT
+  ----------------------------------------- */
+  const updateParent = (items, removed = removedMedia) => {
+    const mainImage =
+      items.find(i => i.isMain && i.type === 'image')?.file || null;
 
-                {/* Thumbnails */}
-                <div className="d-flex gap-2 mb-3 overflow-auto">
-                    {[...Array(MAX_IMAGES)].map((_, i) => (
-                        <div
-                            key={i}
-                            className="border rounded position-relative"
-                            style={{
-                                width: 60,
-                                height: 60,
-                                background: '#f9f9f9',
-                                cursor: images[i] ? 'pointer' : 'default',
-                            }}
-                        >
-                            {images[i] ? (
-                                <>
-                                    <img
-                                        src={images[i].url}
-                                        alt="thumb"
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover',
-                                        }}
-                                    />
-                                    <FaTimesCircle
-                                        className="text-danger position-absolute"
-                                        style={{
-                                            top: 2,
-                                            right: 2,
-                                            cursor: 'pointer',
-                                            background: 'white',
-                                            borderRadius: '50%',
-                                        }}
-                                        onClick={() => handleRemove(i)}
-                                    />
-                                </>
-                            ) : (
-                                <small className="text-muted d-flex align-items-center justify-content-center h-100">
-                                    Image
-                                </small>
-                            )}
-                        </div>
-                    ))}
-                </div>
+    const galleryImages = items
+      .filter(i => i.type === 'image' && !i.isMain)
+      .map(i => i.file);
 
-                {/* Main Preview */}
-                <div className="text-center my-3" style={{ minHeight: 160 }}>
-                    {selectedUrl ? (
-                        <img
-                            src={selectedUrl}
-                            alt="Selected"
-                            className="img-thumbnail"
-                            style={{ maxWidth: 220, maxHeight: 220 }}
-                        />
-                    ) : (
-                        <FaUpload size={48} className="text-secondary" />
-                    )}
-                </div>
+    const videos = items
+      .filter(i => i.type === 'video')
+      .map(i => i.file);
 
-                {/* Upload */}
-                <div className="text-center">
-                    <input
-                        ref={inputRef}
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        hidden
-                        onChange={handleUpload}
-                    />
+    onListingDataChange({
+      mainImage,
+      galleryImages,
+      videos,
+      removedGalleryImages: JSON.stringify(
+        removed.filter(i => typeof i === 'string')
+      )
+    });
+  };
+
+  /* ----------------------------------------
+     UPLOAD
+  ----------------------------------------- */
+  const handleUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const newItems = files.map(file => ({
+      url: URL.createObjectURL(file),
+      file,
+      type: file.type.startsWith('video') ? 'video' : 'image',
+      isMain: false
+    }));
+
+    const updated = [...mediaItems, ...newItems];
+
+    if (!updated.some(i => i.isMain && i.type === 'image')) {
+      const firstImage = updated.find(i => i.type === 'image');
+      if (firstImage) firstImage.isMain = true;
+    }
+
+    setMediaItems(updated);
+    if (!selectedItemUrl) setSelectedItemUrl(newItems[0].url);
+
+    updateParent(updated);
+    e.target.value = '';
+  };
+
+  /* ----------------------------------------
+     REMOVE
+  ----------------------------------------- */
+  const handleRemove = (index) => {
+    const itemToRemove = mediaItems[index];
+    const updated = mediaItems.filter((_, i) => i !== index);
+
+    let newRemoved = [...removedMedia];
+    if (!(itemToRemove.file instanceof File)) {
+      newRemoved.push(itemToRemove.file);
+    }
+
+    if (itemToRemove.isMain) {
+      const nextImage = updated.find(i => i.type === 'image');
+      if (nextImage) nextImage.isMain = true;
+    }
+
+    if (selectedItemUrl === itemToRemove.url) {
+      setSelectedItemUrl(updated[0]?.url || null);
+    }
+
+    if (itemToRemove.url.startsWith('blob:')) {
+      URL.revokeObjectURL(itemToRemove.url);
+    }
+
+    setRemovedMedia(newRemoved);
+    setMediaItems(updated);
+    updateParent(updated, newRemoved);
+  };
+
+  /* ----------------------------------------
+     SET MAIN
+  ----------------------------------------- */
+  const setAsMain = (index) => {
+    const updated = mediaItems.map((item, i) => ({
+      ...item,
+      isMain: item.type === 'image' && i === index
+    }));
+
+    setMediaItems(updated);
+    updateParent(updated);
+  };
+
+  const selectedMedia = mediaItems.find(m => m.url === selectedItemUrl);
+
+  /* ----------------------------------------
+     UI
+  ----------------------------------------- */
+  return (
+    <Card className="shadow-sm border-0">
+      <CardBody>
+        <h6 className="fw-bold mb-3">Product Media</h6>
+
+        {/* PREVIEW */}
+        <div
+          className="d-flex align-items-center justify-content-center border rounded mb-3 bg-light"
+          style={{ height: 320 }}
+        >
+          {selectedMedia ? (
+            selectedMedia.type === 'video' ? (
+              <video src={selectedMedia.url} controls style={{ maxHeight: '100%' }} />
+            ) : (
+              <img src={selectedMedia.url} alt="" style={{ maxHeight: '100%' }} />
+            )
+          ) : (
+            <FaImage size={48} className="text-muted" />
+          )}
+        </div>
+
+        {/* GRID */}
+        <div
+          className="p-2 border rounded bg-white mb-3"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, 80px)',
+            gap: 10
+          }}
+        >
+          {mediaItems.map((item, i) => (
+            <div
+              key={i}
+              className="position-relative border rounded p-1"
+              style={{ width: 80, cursor: 'pointer', background: '#fff' }}
+              onClick={() => setSelectedItemUrl(item.url)}
+            >
+              {/* Image / Video */}
+              <div style={{ height: 60 }}>
+                {item.type === 'image' ? (
+                  <img
+                    src={item.url}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <div className="bg-dark text-white d-flex h-100 align-items-center justify-content-center">
+                    <FaVideo />
+                  </div>
+                )}
+              </div>
+
+              {/* MAIN BUTTON BELOW */}
+              {item.type === 'image' && (
+                <div className="mt-1">
+                  {item.isMain ? (
+                    <Badge color="primary" className="w-100 text-center">
+                      Main
+                    </Badge>
+                  ) : (
                     <Button
-                        color="primary"
-                        disabled={images.length >= MAX_IMAGES}
-                        onClick={() => inputRef.current.click()}
+                      size="sm"
+                      color="light"
+                      className="w-100"
+                      style={{ fontSize: '10px', padding: '2px' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAsMain(i);
+                      }}
                     >
-                        <FaUpload className="me-1" />
-                        Upload Photo
+                      Set Main
                     </Button>
+                  )}
                 </div>
-            </CardBody>
-        </Card>
-    );
+              )}
+
+              {/* REMOVE */}
+              <FaTimesCircle
+                className="text-danger position-absolute"
+                style={{ top: -6, right: -6, cursor: 'pointer' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(i);
+                }}
+              />
+            </div>
+          ))}
+
+          {/* Upload */}
+          <div
+            className="border border-dashed d-flex align-items-center justify-content-center"
+            style={{ width: 80, height: 80, cursor: 'pointer' }}
+            onClick={() => inputRef.current.click()}
+          >
+            <FaUpload />
+          </div>
+        </div>
+
+        <input
+          type="file"
+          multiple
+          accept="image/*,video/*"
+          hidden
+          ref={inputRef}
+          onChange={handleUpload}
+        />
+      </CardBody>
+    </Card>
+  );
 };
 
 export default ProductPhotos;

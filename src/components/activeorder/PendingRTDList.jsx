@@ -2,72 +2,135 @@ import React, { useState } from "react";
 import DataTable from "react-data-table-component";
 import { CSVLink } from "react-csv";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
   Card,
   CardBody,
   Col,
   Row
 } from "reactstrap";
 import { RiArrowDropDownLine } from "react-icons/ri";
+import { FaQrcode, FaFileInvoice, FaShippingFast, FaCheck } from "react-icons/fa";
+import QRCode from "qrcode";
+import { Document, PDFDownloadLink } from "@react-pdf/renderer";
+import InvoicePdf from "./InvoicePdf";
+import { UpdateVendorOrderStatus } from "../../api/vendorOrderAPI";
+import { useDispatch } from "react-redux";
 
-const demoRTDOrders = [
+// ✅ Keep same structure
+const allColumns = (generateQr, downloadQR, handleStatusUpdate) => [
   {
-    id: 1,
-    orderId: "RTD-2001",
-    productInfo: "iPhone 14 - 128GB - Black",
-    amount: "$799",
-    dispatchDate: "2025-07-05",
-    status: "Ready to Dispatch"
-  },
-  {
-    id: 2,
-    orderId: "RTD-2002",
-    productInfo: "Galaxy S23 - 256GB - Grey",
-    amount: "$699",
-    dispatchDate: "2025-07-06",
-    status: "Pending"
-  },
-  {
-    id: 3,
-    orderId: "RTD-2003",
-    productInfo: "MacBook Air - 13 inch",
-    amount: "$999",
-    dispatchDate: "2025-07-08",
-    status: "Ready to Dispatch"
-  },
-  {
-    id: 4,
-    orderId: "RTD-2004",
-    productInfo: "Dell XPS 15",
-    amount: "$850",
-    dispatchDate: "2025-07-07",
-    status: "Pending"
-  }
-];
+  name: "S.No.",
+  cell: (row, index) => index + 1,
+  width: "80px"
+},
 
-const allColumns = [
-  { name: "Order ID", selector: row => row.orderId, sortable: true },
+  { name: "Order ID", selector: row => row.orderUniqueId, sortable: true },
+
   {
     name: "Product Information",
     selector: row => row.productInfo,
     sortable: true
   },
+
   { name: "Amount", selector: row => row.amount, sortable: true, right: true },
+
   {
     name: "Dispatch By Date",
     selector: row => row.dispatchDate,
     sortable: true
   },
-  { name: "Status", selector: row => row.status, sortable: true }
+
+  { name: "Status", selector: row => row.status, sortable: true },
+
+  // ✅ QR Download
+  {
+    name: "QR",
+    cell: (row) => (
+      <button
+        className="btn btn-sm btn-success"
+        onClick={() => downloadQR(row)}
+      >
+        <FaQrcode /> QR
+      </button>
+    )
+  },
+
+  // ✅ Invoice
+  {
+    name: "Invoice",
+    cell: (row) => {
+      const [qr, setQr] = React.useState(null);
+
+      React.useEffect(() => {
+        generateQr(row.orderUniqueId).then(setQr);
+      }, [row.orderUniqueId]);
+
+      return (
+        <PDFDownloadLink
+          document={
+            qr && (
+              <Document>
+                <InvoicePdf order={{ ...row.order, qr }} />
+              </Document>
+            )
+          }
+          fileName={`invoice_${row.orderUniqueId}.pdf`}
+          className="btn btn-dark btn-sm"
+        >
+          <FaFileInvoice /> Invoice
+        </PDFDownloadLink>
+      );
+    }
+  },
+
+  // ✅ Shipping Label
+  {
+    name: "Label",
+    cell: (row) =>
+      row.status == "Label Generated" ? (
+        <a
+          href={row.order.label_url}
+          target="_blank"
+          rel="noreferrer"
+          className="btn btn-sm btn-info"
+        >
+          <FaShippingFast /> Label
+        </a>
+      ) : (
+        <span className="badge bg-warning">Pending</span>
+      )
+  },
+
+  // ✅ Mark RTD
+  {
+    name: "Action",
+    cell: (row) => (
+      <button
+        className="btn btn-sm btn-primary"
+        onClick={() => handleStatusUpdate(row.id)}
+      >
+        <FaCheck />Mark RTD
+      </button>
+    )
+  }
 ];
 
 const presets = {
-  "Default View": allColumns.map(col => col.name),
-  "Full View": allColumns.map(col => col.name)
+  "Default View": [
+    "Order ID",
+    "Product Information",
+    "Amount",
+    "Dispatch By Date",
+    "Status",
+    "QR",
+    "Invoice",
+    "Label",
+    "Action"
+  ]
 };
 
-const PendingRTDList = ({ orders }) => {
+const PendingRTDList = ({ orders, fetchOrders,ALL_ALLOWED_STATUSES }) => {
+  const dispatch = useDispatch();
+
   const [visibleColumns, setVisibleColumns] = useState(presets["Default View"]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -78,36 +141,87 @@ const PendingRTDList = ({ orders }) => {
     order: "desc"
   });
 
+  // ================= HELPERS =================
+
+  const generateQr = async (value) => {
+    return await QRCode.toDataURL(value);
+  };
+
+  const downloadQR = async (row) => {
+    const qr = await generateQr(row.orderUniqueId);
+
+    const link = document.createElement("a");
+    link.href = qr;
+    link.download = `${row.orderUniqueId}_qr.png`;
+    link.click();
+  };
+
+  const handleStatusUpdate = async (id) => {
+    dispatch({ type: "loader", loader: true });
+
+    try {
+      const res = await UpdateVendorOrderStatus({
+        id,
+        status: "Ready To Dispatch"
+      });
+
+      if (res.success) {
+        fetchOrders({
+          orderStatus: ALL_ALLOWED_STATUSES
+        });
+      }
+    } finally {
+      dispatch({ type: "loader", loader: false });
+    }
+  };
+
+  const handleBulkRTD = async () => {
+    if (!selectedRows.length) return;
+
+    dispatch({ type: "loader", loader: true });
+
+    try {
+      await Promise.all(
+        selectedRows.map(row =>
+          UpdateVendorOrderStatus({
+            id: row.id,
+            status: "Ready To Dispatch"
+          })
+        )
+      );
+
+      fetchOrders({
+          orderStatus: ALL_ALLOWED_STATUSES
+        });
+      setSelectedRows([]); // clear selection after update
+    } finally {
+      dispatch({ type: "loader", loader: false });
+    }
+  };
+
+  // ================= FILTER + SORT =================
+
   const filteredData = orders
     .filter(item =>
       Object.values(item).some(val =>
-        val.toString().toLowerCase().includes(filterText.toLowerCase())
+        val?.toString().toLowerCase().includes(filterText.toLowerCase())
       )
     )
     .sort((a, b) => {
       const field = sortConfig.field;
       const valA = a[field];
       const valB = b[field];
+
       if (sortConfig.order === "desc") return valA < valB ? 1 : -1;
-      else return valA > valB ? 1 : -1;
+      return valA > valB ? 1 : -1;
     });
 
-  const toggleColumn = colName => {
-    setVisibleColumns(
-      prev =>
-        prev.includes(colName)
-          ? prev.filter(c => c !== colName)
-          : [...prev, colName]
+  const toggleColumn = (colName) => {
+    setVisibleColumns(prev =>
+      prev.includes(colName)
+        ? prev.filter(c => c !== colName)
+        : [...prev, colName]
     );
-  };
-
-  const applyPreset = preset => {
-    setVisibleColumns(presets[preset]);
-    setDropdownOpen(false);
-  };
-
-  const handleRowSelected = state => {
-    setSelectedRows(state.selectedRows);
   };
 
   const handleSortSelect = (field, order = "desc") => {
@@ -115,114 +229,75 @@ const PendingRTDList = ({ orders }) => {
     setSortDropdownOpen(false);
   };
 
-  const columnsToShow = allColumns.filter(col =>
-    visibleColumns.includes(col.name)
-  );
+  const columnsToShow = allColumns(
+    generateQr,
+    downloadQR,
+    handleStatusUpdate
+  ).filter(col => visibleColumns.includes(col.name));
+
+  const handleRowSelected = (state) => {
+    setSelectedRows(state.selectedRows);
+  };
+
+  // ================= UI =================
 
   return (
     <div>
       <Row className="mt-2">
-        <Col md="6" className="mb-2">
+        <Col md="6">
           <input
-            type="text"
             className="form-control"
-            placeholder="Search by Order ID, Product Info, Status"
-            style={{ maxWidth: "250px" }}
+            placeholder="Search..."
             value={filterText}
-            onChange={e => setFilterText(e.target.value)}
+            onChange={(e) => setFilterText(e.target.value)}
           />
         </Col>
-        <Col md="6">
-          <div className="d-flex align-items-end justify-content-end">
-            {/* Sort Dropdown */}
-            <div className="position-relative me-2">
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              >
-                Sort By <RiArrowDropDownLine size={20} />
-              </button>
-              {sortDropdownOpen &&
-                <div
-                  className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                  style={{ width: "180px", zIndex: 1000 }}
-                >
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("orderId")}
-                  >
-                    Order ID
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("dispatchDate")}
-                  >
-                    Dispatch Date
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={() => handleSortSelect("amount")}
-                  >
-                    Amount
-                  </div>
-                </div>}
-            </div>
 
-            {/* Customize Columns */}
+        <Col md="6">
+          <div className="d-flex justify-content-end">
+
+            {/* Columns */}
             <div className="position-relative me-2">
+
+              <button
+                className="btn btn-warning btn-sm me-2"
+                disabled={!selectedRows.length}
+                onClick={handleBulkRTD}
+              >
+                <FaCheck /> Bulk Mark RTD ({selectedRows.length})
+              </button>
               <button
                 className="btn btn-primary btn-sm"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
                 Customize Columns <RiArrowDropDownLine size={20} />
               </button>
-              {dropdownOpen &&
-                <div
-                  className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                  style={{
+
+              {dropdownOpen && (
+                <div className="position-absolute bg-white border p-2 shadow" style={{
                     maxHeight: "250px",
                     overflowY: "auto",
                     zIndex: 1000
-                  }}
-                >
-                  <strong className="px-2 d-block">Select Columns</strong>
-                  {allColumns.map(col =>
-                    <label
-                      key={col.name}
-                      className="dropdown-item d-flex align-items-center"
-                    >
+                  }}>
+                  {presets["Default View"].map(col => (
+                    <label key={col}>
                       <input
                         type="checkbox"
-                        className="form-check-input me-2"
-                        checked={visibleColumns.includes(col.name)}
-                        onChange={() => toggleColumn(col.name)}
+                        checked={visibleColumns.includes(col)}
+                        onChange={() => toggleColumn(col)}
                       />
-                      {col.name}
+                      {col}
                     </label>
-                  )}
-                  <hr />
-                  <div className="px-2">
-                    <div
-                      className="dropdown-item text-primary"
-                      onClick={() => applyPreset("Default View")}
-                    >
-                      Default View
-                    </div>
-                    <div
-                      className="dropdown-item text-primary"
-                      onClick={() => applyPreset("Full View")}
-                    >
-                      Full View
-                    </div>
-                  </div>
-                </div>}
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Export CSV */}
+            {/* CSV */}
             <CSVLink
               data={selectedRows.length ? selectedRows : filteredData}
               filename="pending_rtd.csv"
-              className="btn btn-primary btn-sm"
+              className="btn btn-success btn-sm"
             >
               Export CSV
             </CSVLink>
@@ -232,24 +307,19 @@ const PendingRTDList = ({ orders }) => {
 
       <hr />
 
-      <Row>
-        <Col md="12">
-          <Card>
-            <CardBody>
-              <DataTable
-                columns={columnsToShow}
-                data={filteredData}
-                pagination
-                striped
-                responsive
-                selectableRows
-                onSelectedRowsChange={handleRowSelected}
-                highlightOnHover
-              />
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+      <Card>
+        <CardBody>
+          <DataTable
+            columns={columnsToShow}
+            data={filteredData}
+            pagination
+            selectableRows
+            onSelectedRowsChange={handleRowSelected}
+            highlightOnHover
+            responsive
+          />
+        </CardBody>
+      </Card>
     </div>
   );
 };

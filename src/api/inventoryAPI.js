@@ -19,7 +19,7 @@ export const StoreInventory = async (data) => {
   }
 };
 
-export const GetInventories = async (InventoryCategoryId) => {
+export const GetInventories = async () => {
   try {
     const response = await fetchWithAuth(
       `${API_CONFIG.baseURL}/inventories`
