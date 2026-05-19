@@ -25,7 +25,7 @@ const WarehouseOnboarding = lazy(() =>
 );
 // order
 const ActiveOrder = lazy(() => import("./pages/order/ActiveOrders"));
-const FbfOrder = lazy(() => import("./pages/order/FbfOrder"));
+const FbzOrder = lazy(() => import("./pages/order/FbzOrder"));
 
 // payment
 const SettlementDashboard = lazy(() =>
@@ -321,10 +321,10 @@ export default function AppRoutes() {
           }
         />
         <Route
-          path="/fbf-order"
+          path="/fbz-order"
           element={
             <PrivateRoute>
-              <FbfOrder />
+              <FbzOrder />
             </PrivateRoute>
           }
         />

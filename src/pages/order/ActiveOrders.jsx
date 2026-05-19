@@ -212,7 +212,8 @@ const ActiveOrders = () => {
 
     useEffect(() => {
         fetchOrders({
-            orderStatus: ALL_ALLOWED_STATUSES
+            orderStatus: ALL_ALLOWED_STATUSES,
+            fulfillmentBy: 'Seller'
         });
     }, []);
 
@@ -278,10 +279,10 @@ const ActiveOrders = () => {
 
                         <Col md="3" className='mb-1'>
                             <Link
-                                to="/fbf-order"
+                                to="/fbz-order"
                                 className='btn btn-primary w-100 px-1'
                             >
-                                View FBF Orders
+                                View FBZ Orders
                             </Link>
                         </Col>
                     </Row>
