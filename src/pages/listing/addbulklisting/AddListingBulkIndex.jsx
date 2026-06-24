@@ -77,7 +77,7 @@ const AddListingBulkIndex = () => {
         more:'',
         type:'simple', 
         specifications: [],
-        
+        listingType: "Bulk",
         attributes: [],
     });
 
