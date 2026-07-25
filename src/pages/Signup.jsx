@@ -12,7 +12,7 @@ import {
   Label
 } from "reactstrap";
 import { Link, useNavigate } from "react-router-dom";
-import LogoLg from "../assets/images/logo-lg.png";
+import LogoLg from "../assets/images/logo/logo.png";
 import Loginimg from "../assets/images/common/login-img.jpg";
 import { useDispatch, useSelector } from "react-redux";
 import { SignupApi } from "../api/authAPI";

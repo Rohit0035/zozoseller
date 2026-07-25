@@ -216,8 +216,10 @@ const AllOrderList = ({ orders, fetchOrders,ALL_ALLOWED_STATUSES }) => {
     { name: "S.No", selector: (row) => row.index, width: "8%" },
     { name: "Order ID", selector: (row) => row.orderUniqueId },
     { name: "Sub Order ID", selector: (row) => row.subOrderUniqueId },
+    { name: "Date", selector: (row) => row.date },
     { name: "Product Info", selector: (row) => row.productInfo },
     { name: "SKU No", selector: (row) => row.skuNo },
+    { name: "Qty", selector: (row) => row.quantity },
     { name: "Amount", selector: (row) => row.amount },
     { name: "Status", selector: (row) => row.status },
 

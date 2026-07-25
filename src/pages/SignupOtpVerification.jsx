@@ -12,7 +12,7 @@ import {
   Label
 } from "reactstrap";
 import { useLocation, useNavigate } from "react-router-dom";
-import LogoLg from "../assets/images/logo-lg.png";
+import LogoLg from "../assets/images/logo/logo.png";
 import Loginimg from "../assets/images/common/login-img.jpg";
 import { useDispatch } from "react-redux";
 import { showToast } from "../components/ToastifyNotification";

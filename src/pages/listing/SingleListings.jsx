@@ -39,7 +39,7 @@ const SingleListings = ({ categories, statuses }) => {
 					index: index + 1,
 					id: item._id,
 					title: item.name,
-					skuId: item.sku,
+					sku: item.sku,
 					image: `${IMAGE_URL}/${item.images?.mainImage}`,
 					created: formatDateWithTime(item.createdAt),
 					updated: formatDateWithTime(item.updatedAt),
@@ -72,16 +72,21 @@ const SingleListings = ({ categories, statuses }) => {
 						loading='lazy'
 						src={row.image}
 						alt={row.title}
-						style={{ width: '25px', height: '25px', objectFit: 'cover', marginRight: '10px', borderRadius: '5px' }}
+						style={{ width: '100px', height: '100px', objectFit: 'cover', marginRight: '10px', borderRadius: '5px' }}
 					/>
 					<div>
 						{row.title} <br />
-						<strong>SKU ID:</strong> {row.skuId}
 					</div>
 				</div>
 			),
 			sortable: true,
 			wrap: true,
+			width: "35%"
+		},
+		{
+			name: 'SKU',
+			selector: row => row.sku,
+			sortable: true,
 		},
 		{
 			name: 'Category',

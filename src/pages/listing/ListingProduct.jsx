@@ -35,6 +35,7 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
             sortable: true 
         },
         { name: 'Product Title', selector: row => row.name, sortable: true },
+        { name: 'SKU', selector: row => row.sku, sortable: true },
         { name: 'Creation Time', selector: row => row.createdAt, sortable: true },
         { name: 'Update Time', selector: row => row.updatedAt, sortable: true },
         { name: 'Sales', selector: row => row.sales || 0, sortable: true },
@@ -74,7 +75,7 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
     ];
 
     const presets = {
-        'Default View': ['S.No', 'Product Title', 'Sales', 'Stock', 'Status', 'Actions'], // Adjusted default view
+        'Default View': ['S.No', 'Product Title', 'SKU', 'Sales', 'Stock', 'Status', 'Actions'], // Adjusted default view
         'Full View': allColumns.map(col => col.name),
     };
     const [visibleColumns, setVisibleColumns] = useState(presets['Default View']);
@@ -188,7 +189,7 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
                     id: item._id, // Keep _id for potential future actions
                     name: item.name,
                     brand: item?.brandId?.name || 'N/A',
-                    skuId: item?.skuId || 'N/A',
+                    sku: item?.sku || 'N/A',
                     category: item?.categoryId?.name || 'N/A',
                     subCategoryOne: item?.subCategoryOneId?.name || 'N/A',
                     subCategoryTwo: item?.subCategoryTwoId?.name || 'N/A',

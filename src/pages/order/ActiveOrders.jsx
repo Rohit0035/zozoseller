@@ -16,6 +16,7 @@ import { GetVendorOrders } from '../../api/vendorOrderAPI';
 import { showToast } from '../../components/ToastifyNotification';
 import { useDispatch } from 'react-redux';
 import InLast30DaysList from '../../components/activeorder/InLast30DaysList';
+import { formatDate } from 'date-fns';
 
 const warehouseOptions = [
     { value: 'WH001', label: 'Warehouse - New York' },
@@ -149,7 +150,7 @@ const ActiveOrders = () => {
                     status: item.orderStatus,
                     vendorId: item.vendorId?._id,
                     vendorName: item.vendorId?.name,
-                    createdAt: item.createdAt,
+                    date: formatDate(item.createdAt, 'DD-MM-YYYY'),
                     warehouseId: item.warehouseId?._id,
                     order: item
                 }));
