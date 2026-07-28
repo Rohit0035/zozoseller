@@ -149,6 +149,7 @@ const SelectBrand = ({ currentStep, setCurrentStep, listingData, onListingDataCh
                                             setConfirmedBrandId(selectedId);
                                             setBrandNameInput(selectedBrand?.name || '');
                                             setCheckedBrandStatus('success');
+                                            onListingDataChange({ brandId: selectedId });
                                         }}
                                     >
                                         <option value="">Select a brand</option>

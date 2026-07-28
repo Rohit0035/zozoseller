@@ -150,7 +150,7 @@ const ActiveOrders = () => {
                     status: item.orderStatus,
                     vendorId: item.vendorId?._id,
                     vendorName: item.vendorId?.name,
-                    date: formatDate(item.createdAt, 'DD-MM-YYYY'),
+                    date: formatDate(item.createdAt, 'dd-MM-yyyy'),
                     warehouseId: item.warehouseId?._id,
                     order: item
                 }));

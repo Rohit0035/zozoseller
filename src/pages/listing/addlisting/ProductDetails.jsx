@@ -321,38 +321,43 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	useEffect(() => {
 		if (listingData.type === 'variable' && variations.length > 0) {
 			const updatedVariations = variations.map((variation) => {
-				let commissionAmount = 0;
-				let commissionRate = 0;
-				let gstAmount = 0;
-				let tcsAmount = 0;
-
-				const packageWeight = parseFloat(variation.packageWeight) || 0;
-				const shippingCharge = packageWeight * 20;
-
 				const sellingPrice = parseFloat(variation.salePrice) || 0;
+				const packageWeight = parseFloat(variation.packageWeight) || 0;
 				const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
-				let productPrice = sellingPrice;
+				const shippingCharge = packageWeight * 20;
 
-				// Reverse calculation
-				for (let i = 0; i < 5; i++) {
+				let commissionRate = 0;
+				let commissionAmount = 0;
+				let gstAmount = 0;
+				let tcsAmount = 0;
+				let productPrice = 0;
+
+				if (sellingPrice > 0) {
+					// Find commission slab based on Selling Price
 					const slab = commissionSlabs.find(
 						slab =>
-							productPrice >= slab.min_value &&
-							productPrice <= slab.max_value
+							sellingPrice >= slab.min_value &&
+							sellingPrice <= slab.max_value
 					);
 
 					commissionRate = slab?.commission_rate || 0;
-					commissionAmount = (productPrice * commissionRate) / 100;
-					gstAmount = ((productPrice + commissionAmount) * gstPercentage) / 100;
-					tcsAmount = productPrice * 0.1;
 
+					// Calculate all charges from Selling Price
+					commissionAmount = (sellingPrice * commissionRate) / 100;
+					gstAmount =
+						((sellingPrice + commissionAmount) * gstPercentage) / 100;
+					tcsAmount = sellingPrice * 0.001;
+
+					// Remaining amount is Product Price
 					productPrice =
 						sellingPrice -
 						commissionAmount -
 						gstAmount -
 						tcsAmount -
 						shippingCharge;
+
+					productPrice = Math.max(0, productPrice);
 				}
 
 				return {
@@ -366,16 +371,22 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				};
 			});
 
-			// Only update the variations if something has actually changed to prevent an infinite loop
+			// Only update if changed
 			if (JSON.stringify(updatedVariations) !== JSON.stringify(variations)) {
 				setVariations(updatedVariations);
 				onListingDataChange(prevListingData => ({
 					...prevListingData,
-					variations: updatedVariations
+					variations: updatedVariations,
 				}));
 			}
 		}
-	}, [listingData.type, variations, listingData.taxCode, commissionSlabs, onListingDataChange]);
+	}, [
+		listingData.type,
+		variations,
+		listingData.taxCode,
+		commissionSlabs,
+		onListingDataChange,
+	]);
 
 	// Handler for variation image file selection
 	const handleVariationImageChange = (index, event) => {
@@ -397,53 +408,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		setErrors(prevErrors => ({ ...prevErrors, [name]: '' })); // Clear error on change
 	};
 
-	// useEffect(() => {
-	// 	console.log(listingData)
-	// 	let comissionRate = 0;
-	// 	let commissionAmount = 0;
-	// 	let gstPercentage = '';
-	// 	let gstAmount = 0;
-	// 	let tcsAmount = 0;
-	// 	let shippingCharge = 0;
-
-	// 	// commission calculation
-	// 	const commissionRateForThisPrice = commissionSlabs.find(slab => listingData.productPrice >= slab.min_value && listingData.productPrice <= slab.max_value);
-	// 	console.log(commissionRateForThisPrice);
-	// 	if (commissionRateForThisPrice) {
-	// 		comissionRate = commissionRateForThisPrice.commission_rate;
-	// 		commissionAmount = parseFloat(listingData.productPrice) * commissionRateForThisPrice.commission_rate / 100;
-	// 	}
-
-	// 	// GST calculation
-	// 	if (listingData.taxCode) {
-	// 		gstPercentage = listingData.taxCode; // Use parseFloat
-	// 		if (!isNaN(gstPercentage)) {
-	// 			gstAmount = ((parseFloat(listingData.productPrice) + commissionAmount) * gstPercentage) / 100;
-	// 		}
-	// 	}
-
-	// 	// shipping change calculation
-	// 	if (listingData.packageWeight) {
-	// 		const weight = parseFloat(listingData.packageWeight) || 0;
-	// 		shippingCharge = weight * 20;
-	// 	}
-
-	// 	tcsAmount = (listingData.productPrice) * 0.1;
-
-	// 	const salePrice = parseFloat(listingData.productPrice) + gstAmount + commissionAmount + tcsAmount + shippingCharge;
-	// 	onListingDataChange(prevListingData => ({
-	// 		...prevListingData,
-	// 		commissionAmount: commissionAmount,
-	// 		commissionRate: comissionRate,
-	// 		gstAmount: gstAmount,
-	// 		tcsAmount: tcsAmount,
-	// 		shippingCharge: shippingCharge,
-	// 		salePrice: salePrice.toFixed(2)
-	// 	}));
-
-	// }, [listingData.productPrice, listingData.taxCode, listingData.packageWeight, commissionSlabs]);
-
-
 	useEffect(() => {
 		const salePrice = parseFloat(listingData.salePrice) || 0;
 		const packageWeight = parseFloat(listingData.packageWeight) || 0;
@@ -458,27 +422,28 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		let tcsAmount = 0;
 
 		if (salePrice > 0) {
-			// Iterate because commission slab depends on product price
-			productPrice = salePrice;
+			// Find commission slab based on Sale Price
+			const slab = commissionSlabs.find(
+				s => salePrice >= s.min_value && salePrice <= s.max_value
+			);
 
-			for (let i = 0; i < 5; i++) {
-				const slab = commissionSlabs.find(
-					s => productPrice >= s.min_value && productPrice <= s.max_value
-				);
+			commissionRate = slab?.commission_rate || 0;
 
-				commissionRate = slab?.commission_rate || 0;
+			// Calculate everything from Sale Price
+			commissionAmount = (salePrice * commissionRate) / 100;
+			gstAmount = ((salePrice + commissionAmount) * gstPercentage) / 100;
+			tcsAmount = salePrice * 0.001;
 
-				commissionAmount = (productPrice * commissionRate) / 100;
-				gstAmount = ((productPrice + commissionAmount) * gstPercentage) / 100;
-				tcsAmount = productPrice * 0.1;
+			// Remaining amount is Product Price
+			productPrice =
+				salePrice -
+				commissionAmount -
+				gstAmount -
+				tcsAmount -
+				shippingCharge;
 
-				productPrice =
-					salePrice -
-					commissionAmount -
-					gstAmount -
-					tcsAmount -
-					shippingCharge;
-			}
+			// Prevent negative value
+			productPrice = Math.max(0, productPrice);
 		}
 
 		onListingDataChange(prev => ({
@@ -490,7 +455,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			tcsAmount: tcsAmount.toFixed(2),
 			shippingCharge: shippingCharge.toFixed(2),
 		}));
-
 	}, [
 		listingData.salePrice,
 		listingData.taxCode,

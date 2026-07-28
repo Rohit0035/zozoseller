@@ -63,7 +63,7 @@ const allColumns = (generateQr, downloadQR, handleStatusUpdate) => [
       React.useEffect(() => {
         generateQr(row.orderUniqueId).then(setQr);
       }, [row.orderUniqueId]);
-
+      console.log(row);
       return (
         <PDFDownloadLink
           document={
@@ -148,7 +148,14 @@ const PendingRTDList = ({ orders, fetchOrders,ALL_ALLOWED_STATUSES }) => {
   };
 
   const downloadQR = async (row) => {
-    const qr = await generateQr(row.orderUniqueId);
+    const qr = await generateQr(
+					JSON.stringify({
+						orderUniqueId:
+							row.orderUniqueId,
+						subOrderUniqueId:
+							row.subOrderUniqueId,
+						skuNo: row.skuNo,})
+				);
 
     const link = document.createElement("a");
     link.href = qr;

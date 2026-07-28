@@ -369,55 +369,73 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	// useEffect for Variable Product variations calculations
 	useEffect(() => {
 		if (listingData.type === 'variable' && variations.length > 0) {
-			const updatedVariations = variations.map(variation => {
-				let commissionAmount = 0;
+			const updatedVariations = variations.map((variation) => {
+				const sellingPrice = parseFloat(variation.salePrice) || 0;
+				const packageWeight = parseFloat(variation.packageWeight) || 0;
+				const gstPercentage = parseFloat(listingData.taxCode) || 0;
+
+				const shippingCharge = packageWeight * 20;
+
 				let commissionRate = 0;
+				let commissionAmount = 0;
 				let gstAmount = 0;
 				let tcsAmount = 0;
-				let shippingCharge = 0;
+				let productPrice = 0;
 
-				const productPrice = parseFloat(variation.productPrice) || 0;
-				const packageWeight = parseFloat(variation.packageWeight) || 0;
+				if (sellingPrice > 0) {
+					// Find commission slab based on Selling Price
+					const slab = commissionSlabs.find(
+						slab =>
+							sellingPrice >= slab.min_value &&
+							sellingPrice <= slab.max_value
+					);
 
-				const commissionRateForThisPrice = commissionSlabs.find(slab => productPrice >= slab.min_value && productPrice <= slab.max_value);
-				if (commissionRateForThisPrice) {
-					commissionRate = commissionRateForThisPrice.commission_rate;
-					commissionAmount = productPrice * commissionRateForThisPrice.commission_rate / 100;
+					commissionRate = slab?.commission_rate || 0;
+
+					// Calculate all charges from Selling Price
+					commissionAmount = (sellingPrice * commissionRate) / 100;
+					gstAmount =
+						((sellingPrice + commissionAmount) * gstPercentage) / 100;
+					tcsAmount = sellingPrice * 0.001;
+
+					// Remaining amount is Product Price
+					productPrice =
+						sellingPrice -
+						commissionAmount -
+						gstAmount -
+						tcsAmount -
+						shippingCharge;
+
+					productPrice = Math.max(0, productPrice);
 				}
-
-				if (listingData.taxCode) {
-					const gstPercentage = listingData.taxCode;
-					if (!isNaN(gstPercentage)) {
-						gstAmount = ((productPrice + commissionAmount) * gstPercentage) / 100;
-					}
-				}
-
-				tcsAmount = (productPrice) * 0.1;
-
-				shippingCharge = packageWeight * 20;
-				const salePrice = productPrice + commissionAmount + gstAmount + tcsAmount + shippingCharge;
 
 				return {
 					...variation,
+					productPrice: productPrice.toFixed(2),
+					commissionRate,
 					commissionAmount: commissionAmount.toFixed(2),
-					commissionRate: commissionRate.toFixed(2),
 					gstAmount: gstAmount.toFixed(2),
 					tcsAmount: tcsAmount.toFixed(2),
 					shippingCharge: shippingCharge.toFixed(2),
-					salePrice: salePrice.toFixed(2)
 				};
 			});
 
-			// Only update the variations if something has actually changed to prevent an infinite loop
+			// Only update if changed
 			if (JSON.stringify(updatedVariations) !== JSON.stringify(variations)) {
 				setVariations(updatedVariations);
 				onListingDataChange(prevListingData => ({
 					...prevListingData,
-					variations: updatedVariations
+					variations: updatedVariations,
 				}));
 			}
 		}
-	}, [listingData.type, variations, listingData.taxCode, commissionSlabs, onListingDataChange]);
+	}, [
+		listingData.type,
+		variations,
+		listingData.taxCode,
+		commissionSlabs,
+		onListingDataChange,
+	]);
 
 	// Handler for variation image file selection
 	const handleVariationImageChange = (index, event) => {
@@ -440,50 +458,59 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	};
 
 	useEffect(() => {
-		// console.log(listingData)
-		let comissionRate = 0;
+		const salePrice = parseFloat(listingData.salePrice) || 0;
+		const packageWeight = parseFloat(listingData.packageWeight) || 0;
+
+		const shippingCharge = packageWeight * 20;
+		const gstPercentage = parseFloat(listingData.taxCode) || 0;
+
+		let productPrice = 0;
+		let commissionRate = 0;
 		let commissionAmount = 0;
-		let gstPercentage = '';
 		let gstAmount = 0;
 		let tcsAmount = 0;
-		let shippingCharge = 0;
 
-		// commission calculation
-		const commissionRateForThisPrice = commissionSlabs.find(slab => listingData.productPrice >= slab.min_value && listingData.productPrice <= slab.max_value);
-		// console.log(commissionRateForThisPrice);
-		if (commissionRateForThisPrice) {
-			comissionRate = commissionRateForThisPrice.commission_rate;
-			commissionAmount = parseFloat(listingData.productPrice) * commissionRateForThisPrice.commission_rate / 100;
+		if (salePrice > 0) {
+			// Find commission slab based on Sale Price
+			const slab = commissionSlabs.find(
+				s => salePrice >= s.min_value && salePrice <= s.max_value
+			);
+
+			commissionRate = slab?.commission_rate || 0;
+
+			// Calculate everything from Sale Price
+			commissionAmount = (salePrice * commissionRate) / 100;
+			gstAmount = ((salePrice + commissionAmount) * gstPercentage) / 100;
+			tcsAmount = salePrice * 0.001;
+
+			// Remaining amount is Product Price
+			productPrice =
+				salePrice -
+				commissionAmount -
+				gstAmount -
+				tcsAmount -
+				shippingCharge;
+
+			// Prevent negative value
+			productPrice = Math.max(0, productPrice);
 		}
 
-		// GST calculation
-		if (listingData.taxCode) {
-			gstPercentage = listingData.taxCode; // Use parseFloat
-			if (!isNaN(gstPercentage)) {
-				gstAmount = ((parseFloat(listingData.productPrice) + commissionAmount) * gstPercentage) / 100;
-			}
-		}
-
-		// shipping change calculation
-		if (listingData.packageWeight) {
-			const weight = parseFloat(listingData.packageWeight) || 0;
-			shippingCharge = weight * 20;
-		}
-
-		tcsAmount = (listingData.productPrice) * 0.1;
-
-		const salePrice = parseFloat(listingData.productPrice) + gstAmount + commissionAmount + tcsAmount + shippingCharge;
-		onListingDataChange(prevListingData => ({
-			...prevListingData,
+		onListingDataChange(prev => ({
+			...prev,
+			productPrice: productPrice.toFixed(2),
+			commissionRate,
 			commissionAmount: commissionAmount.toFixed(2),
-			commissionRate: comissionRate.toFixed(2),
 			gstAmount: gstAmount.toFixed(2),
 			tcsAmount: tcsAmount.toFixed(2),
 			shippingCharge: shippingCharge.toFixed(2),
-			salePrice: salePrice.toFixed(2)
 		}));
+	}, [
+		listingData.salePrice,
+		listingData.taxCode,
+		listingData.packageWeight,
+		commissionSlabs
+	]);
 
-	}, [listingData.productPrice, listingData.taxCode, listingData.packageWeight, commissionSlabs]);
 	// Handlers for dynamic 'productDetails' array (for additional descriptions)
 	const handleAddAdditionalDescription = () => {
 		onListingDataChange(prevListingData => ({
@@ -780,7 +807,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				{/* Section 1: Price, Stock and Shipping Information (0/20) */}
 				<AccordionItem className="border-0 shadow-sm mb-1">
 					<AccordionHeader targetId="1">
-						Price, Stock and Shipping Information (0/20)
+						Price, Stock and Shipping Information
 					</AccordionHeader>
 					<AccordionBody accordionId="1">
 						<div style={{ height: "250px", overflow: "hidden" }}>
@@ -1109,12 +1136,33 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="regularPrice"
-													value={listingData.regularPrice || ""}
+													value={listingData.regularPrice}
 													onChange={handleChange}
+													invalid={errors.regularPrice}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
 											{renderError('regularPrice')}
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Your selling price*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="salePrice"
+													value={listingData.salePrice}
+													onChange={handleChange}
+													invalid={errors.salePrice}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+											{renderError('salePrice')}
+
 											<InputGroup className="mt-1">
 												<span
 													style={{ fontSize: "14px" }}
@@ -1126,8 +1174,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="productPrice"
-													value={listingData.productPrice || ""}
+													value={listingData.productPrice}
 													onChange={handleChange}
+													readOnly
+													invalid={errors.productPrice}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1144,9 +1194,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="commissionAmount"
-													value={listingData.commissionAmount || ""}
+													value={listingData.commissionAmount}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.commissionAmount}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1163,9 +1214,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="gstAmount"
-													value={listingData.gstAmount || ""}
+													value={listingData.gstAmount}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.gstAmount}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1182,9 +1234,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="tcsAmount"
-													value={listingData.tcsAmount || ""}
+													value={listingData.tcsAmount}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.tcsAmount}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
@@ -1201,32 +1254,16 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													type="number"
 													placeholder=""
 													name="shippingCharge"
-													value={listingData.shippingCharge || ""}
+													value={listingData.shippingCharge}
 													onChange={handleChange}
 													readOnly
+													invalid={errors.shippingCharge}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
 											{renderError('shippingCharge')}
 
-											<InputGroup className="mt-1">
-												<span
-													style={{ fontSize: "14px" }}
-													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
-												>
-													Your selling price*
-												</span>
-												<Input
-													type="number"
-													placeholder=""
-													name="salePrice"
-													value={listingData.salePrice || ""}
-													onChange={handleChange}
-													readOnly
-												/>
-												<span className="px-1 py-2">INR</span>
-											</InputGroup>
-											{renderError('salePrice')}
+
 											<InputGroup className="mt-1">
 												<span
 													style={{ fontSize: "14px" }}
@@ -1237,8 +1274,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												<Input
 													type="select"
 													name="minOrderQuantity"
-													value={listingData.minOrderQuantity || ""}
+													value={listingData.minOrderQuantity}
 													onChange={handleChange}
+													invalid={errors.minOrderQuantity}
 												>
 													<option value="">-- Select One --</option>
 													<option value="1">1</option>
@@ -1407,102 +1445,104 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				</AccordionItem>
 
 				{/* Section 2: Product Description (Dynamic Specifications) */}
-				<AccordionItem className="border-0 shadow-sm mb-1">
-					<AccordionHeader targetId="2">
-						Product Description (0/11)
-					</AccordionHeader>
-					<AccordionBody accordionId="2">
-						<Row>
-							<Col sm={12} className="mb-3">
-								<Label className="mb-1">* Mandatory fields</Label>
-								{/* Render dynamic specification fields */}
-								{localSpecifications.map(headingSection => (
-									<div key={headingSection._id} className="mb-3">
-										<h6>{headingSection.heading}</h6>
-										{headingSection.fields.map(field => (
-											<div key={field._id}> {/* Added a div for cleaner rendering of input and error */}
-												<InputGroup className="mt-1">
-													<span
-														style={{ fontSize: "14px" }}
-														className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
-													>
-														{field.key}*
-													</span>
-													{field.valueType === "string" && (
-														<Input
-															type="text"
-															name={field.key}
-															value={field.value || ""}
-															onChange={(e) =>
-																handleSpecificationChange(
-																	headingSection._id,
-																	field._id,
-																	e.target.value
-																)
-															}
-														/>
-													)}
-													{field.valueType === "number" && (
-														<Input
-															type="number"
-															name={field.key}
-															value={field.value || ""}
-															onChange={(e) =>
-																handleSpecificationChange(
-																	headingSection._id,
-																	field._id,
-																	e.target.value
-																)
-															}
-														/>
-													)}
-													{field.valueType === "boolean" && (
-														<Input
-															type="select"
-															name={field.key}
-															value={field.value !== undefined && field.value !== null ? String(field.value) : ""}
-															onChange={(e) =>
-																handleSpecificationChange(
-																	headingSection._id,
-																	field._id,
-																	e.target.value === "true"
-																)
-															}
-														>
-															<option value="">-- Select One --</option>
-															<option value="true">Yes</option>
-															<option value="false">No</option>
-														</Input>
-													)}
-													{field.valueType === "dropdown" && (
-														<Input
-															type="select"
-															name={field.key}
-															value={field.value || ""}
-															onChange={(e) =>
-																handleSpecificationChange(
-																	headingSection._id,
-																	field._id,
-																	e.target.value
-																)
-															}
-														>
-															<option value="">-- Select One --</option>
-															{field.options.map(option => (
-																<option key={option} value={option}>
-																	{option}
-																</option>
-															))}
-														</Input>
-													)}
-												</InputGroup>
-												{renderError(`spec-${headingSection._id}-${field._id}`)}
+				{
+					localSpecifications.length > 0 && (
+						<AccordionItem className="border-0 shadow-sm mb-1">
+							<AccordionHeader targetId="2">
+								Product Description
+							</AccordionHeader>
+							<AccordionBody accordionId="2">
+								<Row>
+									<Col sm={12} className="mb-3">
+										<Label className="mb-1">* Mandatory fields</Label>
+										{/* Render dynamic specification fields */}
+										{localSpecifications.map(headingSection => (
+											<div key={headingSection._id} className="mb-3">
+												<h6>{headingSection.heading}</h6>
+												{headingSection.fields.map(field => (
+													<div key={field._id}> {/* Added a div for cleaner rendering of input and error */}
+														<InputGroup className="mt-1">
+															<span
+																style={{ fontSize: "14px" }}
+																className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+															>
+																{field.key}*
+															</span>
+															{field.valueType === "string" && (
+																<Input
+																	type="text"
+																	name={field.key}
+																	value={field.value || ""}
+																	onChange={(e) =>
+																		handleSpecificationChange(
+																			headingSection._id,
+																			field._id,
+																			e.target.value
+																		)
+																	}
+																/>
+															)}
+															{field.valueType === "number" && (
+																<Input
+																	type="number"
+																	name={field.key}
+																	value={field.value || ""}
+																	onChange={(e) =>
+																		handleSpecificationChange(
+																			headingSection._id,
+																			field._id,
+																			e.target.value
+																		)
+																	}
+																/>
+															)}
+															{field.valueType === "boolean" && (
+																<Input
+																	type="select"
+																	name={field.key}
+																	value={field.value !== undefined && field.value !== null ? String(field.value) : ""}
+																	onChange={(e) =>
+																		handleSpecificationChange(
+																			headingSection._id,
+																			field._id,
+																			e.target.value === "true"
+																		)
+																	}
+																>
+																	<option value="">-- Select One --</option>
+																	<option value="true">Yes</option>
+																	<option value="false">No</option>
+																</Input>
+															)}
+															{field.valueType === "dropdown" && (
+																<Input
+																	type="select"
+																	name={field.key}
+																	value={field.value || ""}
+																	onChange={(e) =>
+																		handleSpecificationChange(
+																			headingSection._id,
+																			field._id,
+																			e.target.value
+																		)
+																	}
+																>
+																	<option value="">-- Select One --</option>
+																	{field.options.map(option => (
+																		<option key={option} value={option}>
+																			{option}
+																		</option>
+																	))}
+																</Input>
+															)}
+														</InputGroup>
+														{renderError(`spec-${headingSection._id}-${field._id}`)}
+													</div>
+												))}
 											</div>
 										))}
-									</div>
-								))}
-							</Col>
-							{/* <Col sm={12} className="mb-3">
+									</Col>
+									{/* <Col sm={12} className="mb-3">
                 <Button
                   className="btn btn-primary btn-sm"
                   onClick={handleSaveDetails}
@@ -1510,15 +1550,17 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
                   Save
                 </Button>
               </Col> */}
-						</Row>
-					</AccordionBody>
-				</AccordionItem>
+								</Row>
+							</AccordionBody>
+						</AccordionItem>
+					)
+				}
 
 				{/* Section 3: Additional Description (Optional) (0/17) */}
 				{/* Changed targetId to "3" to make room for Product Variants at "4" */}
 				<AccordionItem className="border-0 shadow-sm mb-1">
 					<AccordionHeader targetId="3">
-						Additional Description (Optional) (0/17)
+						Additional Description (Optional)
 					</AccordionHeader>
 					<AccordionBody accordionId="3">
 						<Row className="mb-3">
@@ -1801,11 +1843,21 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 																/>
 															</Col>
 															<Col md={12} className="mb-2">
+																<Label>Sale Price</Label>
+																<Input
+																	type="number"
+																	placeholder="Sale Price"
+																	value={variation.salePrice}
+																	onChange={(e) => handleVariationChange(index, 'salePrice', e.target.value)}
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
 																<Label>Product Price</Label>
 																<Input
 																	type="number"
 																	placeholder="Product Price"
 																	value={variation.productPrice}
+																	readOnly
 																	onChange={(e) => handleVariationChange(index, 'productPrice', e.target.value)}
 																/>
 															</Col>
@@ -1847,16 +1899,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 																	placeholder="Shipping Charge"
 																	value={variation.shippingCharge}
 																	onChange={(e) => handleVariationChange(index, 'shippingCharge', e.target.value)}
-																	readOnly
-																/>
-															</Col>
-															<Col md={12} className="mb-2">
-																<Label>Sale Price</Label>
-																<Input
-																	type="number"
-																	placeholder="Sale Price"
-																	value={variation.salePrice}
-																	onChange={(e) => handleVariationChange(index, 'salePrice', e.target.value)}
 																	readOnly
 																/>
 															</Col>
