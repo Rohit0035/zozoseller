@@ -161,14 +161,15 @@ const AddListingIndex = () => {
                             Next
                         </Button>
                     ) : (
-                        <Button
-                            color="success"
-                            onClick={handleFinalSubmit}
-                            // Disable until all critical product details are filled
-                            disabled={!listingData.title || !listingData.description || !listingData.regularPrice || !listingData.stockQty}
-                        >
-                            Submit Listing
-                        </Button>
+                        <></>
+                        // <Button
+                        //     color="success"
+                        //     onClick={handleFinalSubmit}
+                        //     // Disable until all critical product details are filled
+                        //     disabled={!listingData.title || !listingData.description || !listingData.regularPrice || !listingData.stockQty}
+                        // >
+                        //     Submit Listing
+                        // </Button>
                     )}
                 </Col>
             </Row>

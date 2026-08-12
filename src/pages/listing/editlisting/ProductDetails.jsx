@@ -71,6 +71,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			}).filter(Boolean);
 
 			setSelectedAttributeOptions(selectedOptions);
+			setSelectedAttributes(selectedOptions);
 
 			// 2. Map the specific values selected for those attributes
 			const newMap = {};
@@ -204,6 +205,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			}).filter(Boolean);
 
 			setSelectedAttributeOptions(selectedOptions);
+			setSelectedAttributes(selectedOptions);
 
 			const newMap = {};
 			listingData.attributes.forEach(savedAttr => {
@@ -276,12 +278,12 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	};
 
 	const handleAttributeChange = (selectedOptions) => {
-		// console.log(selectedOptions)
-		setSelectedAttributeOptions(selectedOptions);
-		// When attributes change, clear variations and attributeValueMap
-		setVariations([]);
-		setAttributeValueMap({});
-	};
+    setSelectedAttributeOptions(selectedOptions || []);
+    setSelectedAttributes(selectedOptions || []);   // <-- Missing
+
+    setVariations([]);
+    setAttributeValueMap({});
+};
 
 	const handleAttributeValueChange = (attributeId, selectedValues) => {
 		setAttributeValueMap(prev => {
@@ -296,13 +298,11 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	};
 
 	const generateVariations = () => {
-		const attrOptions = selectedAttributes.map(attr => {
-			return {
-				id: attr.value,
-				name: attr.name,
-				values: attributeValueMap[attr.value] || []
-			};
-		});
+		const attrOptions = selectedAttributes.map(attr => ({
+    id: attr.value,
+    name: attr.label,
+    values: attributeValueMap[attr.value] || []
+}));
 
 		if (attrOptions.some(opt => opt.values.length === 0 && selectedAttributes.length > 0)) {
 			showToast('error', 'Please select values for all selected attributes.');
@@ -1659,6 +1659,24 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 								</InputGroup>
 								{renderError('more')}
 							</Col>
+							<Col sm={12} className="mb-3">
+								<InputGroup className="mt-1">
+									<span
+										style={{ fontSize: "14px" }}
+										className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+									>
+										Keywords (comma separated) (Optional)
+									</span>
+									<Input
+										type="textarea"
+										name="keywords"
+										value={listingData.keywords || ""}
+										onChange={handleChange}
+										rows="3"
+									/>
+								</InputGroup>
+								{renderError('keywords')}
+							</Col>
 							{/* <Col sm={12} className="mb-3">
                 <Button
                   className="btn btn-primary btn-sm"
@@ -1720,7 +1738,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 											<Select
 												isMulti
 												name={`attribute-${attr.value}`}
-												options={attr.values.map(val => ({ value: val, label: val }))}
+												options={(attr.values || []).map(val => ({
+													value: val,
+													label: val
+												}))}
 												className="basic-multi-select"
 												classNamePrefix="select"
 												value={attributeValueMap[attr.value]?.map(val => ({ value: val, label: val })) || []}

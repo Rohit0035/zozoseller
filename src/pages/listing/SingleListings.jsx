@@ -121,8 +121,8 @@ const SingleListings = ({ categories, statuses }) => {
 		// Search filter (Title or SKU)
 		if (filterText) {
 			updatedData = updatedData.filter(item =>
-				item.title.toLowerCase().includes(filterText.toLowerCase()) ||
-				item.skuId.toLowerCase().includes(filterText.toLowerCase())
+				item.title?.toLowerCase().includes(filterText.toLowerCase()) ||
+				item?.skuId?.toLowerCase().includes(filterText.toLowerCase())
 			);
 		}
 

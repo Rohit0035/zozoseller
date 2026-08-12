@@ -1,4 +1,5 @@
 export const getDefaultListingData = () => ({
+  draftedProductId: null,
   categoryId: null,
   subCategoryOneId: null,
   subCategoryTwoId: null,

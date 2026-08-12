@@ -167,6 +167,19 @@ const VendorBrands = () => {
 			if (!editingId && !files.brandImage) {
 				newErrors.brandImage = "Brand logo is required";
 			}
+
+			if (!formData.trademarkNo) {
+				newErrors.trademarkNo = "Trademark number is required";
+			}
+
+			if (!editingId) {
+				if (!files.trademarkCertificate) {
+					newErrors.trademarkCertificate = "Trademark certificate required";
+				}
+				if (!files.brandApprovalLetter) {
+					newErrors.brandApprovalLetter = "Approval letter required";
+				}
+			}
 		}
 
 		if (formData.brandType === "other") {
@@ -175,18 +188,12 @@ const VendorBrands = () => {
 			}
 		}
 
-		if (!formData.trademarkNo) {
-			newErrors.trademarkNo = "Trademark number is required";
-		}
-
 		if (!editingId) {
-			if (!files.trademarkCertificate) {
-				newErrors.trademarkCertificate = "Trademark certificate required";
-			}
 			if (!files.brandApprovalLetter) {
 				newErrors.brandApprovalLetter = "Approval letter required";
 			}
 		}
+
 
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
@@ -393,30 +400,34 @@ const VendorBrands = () => {
 						)}
 
 						{/* Trademark */}
-						<FormGroup>
-							<Label>Trademark No</Label>
-							<Input
-								value={formData.trademarkNo}
-								onChange={(e) => handleChange("trademarkNo", e.target.value)}
-								invalid={errors.trademarkNo}
-							/>
-							{errors.trademarkNo && <span className="text-danger">{errors.trademarkNo}</span>}
-						</FormGroup>
+						{formData.brandType === "own" &&
+							<FormGroup>
+								<Label>Trademark No</Label>
+								<Input
+									value={formData.trademarkNo}
+									onChange={(e) => handleChange("trademarkNo", e.target.value)}
+									invalid={errors.trademarkNo}
+								/>
+								{errors.trademarkNo && <span className="text-danger">{errors.trademarkNo}</span>}
+							</FormGroup>
+						}
 
-						<FormGroup>
-							<Label>Trademark Certificate * <small>(Only .jpg, .jpeg, .png, .pdf formats are allowed)</small></Label>
-							<Input
-								accept="image/*, application/pdf"
-								type="file"
-								onChange={(e) => handleFileChange(e, "trademarkCertificate")}
-								invalid={errors.trademarkCertificate}
-							/>
-							{errors.trademarkCertificate && <span className="text-danger">{errors.trademarkCertificate}</span>}
-							{renderFilePreview(
-								files.trademarkCertificate ||
-								(formData.trademarkCertificate && `${IMAGE_URL}/${formData.trademarkCertificate}`)
-							)}
-						</FormGroup>
+						{formData.brandType === "own" &&
+							<FormGroup>
+								<Label>Trademark Certificate * <small>(Only .jpg, .jpeg, .png, .pdf formats are allowed)</small></Label>
+								<Input
+									accept="image/*, application/pdf"
+									type="file"
+									onChange={(e) => handleFileChange(e, "trademarkCertificate")}
+									invalid={errors.trademarkCertificate}
+								/>
+								{errors.trademarkCertificate && <span className="text-danger">{errors.trademarkCertificate}</span>}
+								{renderFilePreview(
+									files.trademarkCertificate ||
+									(formData.trademarkCertificate && `${IMAGE_URL}/${formData.trademarkCertificate}`)
+								)}
+							</FormGroup>
+						}
 
 						<FormGroup>
 							<Label>Approval Letter * <small>(Only .jpg, .jpeg, .png, .pdf formats are allowed)</small></Label>

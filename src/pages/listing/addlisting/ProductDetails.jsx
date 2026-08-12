@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
 	Accordion,
 	AccordionItem,
@@ -21,7 +21,7 @@ import { showToast } from "../../../components/ToastifyNotification"; // Assumin
 import { GetSpecificationFieldsBySubsCategoryTwoId } from "../../../api/specificationFieldsAPI";
 import { GetAttributes } from "../../../api/attributeAPI";
 import Select from 'react-select';
-import { StoreProduct } from "../../../api/productAPI";
+import { StoreProduct, UpdateProduct } from "../../../api/productAPI";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { GetCommissionSlabsBySubsCategoryTwoId } from "../../../api/commissionSlabAPI";
@@ -31,12 +31,15 @@ import { GetHsns } from "../../../api/hsnAPI";
 // import { GetAttributesBySubCategoryTwoId } from "../../../api/attributesAPI";
 
 const ProductDetails = ({ listingData, onListingDataChange }) => {
-	const [open, setOpen] = useState("");
+	const [open, setOpen] = useState("1");
 	const [localSpecifications, setLocalSpecifications] = useState([]);
 	const [commissionSlabs, setCommissionSlabs] = useState([]);
 	const [errors, setErrors] = useState({});
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
+	const isSaving = useRef(false);
+	const lastSavedData = useRef("");
+
 
 	// New states for Product Variants
 	const [availableAttributes, setAvailableAttributes] = useState([]); // All attributes from API
@@ -396,7 +399,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		}
 	};
 
-
 	const toggle = id => {
 		setOpen(open === id ? "" : id);
 	};
@@ -528,127 +530,168 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		setErrors(prevErrors => ({ ...prevErrors, [`spec-${headingId}-${fieldId}`]: '' })); // Clear error on change
 	};
 
-
-	const handleSaveDetails = async () => {
+	const validateProduct = () => {
 		let newErrors = {};
 		let isValid = true;
 
-		// Validate main mandatory fields from listingData
 		const mandatoryFields = [
-			"name", "sku", "status", "regularPrice", "productPrice", "salePrice",
-			"minOrderQuantity", "stockQty", "minStockQty", "shippingProvider",
-			"packageLength", "packageBreadth", "packageHeight", "packageWeight",
-			"hsn", "luxuryCess", "taxCode", "countryOfOrigin",
-			"manufacturerDetails", "packerDetails", "importerDetails",
+			"name",
+			"sku",
+			"status",
+			"regularPrice",
+			"productPrice",
+			"salePrice",
+			"minOrderQuantity",
+			"stockQty",
+			"minStockQty",
+			"shippingProvider",
+			"packageLength",
+			"packageBreadth",
+			"packageHeight",
+			"packageWeight",
+			"hsn",
+			"luxuryCess",
+			"taxCode",
+			"countryOfOrigin",
+			"manufacturerDetails",
+			"packerDetails",
+			"importerDetails",
 		];
 
 		for (const field of mandatoryFields) {
 			if (
-				(typeof listingData[field] === "string" && listingData[field].trim() === "") ||
-				(typeof listingData[field] === "number" && (listingData[field] === "" || isNaN(listingData[field]))) ||
-				listingData[field] === null || listingData[field] === undefined
+				(typeof listingData[field] === "string" &&
+					listingData[field].trim() === "") ||
+				(typeof listingData[field] === "number" &&
+					(listingData[field] === "" ||
+						isNaN(listingData[field]))) ||
+				listingData[field] === null ||
+				listingData[field] === undefined
 			) {
-				newErrors[field] = `Please fill in the mandatory field: ${field}`;
+				newErrors[field] = `Please fill ${field}`;
 				isValid = false;
 			}
 		}
 
-		// If there are any general mandatory field errors, set them and return
 		if (!isValid) {
 			setErrors(newErrors);
-			showToast('error', 'Please fill in all mandatory fields.');
-			return;
+			showToast("error", "Please fill all mandatory fields.");
+			return false;
 		}
 
-		// Validate productDetails (additional descriptions)
-		if (listingData.productDetails?.some(desc => desc.key.trim() === "" || desc.value.trim() === "")) {
-			showToast('error', 'Please fill all additional descriptions or remove empty ones.');
-			return;
+		// Product Details
+		if (
+			listingData.productDetails?.some(
+				d => d.key.trim() === "" || d.value.trim() === ""
+			)
+		) {
+			showToast(
+				"error",
+				"Please fill all additional descriptions."
+			);
+			return false;
 		}
 
-		// Validate specification fields from localSpecifications (which should be synced with listingData.specifications)
-		for (const headingSection of localSpecifications) {
-			for (const field of headingSection.fields) {
-				if (field.valueType === "string" && (field.value === undefined || field.value === null || field.value.trim() === "")) {
-					showToast("error", `Please fill in the mandatory specification field: ${field.key}`);
-					return;
+		// Specifications
+		for (const section of localSpecifications) {
+			for (const field of section.fields) {
+				if (
+					field.valueType === "string" &&
+					!field.value?.trim()
+				) {
+					showToast(
+						"error",
+						`Please fill ${field.key}`
+					);
+					return false;
 				}
-				// Add more validation based on valueType (e.g., number, boolean, select) if needed
-				if (field.valueType === "number" && (field.value === "" || isNaN(Number(field.value)))) {
-					showToast("error", `Please enter a valid number for specification field: ${field.key}`);
-					return;
+
+				if (
+					field.valueType === "number" &&
+					(field.value === "" ||
+						isNaN(Number(field.value)))
+				) {
+					showToast(
+						"error",
+						`Invalid value for ${field.key}`
+					);
+					return false;
 				}
 			}
 		}
 
-		// Validate variations if product type is 'variable'
-		if (listingData.type === 'variable') { // Use listingData.type
-			if (!listingData.variations || listingData.variations.length === 0) {
-				showToast('error', 'Please generate variations.');
-				return;
+		// Variation validation
+		if (listingData.type === "variable") {
+			if (!listingData.variations?.length) {
+				showToast("error", "Generate variations.");
+				return false;
 			}
-			for (const variation of listingData.variations) { // Use listingData.variations
-				if (!variation.sku || variation.sku.trim() === "") {
-					showToast('error', `Variation with attributes "${variation.attributes.map(attr => attr.value).join(", ")}" must have an SKU.`);
-					return;
+
+			for (const variation of listingData.variations) {
+				if (!variation.sku?.trim()) {
+					showToast("error", "Variation SKU is required.");
+					return false;
 				}
-				if (variation.regularPrice === "" || isNaN(Number(variation.regularPrice)) || Number(variation.regularPrice) <= 0) {
-					showToast('error', `Variation with SKU "${variation.sku}" must have a valid Regular Price greater than 0.`);
-					return;
+
+				if (Number(variation.regularPrice) <= 0) {
+					showToast("error", "Invalid variation price.");
+					return false;
 				}
-				if (variation.stockQty === "" || isNaN(Number(variation.stockQty)) || Number(variation.stockQty) < 0) {
-					showToast('error', `Variation with SKU "${variation.sku}" must have a valid Stock Quantity.`);
-					return;
+
+				if (variation.salePrice &&
+					Number(variation.salePrice) >= Number(variation.regularPrice)
+				) {
+					showToast(
+						"error",
+						"Sale price must be less than Regular price."
+					);
+					return false;
 				}
-				if (variation.minStockQty === "" || isNaN(Number(variation.minStockQty)) || Number(variation.minStockQty) < 0) {
-					showToast('error', `Variation with SKU "${variation.sku}" must have a valid Minimum Stock Quantity.`);
-					return;
-				}
-				if (variation.salePrice !== "" && Number(variation.salePrice) >= Number(variation.regularPrice)) {
-					showToast('error', `Variation with SKU "${variation.sku}" Sale Price must be less than Regular Price.`);
-					return;
-				}
-				// Validate variation image if required (optional, uncomment if image is mandatory for each variation)
-				// if (!variation.image) {
-				//     showToast('error', `Variation with SKU "${variation.sku}" must have an image.`);
-				//     return;
-				// }
 			}
 		}
 
-		// Image validations (assuming mainImage and galleryImages are part of listingData or separate states managed externally)
-		// You might need to adjust these based on how you manage these image states
-		// Assuming `mainImage` and `galleryImages` are props or derived from listingData.
-		// If they are separate states, ensure they are updated via onListingDataChange or are accessible here.
-		if (!listingData.mainImage) { // Using listingData.mainImage
-			showToast('error', 'Main image is required.');
-			// dispatch({ type: 'loader', loader: false }); // Assuming dispatch is available
+		if (!listingData.mainImage) {
+			showToast("error", "Main image is required.");
+			return false;
+		}
+		return true;
+	};
+
+	const saveProduct = async (status) => {
+		if (isSaving.current) {
 			return;
 		}
 
-		// if (!Array.isArray(listingData.galleryImages) || listingData.galleryImages.length < 3 || listingData.galleryImages.length > 7) { // Using listingData.galleryImages
-		// 	showToast('error', 'You must upload between 3 and 7 gallery images.');
-		// 	return;
-		// }
-
+		isSaving.current = true;
 		try {
 			const formData = new FormData();
+			formData.append("status", status);
 
-			// Append all non-file fields from listingData
+			// Append all fields
 			Object.keys(listingData).forEach((key) => {
-				// Exclude specific keys that will be handled separately (files, arrays that need stringification)
-				if (key !== 'mainImage' && key !== 'galleryImages' && key !== 'variations' && key !== 'specifications' && key !== 'productDetails' && key !== 'attributes') {
+				if (
+					![
+						"draftedProductId",
+						"status",
+						"mainImage",
+						"galleryImages",
+						"variations",
+						"specifications",
+						"productDetails",
+						"attributes",
+					].includes(key)
+				) {
 					formData.append(key, listingData[key]);
 				}
 			});
 
+			// Append all your existing
 			// Append product details
 			if (listingData.productDetails) {
 				formData.append('productDetails', JSON.stringify(listingData.productDetails));
 			} else {
 				formData.append('productDetails', JSON.stringify([]));
 			}
-
 
 			// Append specifications
 			if (listingData.specifications) {
@@ -666,7 +709,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				// You might want to send a flag to the backend if the image hasn't changed.
 				formData.append('mainImage', listingData.mainImage); // Send the existing URL
 			}
-
 
 			// Append galleryImages
 			if (listingData.galleryImages && Array.isArray(listingData.galleryImages)) {
@@ -724,42 +766,302 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				formData.append('hasVariations', 'false');
 			}
 
-			// Assuming StoreProduct is your API call
-			dispatch({ type: 'loader', loader: true }); // Activate loader before API call
-			const response = await StoreProduct(formData);
-			if (response.success === true) {
-				showToast('success', response.message);
+			if (listingData.draftedProductId) {
+				const response = await UpdateProduct(
+					listingData.draftedProductId,
+					formData
+				);
 
-				navigate('/listing');
-				//clear listingData
-				// onListingDataChange({
-				//   ...listingData,
-				//   productDetails: [],
-				//   specifications: [],
-				//   mainImage: '',
-				//   galleryImages: [],
-				//   attributes: [],
-				//   variations: [],
-				//   type: 'simple',
-				// })
-				// Temporarily uncommenting for local testing feedback
-				console.log("FormData contents:");
-				for (let [key, value] of formData.entries()) {
-					console.log(`${key}:`, value);
+				if (status !== "Draft" && response.success) {
+					showToast("success", response.message);
+					navigate("/listing");
 				}
-
+				return response.success;
 			} else {
-				showToast('error', response.message);
+				const response = await StoreProduct(formData);
+
+				if (response.success) {
+					if (status === "Draft") {
+						onListingDataChange(prev => ({
+							...prev,
+							draftedProductId: response.product._id,
+							// Use the actual response fields returned by your API
+							mainImage: response.product?.mainImage,
+							galleryImages: response.product?.galleryImages,
+
+							variations: response.product?.variations
+						}));
+					} else {
+						showToast("success", response.message);
+						navigate("/listing");
+					}
+				}
+				return response.success;
 			}
-
-
 		} catch (err) {
-			showToast('error', 'Failed to save product details.');
-			console.error("Save error:", err);
+			showToast("error", "Failed to save product.");
 		} finally {
-			// dispatch({ type: 'loader', loader: false }); // Deactivate loader
+			isSaving.current = false;
+			dispatch({ type: "loader", loader: false });
 		}
 	};
+
+	const handleSaveDetails = async () => {
+		if (!validateProduct()) return;
+		await saveProduct("ReadyForActivation");
+	};
+
+	useEffect(() => {
+		if (!listingData.name?.trim()) return;
+
+		const current = JSON.stringify(listingData);
+
+		if (current === lastSavedData.current) {
+			return;
+		}
+
+		const timer = setTimeout(async () => {
+			const success = await saveProduct("Draft");
+
+			if (success) {
+				lastSavedData.current = current;
+			}
+		}, 3000);
+
+		return () => clearTimeout(timer);
+	}, [listingData]);
+
+	// const handleSaveDetails = async () => {
+	// 	let newErrors = {};
+	// 	let isValid = true;
+
+	// 	// Validate main mandatory fields from listingData
+	// 	const mandatoryFields = [
+	// 		"name", "sku", "status", "regularPrice", "productPrice", "salePrice",
+	// 		"minOrderQuantity", "stockQty", "minStockQty", "shippingProvider",
+	// 		"packageLength", "packageBreadth", "packageHeight", "packageWeight",
+	// 		"hsn", "luxuryCess", "taxCode", "countryOfOrigin",
+	// 		"manufacturerDetails", "packerDetails", "importerDetails",
+	// 	];
+
+	// 	for (const field of mandatoryFields) {
+	// 		if (
+	// 			(typeof listingData[field] === "string" && listingData[field].trim() === "") ||
+	// 			(typeof listingData[field] === "number" && (listingData[field] === "" || isNaN(listingData[field]))) ||
+	// 			listingData[field] === null || listingData[field] === undefined
+	// 		) {
+	// 			newErrors[field] = `Please fill in the mandatory field: ${field}`;
+	// 			isValid = false;
+	// 		}
+	// 	}
+
+	// 	// If there are any general mandatory field errors, set them and return
+	// 	if (!isValid) {
+	// 		setErrors(newErrors);
+	// 		showToast('error', 'Please fill in all mandatory fields.');
+	// 		return;
+	// 	}
+
+	// 	// Validate productDetails (additional descriptions)
+	// 	if (listingData.productDetails?.some(desc => desc.key.trim() === "" || desc.value.trim() === "")) {
+	// 		showToast('error', 'Please fill all additional descriptions or remove empty ones.');
+	// 		return;
+	// 	}
+
+	// 	// Validate specification fields from localSpecifications (which should be synced with listingData.specifications)
+	// 	for (const headingSection of localSpecifications) {
+	// 		for (const field of headingSection.fields) {
+	// 			if (field.valueType === "string" && (field.value === undefined || field.value === null || field.value.trim() === "")) {
+	// 				showToast("error", `Please fill in the mandatory specification field: ${field.key}`);
+	// 				return;
+	// 			}
+	// 			// Add more validation based on valueType (e.g., number, boolean, select) if needed
+	// 			if (field.valueType === "number" && (field.value === "" || isNaN(Number(field.value)))) {
+	// 				showToast("error", `Please enter a valid number for specification field: ${field.key}`);
+	// 				return;
+	// 			}
+	// 		}
+	// 	}
+
+	// 	// Validate variations if product type is 'variable'
+	// 	if (listingData.type === 'variable') { // Use listingData.type
+	// 		if (!listingData.variations || listingData.variations.length === 0) {
+	// 			showToast('error', 'Please generate variations.');
+	// 			return;
+	// 		}
+	// 		for (const variation of listingData.variations) { // Use listingData.variations
+	// 			if (!variation.sku || variation.sku.trim() === "") {
+	// 				showToast('error', `Variation with attributes "${variation.attributes.map(attr => attr.value).join(", ")}" must have an SKU.`);
+	// 				return;
+	// 			}
+	// 			if (variation.regularPrice === "" || isNaN(Number(variation.regularPrice)) || Number(variation.regularPrice) <= 0) {
+	// 				showToast('error', `Variation with SKU "${variation.sku}" must have a valid Regular Price greater than 0.`);
+	// 				return;
+	// 			}
+	// 			if (variation.stockQty === "" || isNaN(Number(variation.stockQty)) || Number(variation.stockQty) < 0) {
+	// 				showToast('error', `Variation with SKU "${variation.sku}" must have a valid Stock Quantity.`);
+	// 				return;
+	// 			}
+	// 			if (variation.minStockQty === "" || isNaN(Number(variation.minStockQty)) || Number(variation.minStockQty) < 0) {
+	// 				showToast('error', `Variation with SKU "${variation.sku}" must have a valid Minimum Stock Quantity.`);
+	// 				return;
+	// 			}
+	// 			if (variation.salePrice !== "" && Number(variation.salePrice) >= Number(variation.regularPrice)) {
+	// 				showToast('error', `Variation with SKU "${variation.sku}" Sale Price must be less than Regular Price.`);
+	// 				return;
+	// 			}
+	// 			// Validate variation image if required (optional, uncomment if image is mandatory for each variation)
+	// 			// if (!variation.image) {
+	// 			//     showToast('error', `Variation with SKU "${variation.sku}" must have an image.`);
+	// 			//     return;
+	// 			// }
+	// 		}
+	// 	}
+
+	// 	// Image validations (assuming mainImage and galleryImages are part of listingData or separate states managed externally)
+	// 	// You might need to adjust these based on how you manage these image states
+	// 	// Assuming `mainImage` and `galleryImages` are props or derived from listingData.
+	// 	// If they are separate states, ensure they are updated via onListingDataChange or are accessible here.
+	// 	if (!listingData.mainImage) { // Using listingData.mainImage
+	// 		showToast('error', 'Main image is required.');
+	// 		// dispatch({ type: 'loader', loader: false }); // Assuming dispatch is available
+	// 		return;
+	// 	}
+
+	// 	// if (!Array.isArray(listingData.galleryImages) || listingData.galleryImages.length < 3 || listingData.galleryImages.length > 7) { // Using listingData.galleryImages
+	// 	// 	showToast('error', 'You must upload between 3 and 7 gallery images.');
+	// 	// 	return;
+	// 	// }
+
+	// 	try {
+	// 		const formData = new FormData();
+
+	// 		// Append all non-file fields from listingData
+	// 		Object.keys(listingData).forEach((key) => {
+	// 			// Exclude specific keys that will be handled separately (files, arrays that need stringification)
+	// 			if (key !== 'mainImage' && key !== 'galleryImages' && key !== 'variations' && key !== 'specifications' && key !== 'productDetails' && key !== 'attributes') {
+	// 				formData.append(key, listingData[key]);
+	// 			}
+	// 		});
+
+	// 		// Append product details
+	// 		if (listingData.productDetails) {
+	// 			formData.append('productDetails', JSON.stringify(listingData.productDetails));
+	// 		} else {
+	// 			formData.append('productDetails', JSON.stringify([]));
+	// 		}
+
+
+	// 		// Append specifications
+	// 		if (listingData.specifications) {
+	// 			formData.append('specifications', JSON.stringify(listingData.specifications));
+	// 		} else {
+	// 			formData.append('specifications', JSON.stringify([]));
+	// 		}
+
+	// 		// Append mainImage
+	// 		// `listingData.mainImage` could be a File object (new upload) or a string (existing URL)
+	// 		if (listingData.mainImage instanceof File) {
+	// 			formData.append('mainImage', listingData.mainImage);
+	// 		} else if (typeof listingData.mainImage === 'string' && listingData.mainImage !== "") {
+	// 			// If it's a string, it means it's an existing image URL, no need to re-upload.
+	// 			// You might want to send a flag to the backend if the image hasn't changed.
+	// 			formData.append('mainImage', listingData.mainImage); // Send the existing URL
+	// 		}
+
+
+	// 		// Append galleryImages
+	// 		if (listingData.galleryImages && Array.isArray(listingData.galleryImages)) {
+	// 			listingData.galleryImages.forEach((img) => {
+	// 				if (img instanceof File) {
+	// 					formData.append('galleryImages', img); // Append File objects for new uploads
+	// 				} else if (typeof img === 'string') {
+	// 					formData.append('existingGalleryImages', img); // Send existing image URLs separately
+	// 				}
+	// 			});
+	// 		}
+
+	// 		// Append attributes for variable products (using listingData.attributes which is set by onListingDataChange)
+	// 		// The `attributes` field in `listingData` should reflect the selected attributes and their values.
+	// 		if (listingData.type === 'variable' && listingData.attributes && listingData.attributes.length > 0) {
+	// 			formData.append('attributes', JSON.stringify(listingData.attributes));
+	// 		} else {
+	// 			formData.append('attributes', JSON.stringify([]));
+	// 		}
+
+	// 		// Append variation data
+	// 		if (listingData.type === 'variable' && listingData.variations && listingData.variations.length > 0) {
+	// 			formData.append('hasVariations', 'true');
+	// 			const stringVariations = JSON.stringify(variations);
+	// 			formData.append('stringVariations', stringVariations);
+
+	// 			listingData.variations.forEach((variation, index) => {
+	// 				formData.append(`variations[${index}][sku]`, variation.sku || '');
+
+	// 				formData.append(`variations[${index}][packageLength]`, variation.packageLength || '');
+	// 				formData.append(`variations[${index}][packageWidth]`, variation.packageWidth || '');
+	// 				formData.append(`variations[${index}][packageHeight]`, variation.packageHeight || '');
+	// 				formData.append(`variations[${index}][packageWeight]`, variation.packageWeight || '');
+
+	// 				formData.append(`variations[${index}][regularPrice]`, variation.regularPrice || '');
+	// 				formData.append(`variations[${index}][productPrice]`, variation.productPrice || '');
+	// 				formData.append(`variations[${index}][commissionRate]`, variation.commissionRate || '');
+	// 				formData.append(`variations[${index}][commissionAmount]`, variation.commissionAmount || '');
+	// 				formData.append(`variations[${index}][gstAmount]`, variation.gstAmount || '');
+	// 				formData.append(`variations[${index}][shippingCharge]`, variation.shippingCharge || '');
+	// 				formData.append(`variations[${index}][salePrice]`, variation.salePrice || '');
+	// 				formData.append(`variations[${index}][stockQty]`, variation.stockQty || '');
+	// 				formData.append(`variations[${index}][minStockQty]`, variation.minStockQty || '');
+	// 				formData.append(`variations[${index}][attributes]`, JSON.stringify(variation.attributes)); // Stringify attributes for each variation
+
+	// 				// Handle variation image: File object for new, string for existing
+	// 				if (variation.image instanceof File) {
+	// 					formData.append(`variations[${index}][image]`, variation.image);
+	// 				} else if (typeof variation.image === 'string' && variation.image !== "") {
+	// 					formData.append(`variations[${index}][existingImage]`, variation.image); // Send existing image URL
+	// 				}
+	// 			});
+	// 		} else {
+	// 			formData.append('variations', '[]');
+	// 			formData.append('hasVariations', 'false');
+	// 		}
+
+	// 		// Assuming StoreProduct is your API call
+	// 		dispatch({ type: 'loader', loader: true }); // Activate loader before API call
+	// 		const response = await StoreProduct(formData);
+	// 		if (response.success === true) {
+	// 			showToast('success', response.message);
+
+	// 			navigate('/listing');
+	// 			//clear listingData
+	// 			// onListingDataChange({
+	// 			//   ...listingData,
+	// 			//   productDetails: [],
+	// 			//   specifications: [],
+	// 			//   mainImage: '',
+	// 			//   galleryImages: [],
+	// 			//   attributes: [],
+	// 			//   variations: [],
+	// 			//   type: 'simple',
+	// 			// })
+	// 			// Temporarily uncommenting for local testing feedback
+	// 			console.log("FormData contents:");
+	// 			for (let [key, value] of formData.entries()) {
+	// 				console.log(`${key}:`, value);
+	// 			}
+
+	// 		} else {
+	// 			showToast('error', response.message);
+	// 		}
+
+
+	// 	} catch (err) {
+	// 		showToast('error', 'Failed to save product details.');
+	// 		console.error("Save error:", err);
+	// 	} finally {
+	// 		// dispatch({ type: 'loader', loader: false }); // Deactivate loader
+	// 	}
+	// };
 
 	const renderError = (fieldName) => {
 		return errors[fieldName] ? <div className="text-danger small">{errors[fieldName]}</div> : null;
@@ -1543,7 +1845,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				{/* Changed targetId to "3" to make room for Product Variants at "4" */}
 				<AccordionItem className="border-0 shadow-sm mb-1">
 					<AccordionHeader targetId="3">
-						Additional Description (Optional)
+						Additional Information (Optional)
 					</AccordionHeader>
 					<AccordionBody accordionId="3">
 						<Row className="mb-3">
@@ -1645,6 +1947,24 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 									/>
 								</InputGroup>
 								{renderError('more')}
+							</Col>
+							<Col sm={12} className="mb-3">
+								<InputGroup className="mt-1">
+									<span
+										style={{ fontSize: "14px" }}
+										className="st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+									>
+										Keywords (comma separated) (Optional)
+									</span>
+									<Input
+										type="textarea"
+										name="keywords"
+										value={listingData.keywords || ""}
+										onChange={handleChange}
+										rows="3"
+									/>
+								</InputGroup>
+								{renderError('keywords')}
 							</Col>
 							{/* <Col sm={12} className="mb-3">
                 <Button
@@ -1916,18 +2236,28 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 									)}
 								</>
 							)}
-							<Col sm={12} className="mb-3">
+							{/* <Col sm={12} className="mb-3">
 								<Button
 									className="btn btn-primary btn-sm"
 									onClick={handleSaveDetails}
 								>
 									Save
 								</Button>
-							</Col>
+							</Col> */}
 						</Row>
 					</AccordionBody>
 				</AccordionItem>
 			</Accordion>
+			<Row>
+				<Col sm={12} className="my-3 text-end">
+					<Button
+						className="btn btn-primary"
+						onClick={handleSaveDetails}
+					>
+						Submit Listing
+					</Button>
+				</Col>
+			</Row>
 		</div>
 	);
 };
