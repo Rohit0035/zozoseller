@@ -31,6 +31,7 @@ const BusinessDetials = ({ profileData, handleSubmit }) => {
 		proprietorImage: '',
 		tanNo: '',
 		cinCertificate: '',
+		authorizedSignature: '',
 	});
 
 	useEffect(() => {
@@ -49,6 +50,7 @@ const BusinessDetials = ({ profileData, handleSubmit }) => {
 			proprietorImage: data.proprietorImage ? `${IMAGE_URL}/${data.proprietorImage}` : '',
 			tanNo: data.tanNo,
 			cinCertificate: data.cinCertificate ? `${IMAGE_URL}/${data.cinCertificate}` : '',
+			authorizedSignature: data.authorizedSignature ? `${IMAGE_URL}/${data.authorizedSignature}` : '',
 		});
 
 		setPreviews({
@@ -58,6 +60,7 @@ const BusinessDetials = ({ profileData, handleSubmit }) => {
 			aadharBack: data.aadharBack ? `${IMAGE_URL}/${data.aadharBack}` : '',
 			proprietorImage: data.proprietorImage ? `${IMAGE_URL}/${data.proprietorImage}` : '',
 			cinCertificate: data.cinCertificate ? `${IMAGE_URL}/${data.cinCertificate}` : '',
+			authorizedSignature: data.authorizedSignature ? `${IMAGE_URL}/${data.authorizedSignature}` : '',
 		});
 
 	}, [profileData]);
@@ -101,6 +104,9 @@ const BusinessDetials = ({ profileData, handleSubmit }) => {
 		if (!businessData.tanNo && businessData.businessType === 'Private Limited') newErrors.tanNo = "TAN Number is required";
 		if (!files.cinCertificate && !businessData.cinCertificate && businessData.businessType === 'Private Limited')
 			newErrors.cinCertificate = "CIN Certificate is required";
+		
+		if (!files.authorizedSignature && !businessData.authorizedSignature)
+			newErrors.authorizedSignature = "Authorized Signature is required";
 
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
@@ -176,6 +182,10 @@ const BusinessDetials = ({ profileData, handleSubmit }) => {
 								</div>
 							</>
 						}
+						<div className="mb-2">
+							<strong>Authorized Signature:</strong><br />
+							{previews.authorizedSignature && <img src={previews.authorizedSignature} width={120} alt="" />}
+						</div>
 					</>
 				)}
 
@@ -321,6 +331,12 @@ const BusinessDetials = ({ profileData, handleSubmit }) => {
 								</FormGroup>
 							</>
 						)}
+						<FormGroup>
+							<Label>Authorized Signature * <small>(Only .jpg, .jpeg, .png, .pdf formats are allowed)</small></Label>
+							<Input type="file" onChange={(e) => handleFileChange(e, 'authorizedSignature')} accept='image/*,application/pdf' />
+							<div className="text-danger">{errors.authorizedSignature}</div>
+							{renderFilePreview(files.authorizedSignature || businessData.authorizedSignature)}
+						</FormGroup>
 
 					</ModalBody>
 

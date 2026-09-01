@@ -9,6 +9,7 @@ import {
 import { numberToWords } from "../../utils/common";
 import LogoLg from "../../assets/images/logo/logo.png";
 import { formatDate, formatDateWithTime } from "../../utils/dateFormatter";
+import { IMAGE_URL } from "../../utils/api-config";
 
 const styles = StyleSheet.create({
   page: {
@@ -92,7 +93,8 @@ const InvoicePdf = ({ order }) => {
           <Text style={styles.textBold}>Sold By:</Text>
           <Text>{order?.vendorId?.businessDetails?.businessName}</Text>
           <Text>
-            {order?.vendorId?.addressDetails?.billingAddress?.addressLine1},{" "}
+            {order?.vendorId?.addressDetails?.billingAddress?.address1},{" "}
+            {order?.vendorId?.addressDetails?.billingAddress?.address2},{" "}
             {order?.vendorId?.addressDetails?.billingAddress?.city},{" "}
             {order?.vendorId?.addressDetails?.billingAddress?.state} -{" "}
             {order?.vendorId?.addressDetails?.billingAddress?.pincode}
@@ -232,7 +234,7 @@ const InvoicePdf = ({ order }) => {
       {/* SIGNATURE */}
       <View style={[styles.box, { alignItems: "flex-end" }]}>
         <Text>For {order?.vendorId?.businessDetails?.businessName}</Text>
-        <Image src={LogoLg} style={{ height: 40, marginTop: 5 }} />
+        <Image src={`${IMAGE_URL}/${order?.vendorId?.businessDetails?.authorizedSignature}`} style={{ height: 40, marginTop: 5 }} />
         <Text style={{ marginTop: 20 }}>Authorized Signatory</Text>
       </View>
     </Page>

@@ -1,62 +1,353 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
-	Row, Col, Card, CardBody, Button, Modal, ModalHeader, ModalBody, ModalFooter,
-	Form, FormGroup, Label, Input
-} from 'reactstrap';
-import { FaEdit } from 'react-icons/fa';
-import { IMAGE_URL } from '../../utils/api-config';
-import { buildFormData } from '../../utils/common';
-import { states } from '../../data/states';
+	Row,
+	Col,
+	Card,
+	CardBody,
+	Button,
+	Modal,
+	ModalHeader,
+	ModalBody,
+	ModalFooter,
+	Form,
+	FormGroup,
+	Label,
+	Input
+} from "reactstrap";
+import { FaEdit } from "react-icons/fa";
+import { buildFormData } from "../../utils/common";
+import { GetCities, GetStates } from "../../api/sellerProfileAPI";
 
-// SAME imports
+const COUNTRY_ID = "101";
+
+const ADDRESS_TYPES = [
+	{
+		key: "billingAddress",
+		title: "Billing Address",
+		sameCheckbox: null
+	},
+	{
+		key: "pickupAddress",
+		title: "Pickup Address",
+		sameCheckbox: "billing"
+	},
+	{
+		key: "otherPickupAddress",
+		title: "Other Pickup Address",
+		sameCheckbox: "pickup"
+	},
+	{
+		key: "returnPickupAddress",
+		title: "Return Pickup Address",
+		sameCheckbox: null
+	}
+];
+
+const createEmptyAddress = () => ({
+	companyName: "",
+	address1: "",
+	address2: "",
+	mobile: "",
+	country: "India",
+	country_id: COUNTRY_ID,
+	city: "",
+	city_id: "",
+	state: "",
+	state_id: "",
+	pincode: "",
+	ithinkAddressId: ""
+});
+
+const AddressForm = ({
+	type,
+	title,
+	address,
+	states,
+	cities,
+	errors,
+	updateAddress,
+	handleStateChange,
+	handleCityChange
+}) => {
+	const addressErrors = errors[type] || {};
+
+	return (
+		<FormGroup className="mb-4">
+			<h6>{title} *</h6>
+
+			{/* Company Name */}
+			<label className="mt-2">Company Name</label>
+
+			<Input
+				placeholder="Company Name"
+				value={address.companyName || ""}
+				onChange={(e) =>
+					updateAddress(type, "companyName", e.target.value)
+				}
+			/>
+
+			{addressErrors.companyName && (
+				<div className="text-danger">
+					{addressErrors.companyName}
+				</div>
+			)}
+
+			{/* Address Line 1 */}
+			<label className="mt-2">Address Line 1</label>
+
+			<Input
+				placeholder="Address Line 1"
+				value={address.address1 || ""}
+				onChange={(e) =>
+					updateAddress(type, "address1", e.target.value)
+				}
+			/>
+
+			{addressErrors.address1 && (
+				<div className="text-danger">
+					{addressErrors.address1}
+				</div>
+			)}
+
+			{/* Address Line 2 */}
+			<label className="mt-2">Address Line 2</label>
+
+			<Input
+				placeholder="Address Line 2"
+				value={address.address2 || ""}
+				onChange={(e) =>
+					updateAddress(type, "address2", e.target.value)
+				}
+			/>
+
+			{addressErrors.address2 && (
+				<div className="text-danger">
+					{addressErrors.address2}
+				</div>
+			)}
+
+			{/* Mobile Number */}
+			<label className="mt-2">Mobile Number</label>
+			<Input
+				placeholder="Mobile Number"
+				value={address.mobile || ""}
+				onChange={(e) =>
+					updateAddress(type, "mobile", e.target.value)
+				}
+			/>
+
+			{addressErrors.mobile && (
+				<div className="text-danger">
+					{addressErrors.mobile}
+				</div>
+			)}
+
+			<Row className="mt-2">
+
+				{/* State */}
+				<Col md={4}>
+					<label>State *</label>
+
+					<Input
+						type="select"
+						value={address.state_id || ""}
+						onChange={(e) =>
+							handleStateChange(type, e.target.value)
+						}
+					>
+						<option value="">Select State</option>
+
+						{states.map((state) => (
+							<option key={state.id} value={state.id}>
+								{state.state_name}
+							</option>
+						))}
+					</Input>
+
+					{addressErrors.state && (
+						<div className="text-danger">
+							{addressErrors.state}
+						</div>
+					)}
+				</Col>
+
+				{/* City */}
+				<Col md={4}>
+					<label>City *</label>
+
+					<Input
+						type="select"
+						value={address.city_id || ""}
+						disabled={!address.state_id}
+						onChange={(e) =>
+							handleCityChange(type, e.target.value)
+						}
+					>
+						<option value="">
+							{address.state_id
+								? "Select City"
+								: "Select State First"}
+						</option>
+
+						{(cities[type] || []).map((city) => (
+							<option key={city.id} value={city.id}>
+								{city.city_name}
+							</option>
+						))}
+					</Input>
+
+					{addressErrors.city && (
+						<div className="text-danger">
+							{addressErrors.city}
+						</div>
+					)}
+				</Col>
+
+				{/* Pincode */}
+				<Col md={4}>
+					<label>Pincode *</label>
+
+					<Input
+						placeholder="Pincode"
+						value={address.pincode || ""}
+						onChange={(e) =>
+							updateAddress(type, "pincode", e.target.value)
+						}
+					/>
+
+					{addressErrors.pincode && (
+						<div className="text-danger">
+							{addressErrors.pincode}
+						</div>
+					)}
+				</Col>
+
+			</Row>
+		</FormGroup>
+	);
+};
 
 const AddressDetails = ({ profileData, handleSubmit }) => {
-
 	const [modal, setModal] = useState(false);
-	const toggle = () => setModal(!modal);
+
 	const [sameAsBilling, setSameAsBilling] = useState(false);
 	const [sameAsPickup, setSameAsPickup] = useState(false);
 
-	const [errors, setErrors] = useState({
-		billingAddress: {},
-		pickupAddress: {},
-		otherPickupAddress: {},
-		returnPickupAddress: {}
+	const [states, setStates] = useState([]);
+
+	const [cities, setCities] = useState({
+		billingAddress: [],
+		pickupAddress: [],
+		otherPickupAddress: [],
+		returnPickupAddress: []
 	});
-	const emptyAddress = {
-		addressLine1: "",
-		addressLine2: "",
-		city: "",
-		state: "",
-		pincode: ""
-	};
+
+	const [errors, setErrors] = useState({});
 
 	const [address, setAddress] = useState({
-		billingAddress: { ...emptyAddress },
-		pickupAddress: { ...emptyAddress },
-		otherPickupAddress: { ...emptyAddress },
-		returnPickupAddress: { ...emptyAddress }
+		billingAddress: createEmptyAddress(),
+		pickupAddress: createEmptyAddress(),
+		otherPickupAddress: createEmptyAddress(),
+		returnPickupAddress: createEmptyAddress()
 	});
 
+	const toggle = () => {
+		setModal((prev) => !prev);
+	};
+
+	// --------------------------------------------------
+	// LOAD STATES
+	// --------------------------------------------------
+
 	useEffect(() => {
+		const loadStates = async () => {
+			try {
+				const response = await GetStates(COUNTRY_ID);
+
+				if (response?.success) {
+					setStates(response.data || []);
+				}
+			} catch (error) {
+				console.error("Failed to load states:", error);
+			}
+		};
+
+		loadStates();
+	}, []);
+
+	// --------------------------------------------------
+	// LOAD PROFILE ADDRESS
+	// --------------------------------------------------
+
+	useEffect(() => {
+		if (!profileData?.addressDetails) return;
+
+		const details = profileData.addressDetails;
+
 		setAddress({
-			billingAddress:
-				profileData?.addressDetails?.billingAddress || { ...emptyAddress },
+			billingAddress: {
+				...createEmptyAddress(),
+				...(details.billingAddress || {})
+			},
 
-			pickupAddress:
-				profileData?.addressDetails?.pickupAddress || { ...emptyAddress },
+			pickupAddress: {
+				...createEmptyAddress(),
+				...(details.pickupAddress || {})
+			},
 
-			otherPickupAddress:
-				profileData?.addressDetails?.otherPickupAddress || { ...emptyAddress },
+			otherPickupAddress: {
+				...createEmptyAddress(),
+				...(details.otherPickupAddress || {})
+			},
 
-			returnPickupAddress:
-				profileData?.addressDetails?.returnPickupAddress || { ...emptyAddress }
+			returnPickupAddress: {
+				...createEmptyAddress(),
+				...(details.returnPickupAddress || {})
+			}
 		});
 	}, [profileData]);
 
+	// --------------------------------------------------
+	// LOAD CITIES
+	// --------------------------------------------------
+
+	const loadCities = async (type, stateId) => {
+		if (!stateId) {
+			setCities((prev) => ({
+				...prev,
+				[type]: []
+			}));
+
+			return;
+		}
+
+		try {
+			const response = await GetCities(stateId);
+
+			if (response?.success) {
+				setCities((prev) => ({
+					...prev,
+					[type]: response.data || []
+				}));
+			}
+		} catch (error) {
+			console.error("Failed to load cities:", error);
+
+			setCities((prev) => ({
+				...prev,
+				[type]: []
+			}));
+		}
+	};
+
+	// --------------------------------------------------
+	// UPDATE ADDRESS
+	// --------------------------------------------------
+
 	const updateAddress = (type, field, value) => {
-		setAddress(prev => ({
+		setAddress((prev) => ({
 			...prev,
+
 			[type]: {
 				...prev[type],
 				[field]: value
@@ -64,536 +355,391 @@ const AddressDetails = ({ profileData, handleSubmit }) => {
 		}));
 	};
 
-	const validate = () => {
-		let newErrors = {};
+	// --------------------------------------------------
+	// STATE CHANGE
+	// --------------------------------------------------
 
-		const validateAddress = (key, value) => {
-			newErrors[key] = {};
+	const handleStateChange = (type, stateId) => {
+		const selectedState = states.find(
+			(state) => String(state.id) === String(stateId)
+		);
 
-			if (!value.addressLine1)
-				newErrors[key].addressLine1 = "Address Line 1 is required";
+		setAddress((prev) => ({
+			...prev,
 
-			if (!value.city)
-				newErrors[key].city = "City is required";
+			[type]: {
+				...prev[type],
 
-			if (!value.state)
-				newErrors[key].state = "State is required";
+				state_id: stateId,
+				state: selectedState?.state_name || "",
 
-			if (!value.pincode)
-				newErrors[key].pincode = "Pincode is required";
-
-			if (Object.keys(newErrors[key]).length === 0) {
-				delete newErrors[key];
+				city_id: "",
+				city: ""
 			}
-		};
+		}));
 
-		validateAddress("billingAddress", address.billingAddress);
-		validateAddress("pickupAddress", address.pickupAddress);
-		validateAddress("otherPickupAddress", address.otherPickupAddress);
-		validateAddress("returnPickupAddress", address.returnPickupAddress);
+		loadCities(type, stateId);
+	};
+
+	// --------------------------------------------------
+	// CITY CHANGE
+	// --------------------------------------------------
+
+	const handleCityChange = (type, cityId) => {
+		const selectedCity = (cities[type] || []).find(
+			(city) => String(city.id) === String(cityId)
+		);
+
+		setAddress((prev) => ({
+			...prev,
+
+			[type]: {
+				...prev[type],
+
+				city_id: cityId,
+				city: selectedCity?.city_name || ""
+			}
+		}));
+	};
+
+	// --------------------------------------------------
+	// LOAD CITIES FOR EXISTING ADDRESSES
+	// --------------------------------------------------
+
+	useEffect(() => {
+		if (!states.length) return;
+
+		Object.entries(address).forEach(([type, value]) => {
+			if (value.state_id && !(cities[type] || []).length) {
+				loadCities(type, value.state_id);
+			}
+		});
+
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [states]);
+
+	// --------------------------------------------------
+	// SAME AS BILLING
+	// --------------------------------------------------
+
+	const handleSameAsBilling = (checked) => {
+		setSameAsBilling(checked);
+
+		if (checked) {
+			setAddress((prev) => ({
+				...prev,
+
+				pickupAddress: {
+					...prev.billingAddress,
+
+					// Pickup has its own iThink ID
+					ithinkAddressId:
+						prev.pickupAddress.ithinkAddressId || ""
+				}
+			}));
+
+			// Use billing cities for pickup
+			setCities((prev) => ({
+				...prev,
+
+				pickupAddress: prev.billingAddress
+			}));
+		}
+	};
+
+	// --------------------------------------------------
+	// SAME AS PICKUP
+	// --------------------------------------------------
+
+	const handleSameAsPickup = (checked) => {
+		setSameAsPickup(checked);
+
+		if (checked) {
+			setAddress((prev) => ({
+				...prev,
+
+				otherPickupAddress: {
+					...prev.pickupAddress,
+
+					// Other pickup should NOT have this field
+					ithinkAddressId: undefined
+				},
+
+				returnPickupAddress: {
+					...prev.pickupAddress,
+
+					// Return pickup has its own ID
+					ithinkAddressId:
+						prev.returnPickupAddress.ithinkAddressId || ""
+				}
+			}));
+
+			setCities((prev) => ({
+				...prev,
+
+				otherPickupAddress: prev.pickupAddress,
+				returnPickupAddress: prev.pickupAddress
+			}));
+		}
+	};
+
+	// --------------------------------------------------
+	// KEEP SAME ADDRESSES UPDATED
+	// --------------------------------------------------
+
+	useEffect(() => {
+		if (!sameAsBilling) return;
+
+		setAddress((prev) => ({
+			...prev,
+
+			pickupAddress: {
+				...prev.billingAddress
+			}
+		}));
+
+		setCities((prev) => ({
+			...prev,
+
+			pickupAddress: prev.billingAddress
+		}));
+	}, [address.billingAddress, sameAsBilling]);
+
+	useEffect(() => {
+		if (!sameAsPickup) return;
+
+		setAddress((prev) => ({
+			...prev,
+
+			otherPickupAddress: {
+				...prev.pickupAddress
+			},
+
+			returnPickupAddress: {
+				...prev.pickupAddress
+			}
+		}));
+
+		setCities((prev) => ({
+			...prev,
+
+			otherPickupAddress: prev.pickupAddress,
+			returnPickupAddress: prev.pickupAddress
+		}));
+	}, [address.pickupAddress, sameAsPickup]);
+
+	// --------------------------------------------------
+	// VALIDATION
+	// --------------------------------------------------
+	const pincodeRegex = /^[0-9]{6}$/;
+
+	const validate = () => {
+		const newErrors = {};
+
+		Object.entries(address).forEach(([key, value]) => {
+			const addressErrors = {};
+
+			if (!value.companyName?.trim()) {
+				addressErrors.companyName =
+					"Company Name is required";
+			}
+
+			if (!value.address1?.trim()) {
+				addressErrors.address1 =
+					"Address Line 1 is required";
+			}
+
+			if (!value.mobile?.trim()) {
+				addressErrors.mobile =
+					"Mobile Number is required";
+			}
+
+			if (!value.state_id) {
+				addressErrors.state = "State is required";
+			}
+
+			if (!value.city_id) {
+				addressErrors.city = "City is required";
+			}
+
+			if (!value.pincode?.trim()) {
+				addressErrors.pincode = "Pincode is required";
+			} else if (!pincodeRegex.test(value.pincode)) {
+				addressErrors.pincode = "Enter a valid pincode";
+			}
+
+			if (Object.keys(addressErrors).length) {
+				newErrors[key] = addressErrors;
+			}
+		});
 
 		setErrors(newErrors);
 
 		return Object.keys(newErrors).length === 0;
 	};
 
-	const handleSameAsBilling = (checked) => {
-		setSameAsBilling(checked);
+	// --------------------------------------------------
+	// SAVE
+	// --------------------------------------------------
 
-		if (checked) {
-			setAddress(prev => ({
-				...prev,
-				pickupAddress: { ...prev.billingAddress }
-			}));
-		}
+	const handleSave = () => {
+		if (!validate()) return;
+
+		const formData = buildFormData(
+			"addressDetails",
+			address
+		);
+		// console.log(address);
+		// return
+		handleSubmit(formData);
+
+		toggle();
 	};
-
-	const handleSameAsPickup = (checked) => {
-		setSameAsPickup(checked);
-
-		if (checked) {
-			setAddress(prev => ({
-				...prev,
-				otherPickupAddress: { ...prev.pickupAddress },
-				returnPickupAddress: { ...prev.pickupAddress }
-			}));
-		}
-	};
-
-	useEffect(() => {
-		if (sameAsBilling) {
-			setAddress(prev => ({
-				...prev,
-				pickupAddress: { ...prev.billingAddress }
-			}));
-		}
-	}, [address.billingAddress, sameAsBilling]);
-
-	useEffect(() => {
-		if (sameAsPickup) {
-			setAddress(prev => ({
-				...prev,
-				otherPickupAddress: { ...prev.pickupAddress },
-				returnPickupAddress: { ...prev.pickupAddress }
-			}));
-		}
-	}, [address.pickupAddress]);
 
 	return (
 		<Card className="h-100 bg-light shadow-sm border-0">
 			<CardBody>
 
+				{/* HEADER */}
 				<div className="d-flex justify-content-between mb-2">
 					<h6>Address Details</h6>
+
 					<Button color="link" onClick={toggle}>
 						<FaEdit size={14} /> EDIT
 					</Button>
 				</div>
 
-				<div className="mb-2">
-					<strong>Billing Address:</strong><br />
+				{/* ADDRESS DISPLAY */}
+				{ADDRESS_TYPES.map(({ key, title }) => {
+					const item = address[key];
 
-					{address.billingAddress.addressLine1}<br />
-					{address.billingAddress.addressLine2}<br />
+					return (
+						<div className="mb-3" key={key}>
+							<strong>{title}:</strong>
+							<br />
 
-					{address.billingAddress.city},
-					{" "}
-					{address.billingAddress.state}
-					{" - "}
-					{address.billingAddress.pincode}
-				</div>
+							{item.address1 && (
+								<>
+									{item.address1}
+									<br />
+								</>
+							)}
 
-				<div className="mb-2">
-					<strong>Pickup Address:</strong><br />
+							{item.address2 && (
+								<>
+									{item.address2}
+									<br />
+								</>
+							)}
 
-					{address.pickupAddress.addressLine1}<br />
-					{address.pickupAddress.addressLine2}<br />
-
-					{address.pickupAddress.city},
-					{" "}
-					{address.pickupAddress.state}
-					{" - "}
-					{address.pickupAddress.pincode}
-				</div>
-
-				<div className="mb-2">
-					<strong>Other Pickup Address:</strong><br />
-
-					{address.otherPickupAddress.addressLine1}<br />
-					{address.otherPickupAddress.addressLine2}<br />
-
-					{address.otherPickupAddress.city},
-					{" "}
-					{address.otherPickupAddress.state}
-					{" - "}
-					{address.otherPickupAddress.pincode}
-				</div>
-
-				<div className="mb-2">
-					<strong>Return Pickup Address:</strong><br />
-
-					{address.returnPickupAddress.addressLine1}<br />
-					{address.returnPickupAddress.addressLine2}<br />
-
-					{address.returnPickupAddress.city},
-					{" "}
-					{address.returnPickupAddress.state}
-					{" - "}
-					{address.returnPickupAddress.pincode}
-				</div>
+							{item.city && (
+								<>
+									{item.city}, {item.state}
+									{item.pincode && ` - ${item.pincode}`}
+								</>
+							)}
+						</div>
+					);
+				})}
 
 			</CardBody>
-			<Modal isOpen={modal} toggle={toggle} size='lg'>
-				<ModalHeader toggle={toggle}>Edit Address</ModalHeader>
+
+			{/* =====================================================
+          EDIT MODAL
+      ===================================================== */}
+
+			<Modal
+				isOpen={modal}
+				toggle={toggle}
+				size="lg"
+			>
+				<ModalHeader toggle={toggle}>
+					Edit Address
+				</ModalHeader>
 
 				<Form>
 					<ModalBody>
 
-						<FormGroup>
-							<h6>Billing Address *</h6>
-							<label className='mt-2'>Address Line 1</label>
-							<Input
-								placeholder="Address Line 1"
-								value={address.billingAddress.addressLine1}
-								onChange={(e) =>
-									updateAddress(
-										"billingAddress",
-										"addressLine1",
-										e.target.value
-									)
-								}
-							/>
+						{/* ADDRESS FORMS */}
+						{ADDRESS_TYPES.map(
+							({ key, title }) => (
+								<React.Fragment key={key}>
 
-							{errors.billingAddress && errors.billingAddress.addressLine1 && errors.billingAddress.addressLine1.length > 0 && <div className="text-danger">{errors.billingAddress.addressLine1}</div>}
-							
-							<label className='mt-2'>Address Line 2</label>
-							<Input	
-								placeholder="Address Line 2"
-								value={address.billingAddress.addressLine2}
-								onChange={(e) =>
-									updateAddress(
-										"billingAddress",
-										"addressLine2",
-										e.target.value
-									)
-								}
-							/>
-
-							{errors.billingAddress && errors.billingAddress.addressLine2 && errors.billingAddress.addressLine2.length > 0 && <div className="text-danger">{errors.billingAddress.addressLine2}</div>}
-
-							<Row className="mt-2">
-								<Col md={4}>
-									<label>City</label>
-									<Input
-										placeholder="City"
-										value={address.billingAddress.city}
-										onChange={(e) =>
-											updateAddress(
-												"billingAddress",
-												"city",
-												e.target.value
-											)
-										}
+									<AddressForm
+										type={key}
+										title={title}
+										address={address[key]}
+										states={states}
+										cities={cities}
+										errors={errors}
+										updateAddress={updateAddress}
+										handleStateChange={handleStateChange}
+										handleCityChange={handleCityChange}
 									/>
-									{errors.billingAddress && errors.billingAddress.city && errors.billingAddress.city.length > 0 && <div className="text-danger">{errors.billingAddress.city}</div>}
-								</Col>
 
-								<Col md={4}>
-									<label>State</label>
-									<Input
-										type="select"
-										placeholder="State"
-										value={address.billingAddress.state}
-										onChange={(e) =>
-											updateAddress(
-												"billingAddress",
-												"state",
-												e.target.value
-											)
-										}
-									>
-										{states.map((state) => (
-											<option key={state} value={state}>
-												{state}
-											</option>
-										))}
-									</Input>
-									{errors.billingAddress && errors.billingAddress.state && errors.billingAddress.state.length > 0 && <div className="text-danger">{errors.billingAddress.state}</div>}
-								</Col>
+									{/* SAME AS BILLING */}
+									{key === "billingAddress" && (
+										<FormGroup
+											check
+											className="mb-3"
+										>
+											<Input
+												type="checkbox"
+												checked={sameAsBilling}
+												onChange={(e) =>
+													handleSameAsBilling(
+														e.target.checked
+													)
+												}
+											/>
 
-								<Col md={4}>
-									<label>Pincode</label>
-									<Input
-										placeholder="Pincode"
-										value={address.billingAddress.pincode}
-										onChange={(e) =>
-											updateAddress(
-												"billingAddress",
-												"pincode",
-												e.target.value
-											)
-										}
-									/>
-									{errors.billingAddress && errors.billingAddress.pincode && errors.billingAddress.pincode.length > 0 && <div className="text-danger">{errors.billingAddress.pincode}</div>}
-								</Col>
-							</Row>
-						</FormGroup>
-						<FormGroup check className="mb-2">
-							<Input
-								type="checkbox"
-								checked={sameAsBilling}
-								onChange={(e) => handleSameAsBilling(e.target.checked)}
-							/>
-							<Label check>Same as Billing Address</Label>
-						</FormGroup>
+											<Label check>
+												Same as Billing Address
+											</Label>
+										</FormGroup>
+									)}
 
-						<FormGroup>
-							<h6>Pickup Address *</h6>
-							
-							<label className='mt-2'>Address Line 1</label>
-							<Input
-								placeholder="Address Line 1"
-								value={address.pickupAddress.addressLine1}
-								onChange={(e) =>
-									updateAddress(
-										"pickupAddress",
-										"addressLine1",
-										e.target.value
-									)
-								}
-							/>
-							{errors.pickupAddress && errors.pickupAddress.addressLine1 && errors.pickupAddress.addressLine1.length > 0 && <div className="text-danger">{errors.pickupAddress.addressLine1}</div>}
-							
-							<label className='mt-2'>Address Line 2</label>
-							<Input
-								placeholder="Address Line 2"
-								value={address.pickupAddress.addressLine2}
-								onChange={(e) =>
-									updateAddress(
-										"pickupAddress",
-										"addressLine2",
-										e.target.value
-									)
-								}
-							/>
-							{errors.pickupAddress && errors.pickupAddress.addressLine2 && errors.pickupAddress.addressLine2.length > 0 && <div className="text-danger">{errors.pickupAddress.addressLine2}</div>}
+									{/* SAME AS PICKUP */}
+									{key === "pickupAddress" && (
+										<FormGroup
+											check
+											className="mb-3"
+										>
+											<Input
+												type="checkbox"
+												checked={sameAsPickup}
+												onChange={(e) =>
+													handleSameAsPickup(
+														e.target.checked
+													)
+												}
+											/>
 
-							<Row className="mt-2">
-								<Col md={4}>
-									<label>City</label>
-									<Input
-										placeholder="City"
-										value={address.pickupAddress.city}
-										onChange={(e) =>
-											updateAddress(
-												"pickupAddress",
-												"city",
-												e.target.value
-											)
-										}
-									/>
-									{errors.pickupAddress && errors.pickupAddress.city && errors.pickupAddress.city.length > 0 && <div className="text-danger">{errors.pickupAddress.city}</div>}
-								</Col>
+											<Label check>
+												Same as Pickup Address
+											</Label>
+										</FormGroup>
+									)}
 
-								<Col md={4}>
-									<label>State</label>
-									<Input
-										type="select"
-										placeholder="State"
-										value={address.pickupAddress.state}
-										onChange={(e) =>
-											updateAddress(
-												"pickupAddress",
-												"state",
-												e.target.value
-											)
-										}
-									>
-										{states.map((state) => (
-											<option key={state} value={state}>
-												{state}
-											</option>
-										))}
-									</Input>
-									{errors.pickupAddress && errors.pickupAddress.state && errors.pickupAddress.state.length > 0 && <div className="text-danger">{errors.pickupAddress.state}</div>}
-								</Col>
-
-								<Col md={4}>
-									<label>Pincode</label>
-									<Input
-										placeholder="Pincode"
-										value={address.pickupAddress.pincode}
-										onChange={(e) =>
-											updateAddress(
-												"pickupAddress",
-												"pincode",
-												e.target.value
-											)
-										}
-									/>
-									{errors.pickupAddress && errors.pickupAddress.pincode && errors.pickupAddress.pincode.length > 0 && <div className="text-danger">{errors.pickupAddress.pincode}</div>}
-								</Col>
-							</Row>
-						</FormGroup>
-						<FormGroup check className="mb-2">
-							<Input
-								type="checkbox"
-								checked={sameAsPickup}
-								onChange={(e) => handleSameAsPickup(e.target.checked)}
-							/>
-							<Label check>Same as Pickup Address</Label>
-						</FormGroup>
-
-						<FormGroup>
-							<h6>Other Pickup Address *</h6>
-									
-							<label className='mt-2'>Address Line 1</label>
-							<Input
-								placeholder="Address Line 1"
-								value={address.otherPickupAddress.addressLine1}
-								onChange={(e) =>
-									updateAddress(
-										"otherPickupAddress",
-										"addressLine1",
-										e.target.value
-									)
-								}
-							/>
-							{errors.otherPickupAddress && errors.otherPickupAddress.addressLine1 && errors.otherPickupAddress.addressLine1.length > 0 && <div className="text-danger">{errors.otherPickupAddress.addressLine1}</div>}
-
-							<label className='mt-2'>Address Line 2</label>
-							<Input
-								placeholder="Address Line 2"
-								value={address.otherPickupAddress.addressLine2}
-								onChange={(e) =>
-									updateAddress(
-										"otherPickupAddress",
-										"addressLine2",
-										e.target.value
-									)
-								}
-							/>
-							{errors.otherPickupAddress && errors.otherPickupAddress.addressLine2 && errors.otherPickupAddress.addressLine2.length > 0 && <div className="text-danger">{errors.otherPickupAddress.addressLine2}</div>}
-
-							<Row className="mt-2">
-								<Col md={4}>
-									<label>City</label>
-									<Input
-										placeholder="City"
-										value={address.otherPickupAddress.city}
-										onChange={(e) =>
-											updateAddress(
-												"otherPickupAddress",
-												"city",
-												e.target.value
-											)
-										}
-									/>
-									{errors.otherPickupAddress && errors.otherPickupAddress.city && errors.otherPickupAddress.city.length > 0 && <div className="text-danger">{errors.otherPickupAddress.city}</div>}
-								</Col>
-
-								<Col md={4}>
-									<label>State</label>
-									<Input
-										type="select"
-										placeholder="State"
-										value={address.otherPickupAddress.state}
-										onChange={(e) =>
-											updateAddress(
-												"otherPickupAddress",
-												"state",
-												e.target.value
-											)
-										}
-									>
-										{states.map((state) => (
-											<option key={state} value={state}>
-												{state}
-											</option>
-										))}
-									</Input>
-									{errors.otherPickupAddress && errors.otherPickupAddress.state && errors.otherPickupAddress.state.length > 0 && <div className="text-danger">{errors.otherPickupAddress.state}</div>}
-								</Col>
-
-								<Col md={4}>
-									<label>Pincode</label>
-									<Input
-										placeholder="Pincode"
-										value={address.otherPickupAddress.pincode}
-										onChange={(e) =>
-											updateAddress(
-												"otherPickupAddress",
-												"pincode",
-												e.target.value
-											)
-										}
-									/>
-									{errors.otherPickupAddress && errors.otherPickupAddress.pincode && errors.otherPickupAddress.pincode.length > 0 && <div className="text-danger">{errors.otherPickupAddress.pincode}</div>}
-								</Col>
-							</Row>
-						</FormGroup>
-
-						<FormGroup>
-							<h6>Return Pickup Address *</h6>
-
-							<label className='mt-2'>Address Line 1</label>
-							<Input
-								placeholder="Address Line 1"
-								value={address.returnPickupAddress.addressLine1}
-								onChange={(e) =>
-									updateAddress(
-										"returnPickupAddress",
-										"addressLine1",
-										e.target.value
-									)
-								}
-							/>
-							{errors.returnPickupAddress && errors.returnPickupAddress.addressLine1 && errors.returnPickupAddress.addressLine1.length > 0 && <div className="text-danger">{errors.returnPickupAddress.addressLine1}</div>}
-
-							<label className='mt-2'>Address Line 2</label>
-							<Input
-								placeholder="Address Line 2"
-								value={address.returnPickupAddress.addressLine2}
-								onChange={(e) =>
-									updateAddress(
-										"returnPickupAddress",
-										"addressLine2",
-										e.target.value
-									)
-								}
-							/>
-							{errors.returnPickupAddress && errors.returnPickupAddress.addressLine2 && errors.returnPickupAddress.addressLine2.length > 0 && <div className="text-danger">{errors.returnPickupAddress.addressLine2}</div>}
-
-							<Row className="mt-2">
-								<Col md={4}>
-									<label>City</label>
-									<Input
-										placeholder="City"
-										value={address.returnPickupAddress.city}
-										onChange={(e) =>
-											updateAddress(
-												"returnPickupAddress",
-												"city",
-												e.target.value
-											)
-										}
-									/>
-									{errors.returnPickupAddress && errors.returnPickupAddress.city && errors.returnPickupAddress.city.length > 0 && <div className="text-danger">{errors.returnPickupAddress.city}</div>}
-								</Col>
-
-								<Col md={4}>
-									<label>State</label>
-									<Input
-										type="select"
-										placeholder="State"
-										value={address.returnPickupAddress.state}
-										onChange={(e) =>
-											updateAddress(
-												"returnPickupAddress",
-												"state",
-												e.target.value
-											)
-										}
-									>
-										{states.map((state) => (
-											<option key={state} value={state}>
-												{state}
-											</option>
-										))}
-									</Input>
-									{errors.returnPickupAddress && errors.returnPickupAddress.state && errors.returnPickupAddress.state.length > 0 && <div className="text-danger">{errors.returnPickupAddress.state}</div>}
-								</Col>
-
-								<Col md={4}>
-									<label>Pincode</label>
-									<Input
-										placeholder="Pincode"
-										value={address.returnPickupAddress.pincode}
-										onChange={(e) =>
-											updateAddress(
-												"returnPickupAddress",
-												"pincode",
-												e.target.value
-											)
-										}
-									/>
-									{errors.returnPickupAddress && errors.returnPickupAddress.pincode && errors.returnPickupAddress.pincode.length > 0 && <div className="text-danger">{errors.returnPickupAddress.pincode}</div>}
-								</Col>
-							</Row>
-						</FormGroup>
+								</React.Fragment>
+							)
+						)}
 
 					</ModalBody>
 
 					<ModalFooter>
-						<Button color="primary" onClick={() => {
-							if (!validate()) return;
 
-							const formData = buildFormData('addressDetails', address);
-							handleSubmit(formData);
-							toggle();
-						}}>Save</Button>
+						<Button
+							color="primary"
+							onClick={handleSave}
+						>
+							Save
+						</Button>
 
-						<Button onClick={toggle}>Cancel</Button>
+						<Button onClick={toggle}>
+							Cancel
+						</Button>
+
 					</ModalFooter>
 				</Form>
 			</Modal>
