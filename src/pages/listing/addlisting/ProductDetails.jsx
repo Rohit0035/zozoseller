@@ -325,10 +325,22 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		if (listingData.type === 'variable' && variations.length > 0) {
 			const updatedVariations = variations.map((variation) => {
 				const sellingPrice = parseFloat(variation.salePrice) || 0;
+				
 				const packageWeight = parseFloat(variation.packageWeight) || 0;
+				const packageLength = parseFloat(variation.packageLength) || 0;
+				const packageWidth = parseFloat(variation.packageWidth) || parseFloat(variation.packageBreadth) || 0; 
+				const packageHeight = parseFloat(variation.packageHeight) || 0;
+
 				const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
-				const shippingCharge = packageWeight * 20;
+				// --- NEW SHIPPING LOGIC ---
+				// Calculate Volumetric weight (Length x Breadth x Height) / 5000
+				const volumetricWeight = (packageLength * packageWidth * packageHeight) / 5000;
+				// Find the greater weight
+				const chargeableWeight = Math.max(packageWeight, volumetricWeight);
+				// Calculate shipping: ₹70 for every 0.5 KG 
+				const shippingCharge = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+				// --------------------------
 
 				let commissionRate = 0;
 				let commissionAmount = 0;
@@ -412,9 +424,18 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 	useEffect(() => {
 		const salePrice = parseFloat(listingData.salePrice) || 0;
-		const packageWeight = parseFloat(listingData.packageWeight) || 0;
 
-		const shippingCharge = packageWeight * 20;
+		const packageWeight = parseFloat(listingData.packageWeight) || 0;
+		const packageLength = parseFloat(listingData.packageLength) || 0;
+		const packageBreadth = parseFloat(listingData.packageBreadth) || 0;
+		const packageHeight = parseFloat(listingData.packageHeight) || 0;
+
+		// --- NEW SHIPPING LOGIC ---
+		const volumetricWeight = (packageLength * packageBreadth * packageHeight) / 5000;
+		const chargeableWeight = Math.max(packageWeight, volumetricWeight);
+		const shippingCharge = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+		// --------------------------
+		
 		const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
 		let productPrice = 0;

@@ -80,6 +80,76 @@ export const VerifySignupOtpApi = async (data) => {
   }
 };
 
+export const ForgotPasswordSendOtpApi = async (data) => {
+  try {
+    const response = await axios.post(
+      `${API_CONFIG.baseURL}/seller/auth/forgot-password-send-otp`,
+      data, // Send data in the request body
+      { headers: API_CONFIG.headers } // Pass headers correctly
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.response?.data?.message || "forgot password failed",
+      statusCode: error?.response?.data?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const ForgotPasswordVerifyOtpApi = async (data) => {
+  try {
+    const response = await axios.post(
+      `${API_CONFIG.baseURL}/seller/auth/forgot-password-verify-otp`,
+      data, // Send data in the request body
+      { headers: API_CONFIG.headers } // Pass headers correctly
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.response?.data?.message || "forgot password failed",
+      statusCode: error?.response?.data?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const ResetPasswordApi = async (data) => {
+  try {
+    const response = await axios.post(
+      `${API_CONFIG.baseURL}/seller/auth/reset-password`,
+      data, // Send data in the request body
+      { headers: API_CONFIG.headers } // Pass headers correctly
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.response?.data?.message || "reset password failed",
+      statusCode: error?.response?.data?.status || 500 // Preserve status code
+    };
+  }
+};
+
+export const ChangePasswordApi = async (data) => {
+  try {
+    const response = await fetchWithAuth(
+      `${API_CONFIG.baseURL}/seller/auth/change-password`,'POST',data
+    );
+    return response.data; // Axios automatically parses JSON
+  } catch (error) {
+    // throw new Error(error?.message || "Login failed");
+    return { 
+      status: "error", 
+      message: error?.response?.data?.message || "change password failed",
+      statusCode: error?.response?.data?.status || 500 // Preserve status code
+    };
+  }
+};
+
 export const GetDashboardData = async (data) => {
   try {
     const response = await fetchWithAuth(

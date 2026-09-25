@@ -18,7 +18,8 @@ export default function App() {
     "/login",
     "/sign-up",
     "/otp",
-    "/sign-up-otp-verification"
+    "/sign-up-otp-verification",
+    "/forgot-password",
   ].includes(location.pathname);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);

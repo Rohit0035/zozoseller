@@ -109,6 +109,8 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
             <DropdownItem divider />
             <DropdownItem tag={Link} to="/Profile">My Account</DropdownItem>
             <DropdownItem divider />
+            <DropdownItem tag={Link} to="/change-password">Change Password</DropdownItem>
+            <DropdownItem divider />
             <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
           </DropdownMenu>
         </UncontrolledDropdown>

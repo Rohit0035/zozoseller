@@ -9,6 +9,7 @@ import AddListingIndex from "./pages/listing/addlisting/AddListingIndex";
 import AddListingBulkIndex from "./pages/listing/addbulklisting/AddListingBulkIndex";
 import { useSelector } from "react-redux";
 import EditListingIndex from "./pages/listing/editlisting/EditListingIndex";
+import ChangePassword from "./pages/ChangePassword";
 
 // Lazy loaded pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -53,7 +54,7 @@ const Login = lazy(() => import("./pages/Login"));
 const OtpVerification = lazy(() => import("./pages/OtpVerification"));
 const Signup = lazy(() => import("./pages/Signup"));
 const SignupOtpVerification = lazy(() => import("./pages/SignupOtpVerification"));
-
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 
 // Dummy auth check
 const isAuthenticated = () => useSelector(state => state.auth?.isAuthenticated) || true;
@@ -65,7 +66,7 @@ const PrivateRoute = ({ children }) => {
 
 export default function AppRoutes() {
   const location = useLocation();
-  const isAuthPage = ["/login", "/sign-up", "/otp", "/sign-up-otp-verification"].includes(
+  const isAuthPage = ["/login", "/sign-up", "/otp", "/sign-up-otp-verification", "/forgot-password"].includes(
     location.pathname
   );
 
@@ -77,6 +78,7 @@ export default function AppRoutes() {
         <Route path="/otp" element={<OtpVerification />} />
         <Route path="/sign-up" element={<Signup />} />
         <Route path="/sign-up-otp-verification" element={<SignupOtpVerification />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected app routes inside layout */}
         <Route
@@ -111,6 +113,15 @@ export default function AppRoutes() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/change-password"
+          element={
+            <PrivateRoute>
+              <ChangePassword />
+            </PrivateRoute>
+          }
+        />
+
         <Route
           path="/addlisting"
           element={
