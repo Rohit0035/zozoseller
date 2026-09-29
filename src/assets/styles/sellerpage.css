@@ -1,0 +1,9 @@
+.container {
+    max-width: 1266px;
+}
+.st-text{
+  color: var(--primary)!important;
+}
+.st-bg {
+    background-color: var(--primary);
+}

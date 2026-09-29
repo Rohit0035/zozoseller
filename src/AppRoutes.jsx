@@ -54,6 +54,8 @@ const Login = lazy(() => import("./pages/Login"));
 const OtpVerification = lazy(() => import("./pages/OtpVerification"));
 const Signup = lazy(() => import("./pages/Signup"));
 const SignupOtpVerification = lazy(() => import("./pages/SignupOtpVerification"));
+const HomeIndex = lazy(() => import("./pages/landing-page/HomeIndex"));
+
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 
 // Dummy auth check
@@ -74,6 +76,7 @@ export default function AppRoutes() {
     <Suspense fallback={<div>Loading...</div>}>
       <Routes>
         {/* Public auth routes */}
+        <Route path="/home" element={<HomeIndex />} />
         <Route path="/login" element={<Login />} />
         <Route path="/otp" element={<OtpVerification />} />
         <Route path="/sign-up" element={<Signup />} />

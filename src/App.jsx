@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar";
 import SidebarOffcanvas from "./components/SidebarOffcanvas";
 import Header from "./components/Header";
@@ -7,6 +7,8 @@ import "./assets/styles/main.css";
 import { useMediaQuery } from "react-responsive";
 import { useLocation } from "react-router-dom";
 import { Container } from "reactstrap";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 export default function App() {
   const [collapsed, setCollapsed] = useState(false);
@@ -14,12 +16,22 @@ export default function App() {
   const isTabletOrMobile = useMediaQuery({ maxWidth: 991 });
   const location = useLocation();
 
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      easing: "ease-in-out",
+      once: true,
+      offset: 100,
+      delay: 0,
+    });
+  }, []);
+
   const isAuthPage = [
+    "/home",
     "/login",
     "/sign-up",
     "/otp",
-    "/sign-up-otp-verification",
-    "/forgot-password",
+    "/sign-up-otp-verification"
   ].includes(location.pathname);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
