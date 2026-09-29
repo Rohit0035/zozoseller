@@ -278,12 +278,12 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	};
 
 	const handleAttributeChange = (selectedOptions) => {
-    setSelectedAttributeOptions(selectedOptions || []);
-    setSelectedAttributes(selectedOptions || []);   // <-- Missing
+		setSelectedAttributeOptions(selectedOptions || []);
+		setSelectedAttributes(selectedOptions || []);   // <-- Missing
 
-    setVariations([]);
-    setAttributeValueMap({});
-};
+		setVariations([]);
+		setAttributeValueMap({});
+	};
 
 	const handleAttributeValueChange = (attributeId, selectedValues) => {
 		setAttributeValueMap(prev => {
@@ -299,10 +299,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 	const generateVariations = () => {
 		const attrOptions = selectedAttributes.map(attr => ({
-    id: attr.value,
-    name: attr.label,
-    values: attributeValueMap[attr.value] || []
-}));
+			id: attr.value,
+			name: attr.label,
+			values: attributeValueMap[attr.value] || []
+		}));
 
 		if (attrOptions.some(opt => opt.values.length === 0 && selectedAttributes.length > 0)) {
 			showToast('error', 'Please select values for all selected attributes.');
@@ -323,17 +323,25 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				image: null,
 				sku: '',
 				packageLength: "",
+				packageWidth: "",
 				packageBreadth: "",
 				packageHeight: "",
 				packageWeight: "",
 				hsn: "",
 				regularPrice: '',
+				salePrice: '',
+				packingCharges: '',
+				closingFee: '',
 				productPrice: '',
-				comissionAmount: '',
+				taxableAmount: '',
+				commissionAmountPartial: '',
+				commissionGstPartial: '',
+				commissionAmount: '',
 				gstAmount: '',
 				tcsAmount: '',
+				shippingChargesPartial: '',
+				shippingGstPartial: '',
 				shippingCharge: '',
-				salePrice: '',
 				stockQty: '',
 				minStockQty: '',
 				attributes: combo.map(c => ({ id: c.id, value: c.value }))
@@ -370,65 +378,65 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	useEffect(() => {
 		if (listingData.type === 'variable' && variations.length > 0) {
 			const updatedVariations = variations.map((variation) => {
-				const sellingPrice = parseFloat(variation.salePrice) || 0;
+				const salePrice = parseFloat(variation.salePrice) || 0;
+				const packingCharges = parseFloat(variation.packingCharges) || 0;
+				const closingFee = parseFloat(variation.closingFee) || 0;
 
 				const packageWeight = parseFloat(variation.packageWeight) || 0;
 				const packageLength = parseFloat(variation.packageLength) || 0;
-				const packageWidth = parseFloat(variation.packageWidth) || parseFloat(variation.packageBreadth) || 0; 
+				const packageWidth = parseFloat(variation.packageWidth) || parseFloat(variation.packageBreadth) || 0;
 				const packageHeight = parseFloat(variation.packageHeight) || 0;
-				
+
 				const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
-				// --- NEW SHIPPING LOGIC ---
-				// Calculate Volumetric weight (Length x Breadth x Height) / 5000
+				// Shipping
 				const volumetricWeight = (packageLength * packageWidth * packageHeight) / 5000;
-				// Find the greater weight
 				const chargeableWeight = Math.max(packageWeight, volumetricWeight);
-				// Calculate shipping: ₹70 for every 0.5 KG 
-				const shippingCharge = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
-				// --------------------------
+				const shippingChargesPartial = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+				const shippingGstPartial = (shippingChargesPartial * gstPercentage) / 100;
+				const shippingCharge = shippingChargesPartial + shippingGstPartial;
 
 				let commissionRate = 0;
+				let commissionAmountPartial = 0;
+				let commissionGstPartial = 0;
 				let commissionAmount = 0;
+				let taxableAmount = 0;
 				let gstAmount = 0;
 				let tcsAmount = 0;
 				let productPrice = 0;
 
-				if (sellingPrice > 0) {
-					// Find commission slab based on Selling Price
+				if (salePrice > 0) {
 					const slab = commissionSlabs.find(
-						slab =>
-							sellingPrice >= slab.min_value &&
-							sellingPrice <= slab.max_value
+						s => salePrice >= s.min_value && salePrice <= s.max_value
 					);
-
 					commissionRate = slab?.commission_rate || 0;
 
-					// Calculate all charges from Selling Price
-					commissionAmount = (sellingPrice * commissionRate) / 100;
-					gstAmount =
-						((sellingPrice + commissionAmount) * gstPercentage) / 100;
-					tcsAmount = sellingPrice * 0.001;
+					taxableAmount = (salePrice * 100) / (gstPercentage + 100);
+					gstAmount = salePrice - taxableAmount;
 
-					// Remaining amount is Product Price
-					productPrice =
-						sellingPrice -
-						commissionAmount -
-						gstAmount -
-						tcsAmount -
-						shippingCharge;
+					commissionAmountPartial = (salePrice * commissionRate) / 100;
+					commissionGstPartial = (commissionAmountPartial * gstPercentage) / 100;
+					commissionAmount = commissionAmountPartial + commissionGstPartial;
 
+					tcsAmount = salePrice * 0.001;
+
+					productPrice = salePrice - commissionAmount - packingCharges - shippingCharge - tcsAmount - closingFee;
 					productPrice = Math.max(0, productPrice);
 				}
 
 				return {
 					...variation,
 					productPrice: productPrice.toFixed(2),
+					taxableAmount: taxableAmount.toFixed(2),
 					commissionRate,
+					commissionAmountPartial: commissionAmountPartial.toFixed(2),
+					commissionGstPartial: commissionGstPartial.toFixed(2),
 					commissionAmount: commissionAmount.toFixed(2),
+					shippingChargesPartial: shippingChargesPartial.toFixed(2),
+					shippingGstPartial: shippingGstPartial.toFixed(2),
+					shippingCharge: shippingCharge.toFixed(2),
 					gstAmount: gstAmount.toFixed(2),
 					tcsAmount: tcsAmount.toFixed(2),
-					shippingCharge: shippingCharge.toFixed(2),
 				};
 			});
 
@@ -471,64 +479,73 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 	useEffect(() => {
 		const salePrice = parseFloat(listingData.salePrice) || 0;
+		const packingCharges = parseFloat(listingData.packingCharges) || 0;
+		const closingFee = parseFloat(listingData.closingFee) || 0;
 
 		const packageWeight = parseFloat(listingData.packageWeight) || 0;
 		const packageLength = parseFloat(listingData.packageLength) || 0;
 		const packageBreadth = parseFloat(listingData.packageBreadth) || 0;
 		const packageHeight = parseFloat(listingData.packageHeight) || 0;
 
-		// --- NEW SHIPPING LOGIC ---
-		const volumetricWeight = (packageLength * packageBreadth * packageHeight) / 5000;
-		const chargeableWeight = Math.max(packageWeight, volumetricWeight);
-		const shippingCharge = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
-		// --------------------------
-		
 		const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
+		const volumetricWeight = (packageLength * packageBreadth * packageHeight) / 5000;
+		const chargeableWeight = Math.max(packageWeight, volumetricWeight);
+		const shippingChargesPartial = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+		const shippingGstPartial = (shippingChargesPartial * gstPercentage) / 100;
+		const shippingCharge = shippingChargesPartial + shippingGstPartial;
+
 		let productPrice = 0;
+		let taxableAmount = 0;
 		let commissionRate = 0;
+		let commissionAmountPartial = 0;
+		let commissionGstPartial = 0;
 		let commissionAmount = 0;
 		let gstAmount = 0;
 		let tcsAmount = 0;
 
 		if (salePrice > 0) {
-			// Find commission slab based on Sale Price
 			const slab = commissionSlabs.find(
 				s => salePrice >= s.min_value && salePrice <= s.max_value
 			);
-
 			commissionRate = slab?.commission_rate || 0;
 
-			// Calculate everything from Sale Price
-			commissionAmount = (salePrice * commissionRate) / 100;
-			gstAmount = ((salePrice + commissionAmount) * gstPercentage) / 100;
+			taxableAmount = (salePrice * 100) / (gstPercentage + 100);
+			gstAmount = salePrice - taxableAmount;
+
+			commissionAmountPartial = (salePrice * commissionRate) / 100;
+			commissionGstPartial = (commissionAmountPartial * gstPercentage) / 100;
+			commissionAmount = commissionAmountPartial + commissionGstPartial;
+
 			tcsAmount = salePrice * 0.001;
 
-			// Remaining amount is Product Price
-			productPrice =
-				salePrice -
-				commissionAmount -
-				gstAmount -
-				tcsAmount -
-				shippingCharge;
-
-			// Prevent negative value
+			productPrice = salePrice - commissionAmount - packingCharges - shippingCharge - tcsAmount - closingFee;
 			productPrice = Math.max(0, productPrice);
 		}
 
 		onListingDataChange(prev => ({
 			...prev,
 			productPrice: productPrice.toFixed(2),
+			taxableAmount: taxableAmount.toFixed(2),
 			commissionRate,
+			commissionAmountPartial: commissionAmountPartial.toFixed(2),
+			commissionGstPartial: commissionGstPartial.toFixed(2),
 			commissionAmount: commissionAmount.toFixed(2),
+			shippingChargesPartial: shippingChargesPartial.toFixed(2),
+			shippingGstPartial: shippingGstPartial.toFixed(2),
+			shippingCharge: shippingCharge.toFixed(2),
 			gstAmount: gstAmount.toFixed(2),
 			tcsAmount: tcsAmount.toFixed(2),
-			shippingCharge: shippingCharge.toFixed(2),
 		}));
 	}, [
 		listingData.salePrice,
+		listingData.packingCharges,
+		listingData.closingFee,
 		listingData.taxCode,
 		listingData.packageWeight,
+		listingData.packageLength,
+		listingData.packageBreadth,
+		listingData.packageHeight,
 		commissionSlabs
 	]);
 
@@ -771,15 +788,23 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 					formData.append(`variations[${index}][packageWeight]`, variation.packageWeight || '');
 
 					formData.append(`variations[${index}][regularPrice]`, variation.regularPrice || '');
-					formData.append(`variations[${index}][productPrice]`, variation.productPrice || '');
-					formData.append(`variations[${index}][commissionRate]`, variation.commissionRate || '');
-					formData.append(`variations[${index}][commissionAmount]`, variation.commissionAmount || '');
-					formData.append(`variations[${index}][gstAmount]`, variation.gstAmount || '');
-					formData.append(`variations[${index}][shippingCharge]`, variation.shippingCharge || '');
 					formData.append(`variations[${index}][salePrice]`, variation.salePrice || '');
+					formData.append(`variations[${index}][packingCharges]`, variation.packingCharges || '');
+					formData.append(`variations[${index}][closingFee]`, variation.closingFee || '');
+					formData.append(`variations[${index}][productPrice]`, variation.productPrice || '');
+					formData.append(`variations[${index}][taxableAmount]`, variation.taxableAmount || '');
+					formData.append(`variations[${index}][commissionRate]`, variation.commissionRate || '');
+					formData.append(`variations[${index}][commissionAmountPartial]`, variation.commissionAmountPartial || '');
+					formData.append(`variations[${index}][commissionGstPartial]`, variation.commissionGstPartial || '');
+					formData.append(`variations[${index}][commissionAmount]`, variation.commissionAmount || '');
+					formData.append(`variations[${index}][shippingChargesPartial]`, variation.shippingChargesPartial || '');
+					formData.append(`variations[${index}][shippingGstPartial]`, variation.shippingGstPartial || '');
+					formData.append(`variations[${index}][shippingCharge]`, variation.shippingCharge || '');
+					formData.append(`variations[${index}][gstAmount]`, variation.gstAmount || '');
+					formData.append(`variations[${index}][tcsAmount]`, variation.tcsAmount || '');
 					formData.append(`variations[${index}][stockQty]`, variation.stockQty || '');
 					formData.append(`variations[${index}][minStockQty]`, variation.minStockQty || '');
-					formData.append(`variations[${index}][attributes]`, JSON.stringify(variation.attributes)); // Stringify attributes for each variation
+					formData.append(`variations[${index}][attributes]`, JSON.stringify(variation.attributes));
 
 					// Handle variation image: File object for new, string for existing
 					if (variation.image instanceof File) {
@@ -1189,40 +1214,58 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													style={{ fontSize: "14px" }}
 													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 												>
-													Product price*
+													Packing Charges*
 												</span>
 												<Input
 													type="number"
-													placeholder=""
-													name="productPrice"
-													value={listingData.productPrice}
+													placeholder="0"
+													name="packingCharges"
+													value={listingData.packingCharges}
 													onChange={handleChange}
-													readOnly
-													invalid={errors.productPrice}
+													invalid={errors.packingCharges}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
-											{renderError('productPrice')}
+											{renderError('packingCharges')}
 
 											<InputGroup className="mt-1">
 												<span
 													style={{ fontSize: "14px" }}
 													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 												>
-													Commission Amount*
+													Closing Fee*
+												</span>
+												<Input
+													type="number"
+													placeholder="0"
+													name="closingFee"
+													value={listingData.closingFee}
+													onChange={handleChange}
+													invalid={errors.closingFee}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+											{renderError('closingFee')}
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Taxable Amount*
 												</span>
 												<Input
 													type="number"
 													placeholder=""
-													name="commissionAmount"
-													value={listingData.commissionAmount}
+													name="taxableAmount"
+													value={listingData.taxableAmount}
 													onChange={handleChange}
 													readOnly
-													invalid={errors.commissionAmount}
+													invalid={errors.taxableAmount}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
-											{renderError('commissionAmount')}
+											{renderError('taxableAmount')}
 
 											<InputGroup className="mt-1">
 												<span
@@ -1249,6 +1292,122 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													style={{ fontSize: "14px" }}
 													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 												>
+													Comm. Amt Partial*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="commissionAmountPartial"
+													value={listingData.commissionAmountPartial}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.commissionAmountPartial}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Comm. GST Partial*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="commissionGstPartial"
+													value={listingData.commissionGstPartial}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.commissionGstPartial}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Total Commission*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="commissionAmount"
+													value={listingData.commissionAmount}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.commissionAmount}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+											{renderError('commissionAmount')}
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Ship. Charge Partial*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="shippingChargesPartial"
+													value={listingData.shippingChargesPartial}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.shippingChargesPartial}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Ship. GST Partial*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="shippingGstPartial"
+													value={listingData.shippingGstPartial}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.shippingGstPartial}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Total Ship. Charge*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="shippingCharge"
+													value={listingData.shippingCharge}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.shippingCharge}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+											{renderError('shippingCharge')}
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
 													TCS Amount*
 												</span>
 												<Input
@@ -1269,20 +1428,20 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													style={{ fontSize: "14px" }}
 													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 												>
-													Shipping Charge*
+													Product price*
 												</span>
 												<Input
 													type="number"
 													placeholder=""
-													name="shippingCharge"
-													value={listingData.shippingCharge}
+													name="productPrice"
+													value={listingData.productPrice}
 													onChange={handleChange}
 													readOnly
-													invalid={errors.shippingCharge}
+													invalid={errors.productPrice}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
-											{renderError('shippingCharge')}
+											{renderError('productPrice')}
 
 
 											<InputGroup className="mt-1">
@@ -1302,7 +1461,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													<option value="">-- Select One --</option>
 													<option value="1">1</option>
 													<option value="2">2</option>
-													{/* Add more options as needed */}
 												</Input>
 											</InputGroup>
 											{renderError('minOrderQuantity')}
@@ -1894,22 +2052,31 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 																/>
 															</Col>
 															<Col md={12} className="mb-2">
-																<Label>Product Price</Label>
+																<Label>Packing Charges</Label>
 																<Input
 																	type="number"
-																	placeholder="Product Price"
-																	value={variation.productPrice}
-																	readOnly
-																	onChange={(e) => handleVariationChange(index, 'productPrice', e.target.value)}
+																	placeholder="0"
+																	value={variation.packingCharges}
+																	onChange={(e) => handleVariationChange(index, 'packingCharges', e.target.value)}
 																/>
 															</Col>
 															<Col md={12} className="mb-2">
-																<Label>Commission Amount</Label>
+																<Label>Closing Fee</Label>
 																<Input
 																	type="number"
-																	placeholder="Commission Amount"
-																	value={variation.commissionAmount}
-																	onChange={(e) => handleVariationChange(index, 'commissionAmount', e.target.value)}
+																	placeholder="0"
+																	value={variation.closingFee}
+																	onChange={(e) => handleVariationChange(index, 'closingFee', e.target.value)}
+																/>
+															</Col>
+
+															<Col md={12} className="mb-2">
+																<Label>Taxable Amount</Label>
+																<Input
+																	type="number"
+																	placeholder="Taxable Amount"
+																	value={variation.taxableAmount}
+																	onChange={(e) => handleVariationChange(index, 'taxableAmount', e.target.value)}
 																	readOnly
 																/>
 															</Col>
@@ -1920,6 +2087,68 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 																	placeholder="GST Amount"
 																	value={variation.gstAmount}
 																	onChange={(e) => handleVariationChange(index, 'gstAmount', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+
+															<Col md={12} className="mb-2">
+																<Label>Comm. Amt Partial</Label>
+																<Input
+																	type="number"
+																	placeholder=""
+																	value={variation.commissionAmountPartial}
+																	onChange={(e) => handleVariationChange(index, 'commissionAmountPartial', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
+																<Label>Comm. GST Partial</Label>
+																<Input
+																	type="number"
+																	placeholder=""
+																	value={variation.commissionGstPartial}
+																	onChange={(e) => handleVariationChange(index, 'commissionGstPartial', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
+																<Label>Total Commission</Label>
+																<Input
+																	type="number"
+																	placeholder="Total Commission"
+																	value={variation.commissionAmount}
+																	onChange={(e) => handleVariationChange(index, 'commissionAmount', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+
+															<Col md={12} className="mb-2">
+																<Label>Ship. Charge Partial</Label>
+																<Input
+																	type="number"
+																	placeholder=""
+																	value={variation.shippingChargesPartial}
+																	onChange={(e) => handleVariationChange(index, 'shippingChargesPartial', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
+																<Label>Ship. GST Partial</Label>
+																<Input
+																	type="number"
+																	placeholder=""
+																	value={variation.shippingGstPartial}
+																	onChange={(e) => handleVariationChange(index, 'shippingGstPartial', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
+																<Label>Total Shipping Charge</Label>
+																<Input
+																	type="number"
+																	placeholder="Total Shipping Charge"
+																	value={variation.shippingCharge}
+																	onChange={(e) => handleVariationChange(index, 'shippingCharge', e.target.value)}
 																	readOnly
 																/>
 															</Col>
@@ -1935,13 +2164,13 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 															</Col>
 
 															<Col md={12} className="mb-2">
-																<Label>Shipping Charge</Label>
+																<Label>Product Price</Label>
 																<Input
 																	type="number"
-																	placeholder="Shipping Charge"
-																	value={variation.shippingCharge}
-																	onChange={(e) => handleVariationChange(index, 'shippingCharge', e.target.value)}
+																	placeholder="Product Price"
+																	value={variation.productPrice}
 																	readOnly
+																	onChange={(e) => handleVariationChange(index, 'productPrice', e.target.value)}
 																/>
 															</Col>
 															<Col md={12} className="mb-2">

@@ -16,8 +16,8 @@ import {
 	Table // Added for variations table
 } from "reactstrap";
 import PerfectScrollbar from "react-perfect-scrollbar";
-import { FaPlus, FaMinus, FaTrash } from "react-icons/fa"; // Added FaTrash
-import { showToast } from "../../../components/ToastifyNotification"; // Assuming you have this
+import { FaPlus, FaMinus, FaTrash } from "react-icons/fa";
+import { showToast } from "../../../components/ToastifyNotification";
 import { GetSpecificationFieldsBySubsCategoryTwoId } from "../../../api/specificationFieldsAPI";
 import { GetAttributes } from "../../../api/attributeAPI";
 import Select from 'react-select';
@@ -26,9 +26,6 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { GetCommissionSlabsBySubsCategoryTwoId } from "../../../api/commissionSlabAPI";
 import { GetHsns } from "../../../api/hsnAPI";
-
-// Assuming you have an API to fetch attributes, e.g.:
-// import { GetAttributesBySubCategoryTwoId } from "../../../api/attributesAPI";
 
 const ProductDetails = ({ listingData, onListingDataChange }) => {
 	const [open, setOpen] = useState("1");
@@ -40,12 +37,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	const isSaving = useRef(false);
 	const lastSavedData = useRef("");
 
+	const [availableAttributes, setAvailableAttributes] = useState([]);
 
-	// New states for Product Variants
-	const [availableAttributes, setAvailableAttributes] = useState([]); // All attributes from API
-
-	const [generatedVariations, setGeneratedVariations] = useState([]); // The actual product variations with their details
-	// New state variables for variations
+	const [generatedVariations, setGeneratedVariations] = useState([]);
 	const [attributeOptions, setAttributeOptions] = useState([]);
 	const [selectedAttributeOptions, setSelectedAttributeOptions] = useState([]);
 	const [selectedAttributes, setSelectedAttributes] = useState([]);
@@ -65,14 +59,12 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		listingData.hsn ? hsnOptions.find(opt => opt.value === listingData.hsn) : { value: '', label: 'Please select' }
 	);
 
-	// Fetch specifications when subCategoryTwoId changes
 	useEffect(() => {
 		if (listingData?.subCategoryTwoId) {
 			fetchSpecifications({ "subCategoryTwoId": listingData.subCategoryTwoId });
 		}
 	}, [listingData?.subCategoryTwoId]);
 
-	// Update localSpecifications when listingData.specifications changes
 	useEffect(() => {
 		if (listingData.specifications && listingData.specifications.length > 0) {
 			const initialSpecs = listingData.specifications.map(headingSection => ({
@@ -93,18 +85,13 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		}
 	}, [listingData.specifications]);
 
-	// Update generatedVariations when listingData.variations changes
 	useEffect(() => {
 		if (listingData.variations && listingData.variations.length > 0) {
 			setGeneratedVariations(listingData.variations);
 		} else {
 			setGeneratedVariations([]);
 		}
-		// Also, reconstruct selectedAttributes and attributeValueMap from listingData.variations if needed
-		// This part can be complex if variations are not structured to easily map back to selectedAttributes and attributeValueMap.
-		// For simplicity, we'll assume attributes are re-selected by the user or managed at a higher level during edit.
 	}, [listingData.variations]);
-
 
 	const fetchSpecifications = async (data) => {
 		try {
@@ -153,35 +140,29 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			fetchSpecifications({ "subCategoryTwoId": listingData.subCategoryTwoId });
 			fetchCommissionSlabs({ "subCategoryTwoId": listingData.subCategoryTwoId });
 		}
-		// Fetch attributes when subCategoryOneId changes
-		if (listingData?.subCategoryOneId && listingData?.categoryId) { // Assuming attributes depend on category and subCategoryOne
+		if (listingData?.subCategoryOneId && listingData?.categoryId) {
 			fetchAttributes({ categoryId: listingData.categoryId, subCategoryOneId: listingData.subCategoryOneId });
 		}
 	}, [listingData?.subCategoryTwoId, listingData?.subCategoryOneId, listingData?.categoryId]);
 
-	// Effect to sync selected attributes with full attribute data
 	useEffect(() => {
 		const selectedIds = selectedAttributeOptions.map(option => option.value);
 		const selectedFullAttrs = attributeOptions.filter(attr => selectedIds.includes(attr.value));
-		console.log(attributeOptions)
 		setSelectedAttributes(selectedFullAttrs);
 
 		const updatedMap = {};
 		selectedFullAttrs.forEach(attr => {
-			// Preserve existing values if they exist in listingData.variations or previously selected
 			const existingValues = attributeValueMap[attr._id] || [];
 			updatedMap[attr._id] = existingValues;
 		});
 		setAttributeValueMap(updatedMap);
 	}, [selectedAttributeOptions, attributeOptions]);
 
-	// Update selectedTypeOption when listingData.type changes
 	useEffect(() => {
 		if (listingData.type) {
 			setSelectedTypeOption(typeOptions.find(opt => opt.value === listingData.type) || { value: 'simple', label: 'Simple' });
 		}
 	}, [listingData.type, typeOptions]);
-
 
 	const fetchAttributes = async (data) => {
 		try {
@@ -219,20 +200,17 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 	const handleTypeChange = (selectedOption) => {
 		setSelectedTypeOption(selectedOption);
-		onListingDataChange({ type: selectedOption.value }); // Update parent state
+		onListingDataChange({ type: selectedOption.value });
 	};
 
 	const handleHsnChange = (selectedOption) => {
 		setSelectedHsnOption(selectedOption);
-		onListingDataChange({ hsn: selectedOption.value }); // Update parent state
-		onListingDataChange({ taxCode: hsnCodes.find(hsn => hsn._id === selectedOption.value)?.gstPercentage }); // Update parent state
-
+		onListingDataChange({ hsn: selectedOption.value });
+		onListingDataChange({ taxCode: hsnCodes.find(hsn => hsn._id === selectedOption.value)?.gstPercentage });
 	};
 
 	const handleAttributeChange = (selectedOptions) => {
-		console.log(selectedOptions)
 		setSelectedAttributeOptions(selectedOptions);
-		// When attributes change, clear variations and attributeValueMap
 		setVariations([]);
 		setAttributeValueMap({});
 	};
@@ -243,7 +221,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				...prev,
 				[attributeId]: selectedValues?.map(v => v.value) || []
 			};
-			// When attribute values change, clear variations
 			setVariations([]);
 			return newMap;
 		});
@@ -282,12 +259,19 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				packageWeight: "",
 				hsn: "",
 				regularPrice: '',
+				salePrice: '',
+				packingCharges: '',
+				closingFee: '',
 				productPrice: '',
-				comissionAmount: '',
+				taxableAmount: '',
+				commissionAmountPartial: '',
+				commissionGstPartial: '',
+				commissionAmount: '',
 				gstAmount: '',
 				tcsAmount: '',
+				shippingChargesPartial: '',
+				shippingGstPartial: '',
 				shippingCharge: '',
-				salePrice: '',
 				stockQty: '',
 				minStockQty: '',
 				attributes: combo.map(c => ({ id: c.id, value: c.value }))
@@ -297,17 +281,16 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		setVariations(generated);
 		onListingDataChange(prevListingData => ({
 			...prevListingData,
-			variations: generated, // Update listingData with generated variations
-			attributes: attrOptions.map(attr => ({ id: attr.id, values: attr.values })) // Save selected attributes too
+			variations: generated,
+			attributes: attrOptions.map(attr => ({ id: attr.id, values: attr.values }))
 		}));
 	};
 
-	// Handler for individual variation field changes
 	const handleVariationChange = (index, field, value) => {
 		setVariations(prevVariations => {
 			const newVariations = [...prevVariations];
 			if (field === 'image') {
-				newVariations[index][field] = value; // value will be a File object
+				newVariations[index][field] = value;
 			} else {
 				newVariations[index][field] = value;
 			}
@@ -324,69 +307,72 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	useEffect(() => {
 		if (listingData.type === 'variable' && variations.length > 0) {
 			const updatedVariations = variations.map((variation) => {
-				const sellingPrice = parseFloat(variation.salePrice) || 0;
-				
+				const salePrice = parseFloat(variation.salePrice) || 0;
+				const packingCharges = parseFloat(variation.packingCharges) || 0;
+				const closingFee = parseFloat(variation.closingFee) || 0;
+
 				const packageWeight = parseFloat(variation.packageWeight) || 0;
 				const packageLength = parseFloat(variation.packageLength) || 0;
-				const packageWidth = parseFloat(variation.packageWidth) || parseFloat(variation.packageBreadth) || 0; 
+				const packageWidth = parseFloat(variation.packageWidth) || parseFloat(variation.packageBreadth) || 0;
 				const packageHeight = parseFloat(variation.packageHeight) || 0;
 
 				const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
 				// --- NEW SHIPPING LOGIC ---
-				// Calculate Volumetric weight (Length x Breadth x Height) / 5000
 				const volumetricWeight = (packageLength * packageWidth * packageHeight) / 5000;
-				// Find the greater weight
 				const chargeableWeight = Math.max(packageWeight, volumetricWeight);
-				// Calculate shipping: ₹70 for every 0.5 KG 
-				const shippingCharge = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+				const shippingChargesPartial = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+				const shippingGstPartial = (shippingChargesPartial * gstPercentage) / 100;
+				const shippingCharge = shippingChargesPartial + shippingGstPartial;
 				// --------------------------
 
 				let commissionRate = 0;
+				let commissionAmountPartial = 0;
+				let commissionGstPartial = 0;
 				let commissionAmount = 0;
+				let taxableAmount = 0;
 				let gstAmount = 0;
 				let tcsAmount = 0;
 				let productPrice = 0;
 
-				if (sellingPrice > 0) {
-					// Find commission slab based on Selling Price
+				if (salePrice > 0) {
 					const slab = commissionSlabs.find(
-						slab =>
-							sellingPrice >= slab.min_value &&
-							sellingPrice <= slab.max_value
+						slab => salePrice >= slab.min_value && salePrice <= slab.max_value
 					);
 
 					commissionRate = slab?.commission_rate || 0;
 
-					// Calculate all charges from Selling Price
-					commissionAmount = (sellingPrice * commissionRate) / 100;
-					gstAmount =
-						((sellingPrice + commissionAmount) * gstPercentage) / 100;
-					tcsAmount = sellingPrice * 0.001;
+					// Calculations based on requested logic
+					taxableAmount = (salePrice * 100) / (gstPercentage + 100);
+					gstAmount = salePrice - taxableAmount;
 
-					// Remaining amount is Product Price
-					productPrice =
-						sellingPrice -
-						commissionAmount -
-						gstAmount -
-						tcsAmount -
-						shippingCharge;
+					commissionAmountPartial = (salePrice * commissionRate) / 100;
+					commissionGstPartial = (commissionAmountPartial * gstPercentage) / 100;
+					commissionAmount = commissionAmountPartial + commissionGstPartial;
 
+					tcsAmount = salePrice * 0.001;
+
+					// Product Price
+					productPrice = salePrice - commissionAmount - packingCharges - shippingCharge - tcsAmount - closingFee;
 					productPrice = Math.max(0, productPrice);
 				}
 
 				return {
 					...variation,
 					productPrice: productPrice.toFixed(2),
+					taxableAmount: taxableAmount.toFixed(2),
 					commissionRate,
+					commissionAmountPartial: commissionAmountPartial.toFixed(2),
+					commissionGstPartial: commissionGstPartial.toFixed(2),
 					commissionAmount: commissionAmount.toFixed(2),
+					shippingChargesPartial: shippingChargesPartial.toFixed(2),
+					shippingGstPartial: shippingGstPartial.toFixed(2),
+					shippingCharge: shippingCharge.toFixed(2),
 					gstAmount: gstAmount.toFixed(2),
 					tcsAmount: tcsAmount.toFixed(2),
-					shippingCharge: shippingCharge.toFixed(2),
 				};
 			});
 
-			// Only update if changed
 			if (JSON.stringify(updatedVariations) !== JSON.stringify(variations)) {
 				setVariations(updatedVariations);
 				onListingDataChange(prevListingData => ({
@@ -403,7 +389,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		onListingDataChange,
 	]);
 
-	// Handler for variation image file selection
 	const handleVariationImageChange = (index, event) => {
 		const file = event.target.files[0];
 		if (file) {
@@ -415,83 +400,96 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		setOpen(open === id ? "" : id);
 	};
 
-	// Generic handler for all simple input changes directly updating listingData
 	const handleChange = e => {
 		const { name, value } = e.target;
 		onListingDataChange({ [name]: value });
-		setErrors(prevErrors => ({ ...prevErrors, [name]: '' })); // Clear error on change
+		setErrors(prevErrors => ({ ...prevErrors, [name]: '' }));
 	};
 
+	// useEffect for Simple Product calculations
 	useEffect(() => {
 		const salePrice = parseFloat(listingData.salePrice) || 0;
+		const packingCharges = parseFloat(listingData.packingCharges) || 0;
+		const closingFee = parseFloat(listingData.closingFee) || 0;
 
 		const packageWeight = parseFloat(listingData.packageWeight) || 0;
 		const packageLength = parseFloat(listingData.packageLength) || 0;
 		const packageBreadth = parseFloat(listingData.packageBreadth) || 0;
 		const packageHeight = parseFloat(listingData.packageHeight) || 0;
 
+		const gstPercentage = parseFloat(listingData.taxCode) || 0;
+
 		// --- NEW SHIPPING LOGIC ---
 		const volumetricWeight = (packageLength * packageBreadth * packageHeight) / 5000;
 		const chargeableWeight = Math.max(packageWeight, volumetricWeight);
-		const shippingCharge = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+		const shippingChargesPartial = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+		const shippingGstPartial = (shippingChargesPartial * gstPercentage) / 100;
+		const shippingCharge = shippingChargesPartial + shippingGstPartial;
 		// --------------------------
-		
-		const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
 		let productPrice = 0;
+		let taxableAmount = 0;
 		let commissionRate = 0;
+		let commissionAmountPartial = 0;
+		let commissionGstPartial = 0;
 		let commissionAmount = 0;
 		let gstAmount = 0;
 		let tcsAmount = 0;
 
 		if (salePrice > 0) {
-			// Find commission slab based on Sale Price
 			const slab = commissionSlabs.find(
 				s => salePrice >= s.min_value && salePrice <= s.max_value
 			);
 
 			commissionRate = slab?.commission_rate || 0;
 
-			// Calculate everything from Sale Price
-			commissionAmount = (salePrice * commissionRate) / 100;
-			gstAmount = ((salePrice + commissionAmount) * gstPercentage) / 100;
+			// Calculations based on requested logic
+			taxableAmount = (salePrice * 100) / (gstPercentage + 100);
+			gstAmount = salePrice - taxableAmount;
+
+			commissionAmountPartial = (salePrice * commissionRate) / 100;
+			commissionGstPartial = (commissionAmountPartial * gstPercentage) / 100;
+			commissionAmount = commissionAmountPartial + commissionGstPartial;
+
 			tcsAmount = salePrice * 0.001;
 
-			// Remaining amount is Product Price
-			productPrice =
-				salePrice -
-				commissionAmount -
-				gstAmount -
-				tcsAmount -
-				shippingCharge;
-
-			// Prevent negative value
+			// Product Price
+			productPrice = salePrice - commissionAmount - packingCharges - shippingCharge - tcsAmount - closingFee;
 			productPrice = Math.max(0, productPrice);
 		}
 
 		onListingDataChange(prev => ({
 			...prev,
 			productPrice: productPrice.toFixed(2),
+			taxableAmount: taxableAmount.toFixed(2),
 			commissionRate,
+			commissionAmountPartial: commissionAmountPartial.toFixed(2),
+			commissionGstPartial: commissionGstPartial.toFixed(2),
 			commissionAmount: commissionAmount.toFixed(2),
+			shippingChargesPartial: shippingChargesPartial.toFixed(2),
+			shippingGstPartial: shippingGstPartial.toFixed(2),
+			shippingCharge: shippingCharge.toFixed(2),
 			gstAmount: gstAmount.toFixed(2),
 			tcsAmount: tcsAmount.toFixed(2),
-			shippingCharge: shippingCharge.toFixed(2),
 		}));
 	}, [
 		listingData.salePrice,
+		listingData.packingCharges,
+		listingData.closingFee,
 		listingData.taxCode,
 		listingData.packageWeight,
+		listingData.packageLength,
+		listingData.packageBreadth,
+		listingData.packageHeight,
 		commissionSlabs
 	]);
 
-	// Handlers for dynamic 'productDetails' array (for additional descriptions)
 	const handleAddAdditionalDescription = () => {
 		onListingDataChange(prevListingData => ({
 			...prevListingData,
 			productDetails: [...(prevListingData.productDetails || []), { key: "", value: "" }]
 		}));
-		setErrors(prevErrors => ({ ...prevErrors, productDetails: '' })); // Clear error on add
+		setErrors(prevErrors => ({ ...prevErrors, productDetails: '' }));
 	};
 
 	const handleRemoveAdditionalDescription = index => {
@@ -504,7 +502,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 					newDescriptions.length > 0 ? newDescriptions : [{ key: "", value: "" }]
 			};
 		});
-		setErrors(prevErrors => ({ ...prevErrors, productDetails: '' })); // Clear error on remove
+		setErrors(prevErrors => ({ ...prevErrors, productDetails: '' }));
 	};
 
 	const handleAdditionalDescriptionChange = (index, event) => {
@@ -522,10 +520,9 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				productDetails: newDescriptions
 			};
 		});
-		setErrors(prevErrors => ({ ...prevErrors, productDetails: '' })); // Clear error on change
+		setErrors(prevErrors => ({ ...prevErrors, productDetails: '' }));
 	};
 
-	// Handler for specification field changes
 	const handleSpecificationChange = (headingId, fieldId, value) => {
 		setLocalSpecifications(prevSpecs => {
 			const updatedSpecs = prevSpecs.map(headingSection => {
@@ -548,7 +545,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			}));
 			return updatedSpecs;
 		});
-		setErrors(prevErrors => ({ ...prevErrors, [`spec-${headingId}-${fieldId}`]: '' })); // Clear error on change
+		setErrors(prevErrors => ({ ...prevErrors, [`spec-${headingId}-${fieldId}`]: '' }));
 	};
 
 	const validateProduct = () => {
@@ -571,7 +568,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			"packageHeight",
 			"packageWeight",
 			"hsn",
-			"luxuryCess",
 			"taxCode",
 			"countryOfOrigin",
 			"manufacturerDetails",
@@ -600,7 +596,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			return false;
 		}
 
-		// Product Details
 		if (
 			listingData.productDetails?.some(
 				d => d.key.trim() === "" || d.value.trim() === ""
@@ -613,7 +608,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			return false;
 		}
 
-		// Specifications
 		for (const section of localSpecifications) {
 			for (const field of section.fields) {
 				if (
@@ -641,7 +635,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			}
 		}
 
-		// Variation validation
 		if (listingData.type === "variable") {
 			if (!listingData.variations?.length) {
 				showToast("error", "Generate variations.");
@@ -688,7 +681,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			const formData = new FormData();
 			formData.append("status", status);
 
-			// Append all fields
 			Object.keys(listingData).forEach((key) => {
 				if (
 					![
@@ -706,51 +698,40 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 				}
 			});
 
-			// Append all your existing
-			// Append product details
 			if (listingData.productDetails) {
 				formData.append('productDetails', JSON.stringify(listingData.productDetails));
 			} else {
 				formData.append('productDetails', JSON.stringify([]));
 			}
 
-			// Append specifications
 			if (listingData.specifications) {
 				formData.append('specifications', JSON.stringify(listingData.specifications));
 			} else {
 				formData.append('specifications', JSON.stringify([]));
 			}
 
-			// Append mainImage
-			// `listingData.mainImage` could be a File object (new upload) or a string (existing URL)
 			if (listingData.mainImage instanceof File) {
 				formData.append('mainImage', listingData.mainImage);
 			} else if (typeof listingData.mainImage === 'string' && listingData.mainImage !== "") {
-				// If it's a string, it means it's an existing image URL, no need to re-upload.
-				// You might want to send a flag to the backend if the image hasn't changed.
-				formData.append('mainImage', listingData.mainImage); // Send the existing URL
+				formData.append('mainImage', listingData.mainImage);
 			}
 
-			// Append galleryImages
 			if (listingData.galleryImages && Array.isArray(listingData.galleryImages)) {
 				listingData.galleryImages.forEach((img) => {
 					if (img instanceof File) {
-						formData.append('galleryImages', img); // Append File objects for new uploads
+						formData.append('galleryImages', img);
 					} else if (typeof img === 'string') {
-						formData.append('existingGalleryImages', img); // Send existing image URLs separately
+						formData.append('existingGalleryImages', img);
 					}
 				});
 			}
 
-			// Append attributes for variable products (using listingData.attributes which is set by onListingDataChange)
-			// The `attributes` field in `listingData` should reflect the selected attributes and their values.
 			if (listingData.type === 'variable' && listingData.attributes && listingData.attributes.length > 0) {
 				formData.append('attributes', JSON.stringify(listingData.attributes));
 			} else {
 				formData.append('attributes', JSON.stringify([]));
 			}
 
-			// Append variation data
 			if (listingData.type === 'variable' && listingData.variations && listingData.variations.length > 0) {
 				formData.append('hasVariations', 'true');
 				const stringVariations = JSON.stringify(variations);
@@ -765,21 +746,28 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 					formData.append(`variations[${index}][packageWeight]`, variation.packageWeight || '');
 
 					formData.append(`variations[${index}][regularPrice]`, variation.regularPrice || '');
-					formData.append(`variations[${index}][productPrice]`, variation.productPrice || '');
-					formData.append(`variations[${index}][commissionRate]`, variation.commissionRate || '');
-					formData.append(`variations[${index}][commissionAmount]`, variation.commissionAmount || '');
-					formData.append(`variations[${index}][gstAmount]`, variation.gstAmount || '');
-					formData.append(`variations[${index}][shippingCharge]`, variation.shippingCharge || '');
 					formData.append(`variations[${index}][salePrice]`, variation.salePrice || '');
+					formData.append(`variations[${index}][packingCharges]`, variation.packingCharges || '');
+					formData.append(`variations[${index}][closingFee]`, variation.closingFee || '');
+					formData.append(`variations[${index}][productPrice]`, variation.productPrice || '');
+					formData.append(`variations[${index}][taxableAmount]`, variation.taxableAmount || '');
+					formData.append(`variations[${index}][commissionRate]`, variation.commissionRate || '');
+					formData.append(`variations[${index}][commissionAmountPartial]`, variation.commissionAmountPartial || '');
+					formData.append(`variations[${index}][commissionGstPartial]`, variation.commissionGstPartial || '');
+					formData.append(`variations[${index}][commissionAmount]`, variation.commissionAmount || '');
+					formData.append(`variations[${index}][shippingChargesPartial]`, variation.shippingChargesPartial || '');
+					formData.append(`variations[${index}][shippingGstPartial]`, variation.shippingGstPartial || '');
+					formData.append(`variations[${index}][shippingCharge]`, variation.shippingCharge || '');
+					formData.append(`variations[${index}][gstAmount]`, variation.gstAmount || '');
+					formData.append(`variations[${index}][tcsAmount]`, variation.tcsAmount || '');
 					formData.append(`variations[${index}][stockQty]`, variation.stockQty || '');
 					formData.append(`variations[${index}][minStockQty]`, variation.minStockQty || '');
-					formData.append(`variations[${index}][attributes]`, JSON.stringify(variation.attributes)); // Stringify attributes for each variation
+					formData.append(`variations[${index}][attributes]`, JSON.stringify(variation.attributes));
 
-					// Handle variation image: File object for new, string for existing
 					if (variation.image instanceof File) {
 						formData.append(`variations[${index}][image]`, variation.image);
 					} else if (typeof variation.image === 'string' && variation.image !== "") {
-						formData.append(`variations[${index}][existingImage]`, variation.image); // Send existing image URL
+						formData.append(`variations[${index}][existingImage]`, variation.image);
 					}
 				});
 			} else {
@@ -806,10 +794,8 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 						onListingDataChange(prev => ({
 							...prev,
 							draftedProductId: response.product._id,
-							// Use the actual response fields returned by your API
 							mainImage: response.product?.mainImage,
 							galleryImages: response.product?.galleryImages,
-
 							variations: response.product?.variations
 						}));
 					} else {
@@ -852,238 +838,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		return () => clearTimeout(timer);
 	}, [listingData]);
 
-	// const handleSaveDetails = async () => {
-	// 	let newErrors = {};
-	// 	let isValid = true;
-
-	// 	// Validate main mandatory fields from listingData
-	// 	const mandatoryFields = [
-	// 		"name", "sku", "status", "regularPrice", "productPrice", "salePrice",
-	// 		"minOrderQuantity", "stockQty", "minStockQty", "shippingProvider",
-	// 		"packageLength", "packageBreadth", "packageHeight", "packageWeight",
-	// 		"hsn", "luxuryCess", "taxCode", "countryOfOrigin",
-	// 		"manufacturerDetails", "packerDetails", "importerDetails",
-	// 	];
-
-	// 	for (const field of mandatoryFields) {
-	// 		if (
-	// 			(typeof listingData[field] === "string" && listingData[field].trim() === "") ||
-	// 			(typeof listingData[field] === "number" && (listingData[field] === "" || isNaN(listingData[field]))) ||
-	// 			listingData[field] === null || listingData[field] === undefined
-	// 		) {
-	// 			newErrors[field] = `Please fill in the mandatory field: ${field}`;
-	// 			isValid = false;
-	// 		}
-	// 	}
-
-	// 	// If there are any general mandatory field errors, set them and return
-	// 	if (!isValid) {
-	// 		setErrors(newErrors);
-	// 		showToast('error', 'Please fill in all mandatory fields.');
-	// 		return;
-	// 	}
-
-	// 	// Validate productDetails (additional descriptions)
-	// 	if (listingData.productDetails?.some(desc => desc.key.trim() === "" || desc.value.trim() === "")) {
-	// 		showToast('error', 'Please fill all additional descriptions or remove empty ones.');
-	// 		return;
-	// 	}
-
-	// 	// Validate specification fields from localSpecifications (which should be synced with listingData.specifications)
-	// 	for (const headingSection of localSpecifications) {
-	// 		for (const field of headingSection.fields) {
-	// 			if (field.valueType === "string" && (field.value === undefined || field.value === null || field.value.trim() === "")) {
-	// 				showToast("error", `Please fill in the mandatory specification field: ${field.key}`);
-	// 				return;
-	// 			}
-	// 			// Add more validation based on valueType (e.g., number, boolean, select) if needed
-	// 			if (field.valueType === "number" && (field.value === "" || isNaN(Number(field.value)))) {
-	// 				showToast("error", `Please enter a valid number for specification field: ${field.key}`);
-	// 				return;
-	// 			}
-	// 		}
-	// 	}
-
-	// 	// Validate variations if product type is 'variable'
-	// 	if (listingData.type === 'variable') { // Use listingData.type
-	// 		if (!listingData.variations || listingData.variations.length === 0) {
-	// 			showToast('error', 'Please generate variations.');
-	// 			return;
-	// 		}
-	// 		for (const variation of listingData.variations) { // Use listingData.variations
-	// 			if (!variation.sku || variation.sku.trim() === "") {
-	// 				showToast('error', `Variation with attributes "${variation.attributes.map(attr => attr.value).join(", ")}" must have an SKU.`);
-	// 				return;
-	// 			}
-	// 			if (variation.regularPrice === "" || isNaN(Number(variation.regularPrice)) || Number(variation.regularPrice) <= 0) {
-	// 				showToast('error', `Variation with SKU "${variation.sku}" must have a valid Regular Price greater than 0.`);
-	// 				return;
-	// 			}
-	// 			if (variation.stockQty === "" || isNaN(Number(variation.stockQty)) || Number(variation.stockQty) < 0) {
-	// 				showToast('error', `Variation with SKU "${variation.sku}" must have a valid Stock Quantity.`);
-	// 				return;
-	// 			}
-	// 			if (variation.minStockQty === "" || isNaN(Number(variation.minStockQty)) || Number(variation.minStockQty) < 0) {
-	// 				showToast('error', `Variation with SKU "${variation.sku}" must have a valid Minimum Stock Quantity.`);
-	// 				return;
-	// 			}
-	// 			if (variation.salePrice !== "" && Number(variation.salePrice) >= Number(variation.regularPrice)) {
-	// 				showToast('error', `Variation with SKU "${variation.sku}" Sale Price must be less than Regular Price.`);
-	// 				return;
-	// 			}
-	// 			// Validate variation image if required (optional, uncomment if image is mandatory for each variation)
-	// 			// if (!variation.image) {
-	// 			//     showToast('error', `Variation with SKU "${variation.sku}" must have an image.`);
-	// 			//     return;
-	// 			// }
-	// 		}
-	// 	}
-
-	// 	// Image validations (assuming mainImage and galleryImages are part of listingData or separate states managed externally)
-	// 	// You might need to adjust these based on how you manage these image states
-	// 	// Assuming `mainImage` and `galleryImages` are props or derived from listingData.
-	// 	// If they are separate states, ensure they are updated via onListingDataChange or are accessible here.
-	// 	if (!listingData.mainImage) { // Using listingData.mainImage
-	// 		showToast('error', 'Main image is required.');
-	// 		// dispatch({ type: 'loader', loader: false }); // Assuming dispatch is available
-	// 		return;
-	// 	}
-
-	// 	// if (!Array.isArray(listingData.galleryImages) || listingData.galleryImages.length < 3 || listingData.galleryImages.length > 7) { // Using listingData.galleryImages
-	// 	// 	showToast('error', 'You must upload between 3 and 7 gallery images.');
-	// 	// 	return;
-	// 	// }
-
-	// 	try {
-	// 		const formData = new FormData();
-
-	// 		// Append all non-file fields from listingData
-	// 		Object.keys(listingData).forEach((key) => {
-	// 			// Exclude specific keys that will be handled separately (files, arrays that need stringification)
-	// 			if (key !== 'mainImage' && key !== 'galleryImages' && key !== 'variations' && key !== 'specifications' && key !== 'productDetails' && key !== 'attributes') {
-	// 				formData.append(key, listingData[key]);
-	// 			}
-	// 		});
-
-	// 		// Append product details
-	// 		if (listingData.productDetails) {
-	// 			formData.append('productDetails', JSON.stringify(listingData.productDetails));
-	// 		} else {
-	// 			formData.append('productDetails', JSON.stringify([]));
-	// 		}
-
-
-	// 		// Append specifications
-	// 		if (listingData.specifications) {
-	// 			formData.append('specifications', JSON.stringify(listingData.specifications));
-	// 		} else {
-	// 			formData.append('specifications', JSON.stringify([]));
-	// 		}
-
-	// 		// Append mainImage
-	// 		// `listingData.mainImage` could be a File object (new upload) or a string (existing URL)
-	// 		if (listingData.mainImage instanceof File) {
-	// 			formData.append('mainImage', listingData.mainImage);
-	// 		} else if (typeof listingData.mainImage === 'string' && listingData.mainImage !== "") {
-	// 			// If it's a string, it means it's an existing image URL, no need to re-upload.
-	// 			// You might want to send a flag to the backend if the image hasn't changed.
-	// 			formData.append('mainImage', listingData.mainImage); // Send the existing URL
-	// 		}
-
-
-	// 		// Append galleryImages
-	// 		if (listingData.galleryImages && Array.isArray(listingData.galleryImages)) {
-	// 			listingData.galleryImages.forEach((img) => {
-	// 				if (img instanceof File) {
-	// 					formData.append('galleryImages', img); // Append File objects for new uploads
-	// 				} else if (typeof img === 'string') {
-	// 					formData.append('existingGalleryImages', img); // Send existing image URLs separately
-	// 				}
-	// 			});
-	// 		}
-
-	// 		// Append attributes for variable products (using listingData.attributes which is set by onListingDataChange)
-	// 		// The `attributes` field in `listingData` should reflect the selected attributes and their values.
-	// 		if (listingData.type === 'variable' && listingData.attributes && listingData.attributes.length > 0) {
-	// 			formData.append('attributes', JSON.stringify(listingData.attributes));
-	// 		} else {
-	// 			formData.append('attributes', JSON.stringify([]));
-	// 		}
-
-	// 		// Append variation data
-	// 		if (listingData.type === 'variable' && listingData.variations && listingData.variations.length > 0) {
-	// 			formData.append('hasVariations', 'true');
-	// 			const stringVariations = JSON.stringify(variations);
-	// 			formData.append('stringVariations', stringVariations);
-
-	// 			listingData.variations.forEach((variation, index) => {
-	// 				formData.append(`variations[${index}][sku]`, variation.sku || '');
-
-	// 				formData.append(`variations[${index}][packageLength]`, variation.packageLength || '');
-	// 				formData.append(`variations[${index}][packageWidth]`, variation.packageWidth || '');
-	// 				formData.append(`variations[${index}][packageHeight]`, variation.packageHeight || '');
-	// 				formData.append(`variations[${index}][packageWeight]`, variation.packageWeight || '');
-
-	// 				formData.append(`variations[${index}][regularPrice]`, variation.regularPrice || '');
-	// 				formData.append(`variations[${index}][productPrice]`, variation.productPrice || '');
-	// 				formData.append(`variations[${index}][commissionRate]`, variation.commissionRate || '');
-	// 				formData.append(`variations[${index}][commissionAmount]`, variation.commissionAmount || '');
-	// 				formData.append(`variations[${index}][gstAmount]`, variation.gstAmount || '');
-	// 				formData.append(`variations[${index}][shippingCharge]`, variation.shippingCharge || '');
-	// 				formData.append(`variations[${index}][salePrice]`, variation.salePrice || '');
-	// 				formData.append(`variations[${index}][stockQty]`, variation.stockQty || '');
-	// 				formData.append(`variations[${index}][minStockQty]`, variation.minStockQty || '');
-	// 				formData.append(`variations[${index}][attributes]`, JSON.stringify(variation.attributes)); // Stringify attributes for each variation
-
-	// 				// Handle variation image: File object for new, string for existing
-	// 				if (variation.image instanceof File) {
-	// 					formData.append(`variations[${index}][image]`, variation.image);
-	// 				} else if (typeof variation.image === 'string' && variation.image !== "") {
-	// 					formData.append(`variations[${index}][existingImage]`, variation.image); // Send existing image URL
-	// 				}
-	// 			});
-	// 		} else {
-	// 			formData.append('variations', '[]');
-	// 			formData.append('hasVariations', 'false');
-	// 		}
-
-	// 		// Assuming StoreProduct is your API call
-	// 		dispatch({ type: 'loader', loader: true }); // Activate loader before API call
-	// 		const response = await StoreProduct(formData);
-	// 		if (response.success === true) {
-	// 			showToast('success', response.message);
-
-	// 			navigate('/listing');
-	// 			//clear listingData
-	// 			// onListingDataChange({
-	// 			//   ...listingData,
-	// 			//   productDetails: [],
-	// 			//   specifications: [],
-	// 			//   mainImage: '',
-	// 			//   galleryImages: [],
-	// 			//   attributes: [],
-	// 			//   variations: [],
-	// 			//   type: 'simple',
-	// 			// })
-	// 			// Temporarily uncommenting for local testing feedback
-	// 			console.log("FormData contents:");
-	// 			for (let [key, value] of formData.entries()) {
-	// 				console.log(`${key}:`, value);
-	// 			}
-
-	// 		} else {
-	// 			showToast('error', response.message);
-	// 		}
-
-
-	// 	} catch (err) {
-	// 		showToast('error', 'Failed to save product details.');
-	// 		console.error("Save error:", err);
-	// 	} finally {
-	// 		// dispatch({ type: 'loader', loader: false }); // Deactivate loader
-	// 	}
-	// };
-
 	const renderError = (fieldName) => {
 		return errors[fieldName] ? <div className="text-danger small">{errors[fieldName]}</div> : null;
 	};
@@ -1091,13 +845,12 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	return (
 		<div>
 			<Accordion open={open} toggle={toggle}>
-				{/* Section 1: Price, Stock and Shipping Information (0/20) */}
 				<AccordionItem className="border-0 shadow-sm mb-1">
 					<AccordionHeader targetId="1">
 						Price, Stock and Shipping Information
 					</AccordionHeader>
 					<AccordionBody accordionId="1">
-						<div style={{ height: "250px", overflow: "hidden" }}>
+						<div style={{ height: "450px", overflow: "hidden" }}>
 							<PerfectScrollbar options={{ suppressScrollX: true }}>
 								<Form>
 									<Row className="mb-3">
@@ -1159,7 +912,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												>
 													<option value="">-- Select One --</option>
 													<option value="ReadyForActivation">Ready For Activation</option>
-													{/* <option value="inactive">Inactive</option> */}
 												</Input>
 											</InputGroup>
 											{renderError('status')}
@@ -1184,7 +936,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													<option value="">-- Select One --</option>
 													<option value="Seller">Seller</option>
 													<option value="Zozokart">Zozokart</option>
-													{/* Add other options like 'Flipkart' if applicable */}
 												</Input>
 											</InputGroup>
 											{renderError('fulfillmentBy')}
@@ -1216,7 +967,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													Procurement SLA *
 												</span>
 												<Input
-													type="number" // Assuming SLA is a number of days
+													type="number"
 													placeholder=""
 													name="procurementSLA"
 													value={listingData.procurementSLA}
@@ -1286,7 +1037,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 												>
 													<option value="">-- Select One --</option>
 													<option value="Zozokart">Zozokart</option>
-													{/* Add other shipping providers */}
 												</Input>
 											</InputGroup>
 											{renderError('shippingProvider')}
@@ -1302,7 +1052,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													Length *
 												</span>
 												<Input
-													type="number" // Assuming dimensions are numbers
+													type="number"
 													placeholder=""
 													name="packageLength"
 													value={listingData.packageLength}
@@ -1397,7 +1147,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													Luxury Cess
 												</span>
 												<Input
-													type="number" // Assuming percentage is a number
+													type="number"
 													name="luxuryCess"
 													value={listingData.luxuryCess}
 													onChange={handleChange}
@@ -1419,7 +1169,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													readOnly
 													value={listingData.taxCode}
 													invalid={errors.taxCode}
-												// onChange={handleChange}
 												/>
 											</InputGroup>
 											{renderError('taxCode')}
@@ -1470,40 +1219,58 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													style={{ fontSize: "14px" }}
 													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 												>
-													Product price*
+													Packing Charges*
 												</span>
 												<Input
 													type="number"
-													placeholder=""
-													name="productPrice"
-													value={listingData.productPrice}
+													placeholder="0"
+													name="packingCharges"
+													value={listingData.packingCharges}
 													onChange={handleChange}
-													readOnly
-													invalid={errors.productPrice}
+													invalid={errors.packingCharges}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
-											{renderError('productPrice')}
+											{renderError('packingCharges')}
 
 											<InputGroup className="mt-1">
 												<span
 													style={{ fontSize: "14px" }}
 													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 												>
-													Commission Amount*
+													Closing Fee*
+												</span>
+												<Input
+													type="number"
+													placeholder="0"
+													name="closingFee"
+													value={listingData.closingFee}
+													onChange={handleChange}
+													invalid={errors.closingFee}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+											{renderError('closingFee')}
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Taxable Amount*
 												</span>
 												<Input
 													type="number"
 													placeholder=""
-													name="commissionAmount"
-													value={listingData.commissionAmount}
+													name="taxableAmount"
+													value={listingData.taxableAmount}
 													onChange={handleChange}
 													readOnly
-													invalid={errors.commissionAmount}
+													invalid={errors.taxableAmount}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
-											{renderError('commissionAmount')}
+											{renderError('taxableAmount')}
 
 											<InputGroup className="mt-1">
 												<span
@@ -1530,6 +1297,122 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													style={{ fontSize: "14px" }}
 													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 												>
+													Comm. Amt Partial*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="commissionAmountPartial"
+													value={listingData.commissionAmountPartial}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.commissionAmountPartial}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Comm. GST Partial*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="commissionGstPartial"
+													value={listingData.commissionGstPartial}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.commissionGstPartial}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Total Commission*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="commissionAmount"
+													value={listingData.commissionAmount}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.commissionAmount}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+											{renderError('commissionAmount')}
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Ship. Charge Partial*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="shippingChargesPartial"
+													value={listingData.shippingChargesPartial}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.shippingChargesPartial}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Ship. GST Partial*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="shippingGstPartial"
+													value={listingData.shippingGstPartial}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.shippingGstPartial}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
+													Total Ship. Charge*
+												</span>
+												<Input
+													type="number"
+													placeholder=""
+													name="shippingCharge"
+													value={listingData.shippingCharge}
+													onChange={handleChange}
+													readOnly
+													invalid={errors.shippingCharge}
+												/>
+												<span className="px-1 py-2">INR</span>
+											</InputGroup>
+											{renderError('shippingCharge')}
+
+											<InputGroup className="mt-1">
+												<span
+													style={{ fontSize: "14px" }}
+													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
+												>
 													TCS Amount*
 												</span>
 												<Input
@@ -1550,20 +1433,20 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													style={{ fontSize: "14px" }}
 													className="  st-int-span me-1 bg-secondary bg-opacity-10 px-1 py-2 fs-7"
 												>
-													Shipping Charge*
+													Product price*
 												</span>
 												<Input
 													type="number"
 													placeholder=""
-													name="shippingCharge"
-													value={listingData.shippingCharge}
+													name="productPrice"
+													value={listingData.productPrice}
 													onChange={handleChange}
 													readOnly
-													invalid={errors.shippingCharge}
+													invalid={errors.productPrice}
 												/>
 												<span className="px-1 py-2">INR</span>
 											</InputGroup>
-											{renderError('shippingCharge')}
+											{renderError('productPrice')}
 
 
 											<InputGroup className="mt-1">
@@ -1583,7 +1466,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													<option value="">-- Select One --</option>
 													<option value="1">1</option>
 													<option value="2">2</option>
-													{/* Add more options as needed */}
 												</Input>
 											</InputGroup>
 											{renderError('minOrderQuantity')}
@@ -1606,10 +1488,8 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 													invalid={errors.countryOfOrigin}
 												>
 													<option value="">Select One</option>
-													{/* ... all your country options ... */}
 													<option value="IN">India</option>
 													<option value="US">United States of America</option>
-													{/* Add more as needed */}
 												</Input>
 											</InputGroup>
 											{renderError('countryOfOrigin')}
@@ -1735,14 +1615,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 											</InputGroup>
 											{renderError('refundable')}
 										</Col>
-										{/* <Col sm={12} className="mb-3">
-                      <Button
-                        className="btn btn-primary btn-sm"
-                        onClick={handleSaveDetails}
-                      >
-                        Save
-                      </Button>
-                    </Col> */}
 									</Row>
 								</Form>
 							</PerfectScrollbar>
@@ -1750,7 +1622,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 					</AccordionBody>
 				</AccordionItem>
 
-				{/* Section 2: Product Description (Dynamic Specifications) */}
 				{
 					localSpecifications.length > 0 && (
 						<AccordionItem className="border-0 shadow-sm mb-1">
@@ -1761,12 +1632,11 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 								<Row>
 									<Col sm={12} className="mb-3">
 										<Label className="mb-1">* Mandatory fields</Label>
-										{/* Render dynamic specification fields */}
 										{localSpecifications.map(headingSection => (
 											<div key={headingSection._id} className="mb-3">
 												<h6>{headingSection.heading}</h6>
 												{headingSection.fields.map(field => (
-													<div key={field._id}> {/* Added a div for cleaner rendering of input and error */}
+													<div key={field._id}>
 														<InputGroup className="mt-1">
 															<span
 																style={{ fontSize: "14px" }}
@@ -1848,22 +1718,12 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 											</div>
 										))}
 									</Col>
-									{/* <Col sm={12} className="mb-3">
-						<Button
-						className="btn btn-primary btn-sm"
-						onClick={handleSaveDetails}
-						>
-						Save
-						</Button>
-					</Col> */}
 								</Row>
 							</AccordionBody>
 						</AccordionItem>
 					)
 				}
 
-				{/* Section 3: Additional Description (Optional) (0/17) */}
-				{/* Changed targetId to "3" to make room for Product Variants at "4" */}
 				<AccordionItem className="border-0 shadow-sm mb-1">
 					<AccordionHeader targetId="3">
 						Additional Information (Optional)
@@ -1931,7 +1791,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 														onClick={handleAddAdditionalDescription}
 														disabled={
 															(listingData.productDetails || []).length >= 10
-														} // Optional: Limit number of bullet points
+														}
 													>
 														<FaPlus />
 													</Button>
@@ -1987,20 +1847,10 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 								</InputGroup>
 								{renderError('keywords')}
 							</Col>
-							{/* <Col sm={12} className="mb-3">
-                <Button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleSaveDetails}
-                >
-                  Save
-                </Button>
-              </Col> */}
 						</Row>
 					</AccordionBody>
 				</AccordionItem>
 
-
-				{/* Section 4: Product Type and Variations */}
 				<AccordionItem className="border-0 shadow-sm mb-1">
 					<AccordionHeader targetId="4">
 						Product Type & Variations
@@ -2103,7 +1953,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 																/>
 																{variation.image && (variation.image instanceof File ?
 																	<img src={URL.createObjectURL(variation.image)} width="80" height="80" className="mt-2 border rounded" alt="Variation" /> :
-																	// Assuming IMAGE_URL is defined (e.g., as an environment variable)
 																	<img src={`${process.env.REACT_APP_IMAGE_URL}${variation.image}`} width="80" height="80" className="mt-2 border rounded" alt="Variation" />
 																)}
 															</Col>
@@ -2118,7 +1967,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 															</Col>
 
 															<Col md={12} className="mb-2">
-																<Label>Package Length</Label>
+																<Label>Package Length (CM)</Label>
 																<Input
 																	type="number"
 																	step="0.01"
@@ -2129,7 +1978,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 															</Col>
 
 															<Col md={12} className="mb-2">
-																<Label>Package Width</Label>
+																<Label>Package Width (CM)</Label>
 																<Input
 																	type="number"
 																	step="0.01"
@@ -2140,7 +1989,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 															</Col>
 
 															<Col md={12} className="mb-2">
-																<Label>Package Height</Label>
+																<Label>Package Height (CM)</Label>
 																<Input
 																	type="number"
 																	step="0.01"
@@ -2151,7 +2000,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 															</Col>
 
 															<Col md={12} className="mb-2">
-																<Label>Package Weight</Label>
+																<Label>Package Weight (KG)</Label>
 																<Input
 																	type="number"
 																	step="0.01"
@@ -2180,22 +2029,31 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 																/>
 															</Col>
 															<Col md={12} className="mb-2">
-																<Label>Product Price</Label>
+																<Label>Packing Charges</Label>
 																<Input
 																	type="number"
-																	placeholder="Product Price"
-																	value={variation.productPrice}
-																	readOnly
-																	onChange={(e) => handleVariationChange(index, 'productPrice', e.target.value)}
+																	placeholder="0"
+																	value={variation.packingCharges}
+																	onChange={(e) => handleVariationChange(index, 'packingCharges', e.target.value)}
 																/>
 															</Col>
 															<Col md={12} className="mb-2">
-																<Label>Commission Amount</Label>
+																<Label>Closing Fee</Label>
 																<Input
 																	type="number"
-																	placeholder="Commission Amount"
-																	value={variation.commissionAmount}
-																	onChange={(e) => handleVariationChange(index, 'commissionAmount', e.target.value)}
+																	placeholder="0"
+																	value={variation.closingFee}
+																	onChange={(e) => handleVariationChange(index, 'closingFee', e.target.value)}
+																/>
+															</Col>
+
+															<Col md={12} className="mb-2">
+																<Label>Taxable Amount</Label>
+																<Input
+																	type="number"
+																	placeholder="Taxable Amount"
+																	value={variation.taxableAmount}
+																	onChange={(e) => handleVariationChange(index, 'taxableAmount', e.target.value)}
 																	readOnly
 																/>
 															</Col>
@@ -2206,6 +2064,68 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 																	placeholder="GST Amount"
 																	value={variation.gstAmount}
 																	onChange={(e) => handleVariationChange(index, 'gstAmount', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+
+															<Col md={12} className="mb-2">
+																<Label>Comm. Amt Partial</Label>
+																<Input
+																	type="number"
+																	placeholder=""
+																	value={variation.commissionAmountPartial}
+																	onChange={(e) => handleVariationChange(index, 'commissionAmountPartial', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
+																<Label>Comm. GST Partial</Label>
+																<Input
+																	type="number"
+																	placeholder=""
+																	value={variation.commissionGstPartial}
+																	onChange={(e) => handleVariationChange(index, 'commissionGstPartial', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
+																<Label>Total Commission</Label>
+																<Input
+																	type="number"
+																	placeholder="Total Commission"
+																	value={variation.commissionAmount}
+																	onChange={(e) => handleVariationChange(index, 'commissionAmount', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+
+															<Col md={12} className="mb-2">
+																<Label>Ship. Charge Partial</Label>
+																<Input
+																	type="number"
+																	placeholder=""
+																	value={variation.shippingChargesPartial}
+																	onChange={(e) => handleVariationChange(index, 'shippingChargesPartial', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
+																<Label>Ship. GST Partial</Label>
+																<Input
+																	type="number"
+																	placeholder=""
+																	value={variation.shippingGstPartial}
+																	onChange={(e) => handleVariationChange(index, 'shippingGstPartial', e.target.value)}
+																	readOnly
+																/>
+															</Col>
+															<Col md={12} className="mb-2">
+																<Label>Total Shipping Charge</Label>
+																<Input
+																	type="number"
+																	placeholder="Total Shipping Charge"
+																	value={variation.shippingCharge}
+																	onChange={(e) => handleVariationChange(index, 'shippingCharge', e.target.value)}
 																	readOnly
 																/>
 															</Col>
@@ -2221,13 +2141,13 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 															</Col>
 
 															<Col md={12} className="mb-2">
-																<Label>Shipping Charge</Label>
+																<Label>Product Price</Label>
 																<Input
 																	type="number"
-																	placeholder="Shipping Charge"
-																	value={variation.shippingCharge}
-																	onChange={(e) => handleVariationChange(index, 'shippingCharge', e.target.value)}
+																	placeholder="Product Price"
+																	value={variation.productPrice}
 																	readOnly
+																	onChange={(e) => handleVariationChange(index, 'productPrice', e.target.value)}
 																/>
 															</Col>
 
@@ -2257,14 +2177,6 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 									)}
 								</>
 							)}
-							{/* <Col sm={12} className="mb-3">
-								<Button
-									className="btn btn-primary btn-sm"
-									onClick={handleSaveDetails}
-								>
-									Save
-								</Button>
-							</Col> */}
 						</Row>
 					</AccordionBody>
 				</AccordionItem>
