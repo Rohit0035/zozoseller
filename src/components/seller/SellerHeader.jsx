@@ -96,14 +96,14 @@ const SellerHeader = () => {
 
                     <div className="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 ms-lg-auto mt-3 mt-lg-0">
                         <a
-                            href="/seller/login"
+                            href="/login"
                             className="btn btn-primary px-4 border-none"
                         >
                             <FaUser className="me-2" />
                             Login
                         </a>
                         <a
-                            href="/seller/register"
+                            href="/sign-up"
                             className="btn btn-primary px-4 fw-semibold border-none"
                         >
                             <FaStore className="me-2" />

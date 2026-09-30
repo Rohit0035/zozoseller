@@ -27,7 +27,7 @@ export default function App() {
   }, []);
 
   const isAuthPage = [
-    "/home",
+    "/",
     "/login",
     "/sign-up",
     "/otp",

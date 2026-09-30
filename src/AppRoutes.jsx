@@ -76,7 +76,7 @@ export default function AppRoutes() {
     <Suspense fallback={<div>Loading...</div>}>
       <Routes>
         {/* Public auth routes */}
-        <Route path="/home" element={<HomeIndex />} />
+        <Route path="/" element={<HomeIndex />} />
         <Route path="/login" element={<Login />} />
         <Route path="/otp" element={<OtpVerification />} />
         <Route path="/sign-up" element={<Signup />} />
@@ -85,7 +85,7 @@ export default function AppRoutes() {
 
         {/* Protected app routes inside layout */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <PrivateRoute>
               {" "}<Dashboard />

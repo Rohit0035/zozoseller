@@ -41,7 +41,6 @@ const AddListingBulkIndex = () => {
         mainImage: null,
         galleryImages: [],
         videos: [],
-        type: null,
         
         name: "",
         sku: "",

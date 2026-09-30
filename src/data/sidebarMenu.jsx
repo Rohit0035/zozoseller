@@ -36,7 +36,7 @@ const sidebarMenu = [
   {
     icon: <FaHome />,
     label: "Home",
-    path: "/"
+    path: "/dashboard"
   },
   {
     icon: <FaList />,
