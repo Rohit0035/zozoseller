@@ -101,7 +101,7 @@ const OtpVerification = () => {
                 // localStorage.setItem('user', JSON.stringify(response.data.customer));
                 dispatch({ type: LOGIN_SUCCESS, payload: { response } }); // Dispatch LOGIN_SUCCESS action
 
-                navigate('/'); // Redirect upon successful login
+                navigate('/dashboard'); // Redirect upon successful login
                 // navigate('/verify-otp'); // Redirect upon successful login
             } else {
                 // setError(response.message);
