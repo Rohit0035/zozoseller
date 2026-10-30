@@ -17,13 +17,10 @@ import classnames from 'classnames';
 import { FaSearch } from 'react-icons/fa';
 import { useDispatch } from 'react-redux';
 
-import AllOrderList from '../../components/activeorder/AllOrderList';
-
 import { GetVendorOrders } from '../../api/vendorOrderAPI';
 import { showToast } from '../../components/ToastifyNotification';
 import FBFStatusCard from '../../components/activeorder/FBFStatusCard';
 import FBZOrderList from '../../components/activeorder/FbzOrderList ';
-
 
 // ---------------------------------------------
 // STATUS CONFIG
@@ -40,17 +37,13 @@ const TAB_KEYS = {
 const STATUS_GROUPS = {
     [TAB_KEYS.IN_PROGRESS]: [
         'Pending',
-        'Processing',
-        'Shipped',
-        'Out For Delivery',
-        'Ready To Dispatch',
+        'Pending Packing',
+        'Pending Labels',
         'In Transit'
     ],
-
     [TAB_KEYS.DELIVERED]: [
         'Delivered'
     ],
-
     [TAB_KEYS.CANCELLED]: [
         'Cancelled',
         'Returned',
@@ -60,7 +53,6 @@ const STATUS_GROUPS = {
 };
 
 const ALL_ALLOWED_STATUSES = Object.values(STATUS_GROUPS).flat();
-
 
 // ---------------------------------------------
 // HELPERS
@@ -73,27 +65,27 @@ const getDateNDaysAgo = (days) => {
     return date;
 };
 
-
 // ---------------------------------------------
 // COMPONENT
 // ---------------------------------------------
 
 const FbfOrder = () => {
-
     const dispatch = useDispatch();
 
     const [activeTab, setActiveTab] = useState(TAB_KEYS.TODAY);
-
-    const [orders, setOrders] = useState([]);
-
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Holds only the data for the currently active tab
+    const [activeTabData, setActiveTabData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
 
-    const [groupedOrders, setGroupedOrders] = useState({
-        [TAB_KEYS.TODAY]: [],
-        [TAB_KEYS.ALL]: [],
-        [TAB_KEYS.IN_PROGRESS]: [],
-        [TAB_KEYS.DELIVERED]: [],
-        [TAB_KEYS.CANCELLED]: []
+    // Holds global stats for the top cards and tab counters
+    const [tabCounts, setTabCounts] = useState({
+        [TAB_KEYS.TODAY]: 0,
+        [TAB_KEYS.ALL]: 0,
+        [TAB_KEYS.IN_PROGRESS]: 0,
+        [TAB_KEYS.DELIVERED]: 0,
+        [TAB_KEYS.CANCELLED]: 0
     });
 
     const [statusCardStats, setStatusCardStats] = useState({
@@ -103,275 +95,198 @@ const FbfOrder = () => {
         totalValue: 0
     });
 
-
     // ---------------------------------------------
     // TAB TOGGLE
     // ---------------------------------------------
 
     const toggle = (tab) => {
-        setActiveTab(tab);
+        if (activeTab !== tab) {
+            setActiveTab(tab);
+        }
     };
 
+    // ---------------------------------------------
+    // DATA FORMATTER
+    // ---------------------------------------------
+    const formatOrderData = (data) => {
+        return data.map((item, index) => ({
+            index: index + 1,
+            id: item._id,
+            orderUniqueId: item.orderId?.orderUniqueId,
+            subOrderUniqueId: item.subOrderUniqueId,
+            productInfo: item.orderItems?.[0]?.productId?.name,
+            skuNo: item.orderItems?.[0]?.productVariationId?.sku || item.orderItems?.[0]?.productId?.sku || 'N/A',
+            quantity: item.orderItems?.[0]?.quantity,
+            amount: item.total || 0,
+            status: item.orderStatus,
+            vendorName: item.vendorId?.name,
+            createdAt: new Date(item.createdAt),
+            order: item
+        }));
+    };
 
     // ---------------------------------------------
-    // FETCH ORDERS
+    // FETCH TAB SPECIFIC DATA
     // ---------------------------------------------
 
-    const fetchOrders = async () => {
-
+    const fetchOrdersForTab = async (targetTab) => {
         dispatch({ type: 'loader', loader: true });
 
         try {
+            // Determine which statuses to fetch from the backend
+            let statusesToFetch = ALL_ALLOWED_STATUSES;
+            if (STATUS_GROUPS[targetTab]) {
+                statusesToFetch = STATUS_GROUPS[targetTab];
+            }
 
             const response = await GetVendorOrders({
-                orderStatus: ALL_ALLOWED_STATUSES,
+                orderStatus: statusesToFetch,
                 fulfillmentBy: 'Zozokart'
             });
 
             if (response.success) {
+                let formattedData = formatOrderData(response.data);
 
-                const formattedData = response.data.map((item, index) => ({
-                    index: index + 1,
+                // If "Today" tab is selected, filter the API results locally by today's date
+                if (targetTab === TAB_KEYS.TODAY) {
+                    const startOfToday = getDateNDaysAgo(0);
+                    formattedData = formattedData.filter(order => order.createdAt >= startOfToday);
+                }
 
-                    id: item._id,
-
-                    orderUniqueId: item.orderId?.orderUniqueId,
-
-                    subOrderUniqueId: item.subOrderUniqueId,
-
-                    productInfo:
-                        item.orderItems?.[0]?.productId?.name,
-                    skuNo:
-                        item.orderItems?.[0]?.productVariationId?.sku || item.orderItems?.[0]?.productId?.sku || 'N/A',
-
-                    quantity:
-                        item.orderItems?.[0]?.quantity,
-
-                    amount:
-                        item.total || 0,
-
-                    status:
-                        item.orderStatus,
-
-                    vendorName:
-                        item.vendorId?.name,
-
-                    createdAt:
-                        new Date(item.createdAt),
-
-                    order: item
+                setActiveTabData(formattedData);
+                
+                // Keep the current tab's counter synced perfectly
+                setTabCounts(prev => ({
+                    ...prev,
+                    [targetTab]: formattedData.length
                 }));
-
-                setOrders(formattedData);
-
             } else {
                 showToast('error', response.message);
             }
-
         } catch (error) {
-
             showToast('error', error.toString());
-
         } finally {
-
             dispatch({ type: 'loader', loader: false });
         }
     };
 
-
     // ---------------------------------------------
-    // INITIAL FETCH
+    // INITIAL FETCH FOR COUNTERS & STATS
     // ---------------------------------------------
 
     useEffect(() => {
-        fetchOrders();
+        const fetchInitialStats = async () => {
+            try {
+                const response = await GetVendorOrders({
+                    orderStatus: ALL_ALLOWED_STATUSES,
+                    fulfillmentBy: 'Zozokart'
+                });
+
+                if (response.success) {
+                    const formattedData = formatOrderData(response.data);
+                    
+                    const startOfToday = getDateNDaysAgo(0);
+                    const sevenDaysAgo = getDateNDaysAgo(7);
+                    const threeDaysAgo = getDateNDaysAgo(3);
+                    const fifteenDaysAgo = getDateNDaysAgo(15);
+
+                    // 1. Set Tab Counts
+                    setTabCounts({
+                        [TAB_KEYS.TODAY]: formattedData.filter(o => o.createdAt >= startOfToday).length,
+                        [TAB_KEYS.ALL]: formattedData.length,
+                        [TAB_KEYS.IN_PROGRESS]: formattedData.filter(o => STATUS_GROUPS[TAB_KEYS.IN_PROGRESS].includes(o.status)).length,
+                        [TAB_KEYS.DELIVERED]: formattedData.filter(o => STATUS_GROUPS[TAB_KEYS.DELIVERED].includes(o.status)).length,
+                        [TAB_KEYS.CANCELLED]: formattedData.filter(o => STATUS_GROUPS[TAB_KEYS.CANCELLED].includes(o.status)).length
+                    });
+
+                    // 2. Set Status Card Stats
+                    const last15DaysOrders = formattedData.filter(o => o.createdAt >= fifteenDaysAgo);
+                    const deliveredOrders = formattedData.filter(o => STATUS_GROUPS[TAB_KEYS.DELIVERED].includes(o.status));
+
+                    setStatusCardStats({
+                        totalOrders15Days: last15DaysOrders.length,
+                        delivered7Days: deliveredOrders.filter(o => o.createdAt >= sevenDaysAgo).length,
+                        delivered3Days: deliveredOrders.filter(o => o.createdAt >= threeDaysAgo).length,
+                        totalValue: last15DaysOrders.reduce((sum, order) => sum + Number(order.amount || 0), 0)
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch initial stats", error);
+            }
+        };
+
+        fetchInitialStats();
     }, []);
 
-
     // ---------------------------------------------
-    // FILTER + GROUP DATA
+    // TRIGGER FETCH ON TAB CHANGE
     // ---------------------------------------------
 
     useEffect(() => {
+        fetchOrdersForTab(activeTab);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab]);
 
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
+    // ---------------------------------------------
+    // SEARCH FILTER
+    // ---------------------------------------------
 
-        const sevenDaysAgo = getDateNDaysAgo(7);
-        const threeDaysAgo = getDateNDaysAgo(3);
-        const fifteenDaysAgo = getDateNDaysAgo(15);
-
-        let filtered = [...orders];
-
-        // SEARCH FILTER
-
+    useEffect(() => {
         if (searchTerm) {
-
-            filtered = filtered.filter((item) =>
-                item.orderUniqueId
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ||
-
-                item.subOrderUniqueId
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase())
+            const filtered = activeTabData.filter((item) =>
+                item.orderUniqueId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.subOrderUniqueId?.toLowerCase().includes(searchTerm.toLowerCase())
             );
+            setFilteredData(filtered);
+        } else {
+            setFilteredData(activeTabData);
         }
-
-
-        // GROUPING
-
-        const todayOrders = filtered.filter(
-            order => order.createdAt >= startOfToday
-        );
-
-        const inProgressOrders = filtered.filter(order =>
-            STATUS_GROUPS[TAB_KEYS.IN_PROGRESS].includes(order.status)
-        );
-
-        const deliveredOrders = filtered.filter(order =>
-            STATUS_GROUPS[TAB_KEYS.DELIVERED].includes(order.status)
-        );
-
-        const cancelledOrders = filtered.filter(order =>
-            STATUS_GROUPS[TAB_KEYS.CANCELLED].includes(order.status)
-        );
-
-        setGroupedOrders({
-            [TAB_KEYS.TODAY]: todayOrders,
-
-            [TAB_KEYS.ALL]: filtered,
-
-            [TAB_KEYS.IN_PROGRESS]: inProgressOrders,
-
-            [TAB_KEYS.DELIVERED]: deliveredOrders,
-
-            [TAB_KEYS.CANCELLED]: cancelledOrders
-        });
-
-
-        // STATUS CARD
-
-        const last15DaysOrders = filtered.filter(
-            order => order.createdAt >= fifteenDaysAgo
-        );
-
-        setStatusCardStats({
-
-            totalOrders15Days:
-                last15DaysOrders.length,
-
-            delivered7Days:
-                deliveredOrders.filter(
-                    order => order.createdAt >= sevenDaysAgo
-                ).length,
-
-            delivered3Days:
-                deliveredOrders.filter(
-                    order => order.createdAt >= threeDaysAgo
-                ).length,
-
-            totalValue:
-                last15DaysOrders.reduce(
-                    (sum, order) => sum + Number(order.amount || 0),
-                    0
-                )
-        });
-
-    }, [orders, searchTerm]);
-
-
-    // ---------------------------------------------
-    // TAB COUNTS
-    // ---------------------------------------------
-
-    const tabCounts = useMemo(() => ({
-        [TAB_KEYS.TODAY]:
-            groupedOrders[TAB_KEYS.TODAY].length,
-
-        [TAB_KEYS.ALL]:
-            groupedOrders[TAB_KEYS.ALL].length,
-
-        [TAB_KEYS.IN_PROGRESS]:
-            groupedOrders[TAB_KEYS.IN_PROGRESS].length,
-
-        [TAB_KEYS.DELIVERED]:
-            groupedOrders[TAB_KEYS.DELIVERED].length,
-
-        [TAB_KEYS.CANCELLED]:
-            groupedOrders[TAB_KEYS.CANCELLED].length
-    }), [groupedOrders]);
-
+    }, [searchTerm, activeTabData]);
 
     // ---------------------------------------------
     // RENDER LIST
     // ---------------------------------------------
 
-    const renderList = (tabKey, title) => {
-
+    const renderList = (title) => {
         return (
             <FBZOrderList
-                orders={groupedOrders[tabKey]}
+                orders={filteredData}
                 title={title}
             />
         );
     };
 
-
     return (
         <>
-
             {/* HEADER */}
-
             <Row>
-
                 <Col md="6">
-
                     <Breadcrumb className='my-2'>
-
                         <BreadcrumbItem>
                             <h5>Fulfillment By Zozokart</h5>
                         </BreadcrumbItem>
-
-                        <BreadcrumbItem active>
-                            Orders
-                        </BreadcrumbItem>
-
+                        <BreadcrumbItem active>Orders</BreadcrumbItem>
                     </Breadcrumb>
-
                 </Col>
 
-
                 <Col md="6">
-
                     <div className='d-flex justify-content-end'>
-
                         <InputGroup className='w-50'>
-
                             <Input
                                 type='search'
                                 placeholder='Search Order ID / Item ID'
                                 value={searchTerm}
-                                onChange={(e) =>
-                                    setSearchTerm(e.target.value)
-                                }
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
-
                             <span className='p-2 border'>
                                 <FaSearch />
                             </span>
-
                         </InputGroup>
-
                     </div>
-
                 </Col>
-
             </Row>
 
-
             {/* STATUS CARDS */}
-
             <FBFStatusCard
                 totalOrders15Days={statusCardStats.totalOrders15Days}
                 delivered7Days={statusCardStats.delivered7Days}
@@ -379,113 +294,30 @@ const FbfOrder = () => {
                 totalValue={statusCardStats.totalValue}
             />
 
-
             <hr />
 
-
             {/* TABS */}
-
             <Nav tabs className='mb-3'>
-
-                <NavItem>
-                    <NavLink
-                        className={classnames({
-                            active: activeTab === TAB_KEYS.TODAY
-                        })}
-                        onClick={() => toggle(TAB_KEYS.TODAY)}
-                    >
-                        Today ({tabCounts[TAB_KEYS.TODAY]})
-                    </NavLink>
-                </NavItem>
-
-                <NavItem>
-                    <NavLink
-                        className={classnames({
-                            active: activeTab === TAB_KEYS.ALL
-                        })}
-                        onClick={() => toggle(TAB_KEYS.ALL)}
-                    >
-                        All ({tabCounts[TAB_KEYS.ALL]})
-                    </NavLink>
-                </NavItem>
-
-                <NavItem>
-                    <NavLink
-                        className={classnames({
-                            active: activeTab === TAB_KEYS.IN_PROGRESS
-                        })}
-                        onClick={() => toggle(TAB_KEYS.IN_PROGRESS)}
-                    >
-                        In Progress ({tabCounts[TAB_KEYS.IN_PROGRESS]})
-                    </NavLink>
-                </NavItem>
-
-                <NavItem>
-                    <NavLink
-                        className={classnames({
-                            active: activeTab === TAB_KEYS.DELIVERED
-                        })}
-                        onClick={() => toggle(TAB_KEYS.DELIVERED)}
-                    >
-                        Delivered ({tabCounts[TAB_KEYS.DELIVERED]})
-                    </NavLink>
-                </NavItem>
-
-                <NavItem>
-                    <NavLink
-                        className={classnames({
-                            active: activeTab === TAB_KEYS.CANCELLED
-                        })}
-                        onClick={() => toggle(TAB_KEYS.CANCELLED)}
-                    >
-                        Cancelled ({tabCounts[TAB_KEYS.CANCELLED]})
-                    </NavLink>
-                </NavItem>
-
+                {Object.entries(TAB_KEYS).map(([key, value]) => (
+                    <NavItem key={key}>
+                        <NavLink
+                            className={classnames({ active: activeTab === value })}
+                            onClick={() => toggle(value)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            {/* Format label properly (e.g. IN_PROGRESS -> In Progress) */}
+                            {value.replace('_', ' ')} ({tabCounts[value]})
+                        </NavLink>
+                    </NavItem>
+                ))}
             </Nav>
 
-
             {/* TAB CONTENT */}
-
             <TabContent activeTab={activeTab}>
-
-                <TabPane tabId={TAB_KEYS.TODAY}>
-                    {renderList(
-                        TAB_KEYS.TODAY,
-                        'Today Orders'
-                    )}
+                <TabPane tabId={activeTab}>
+                    {renderList(`${activeTab.replace('_', ' ')} Orders`)}
                 </TabPane>
-
-                <TabPane tabId={TAB_KEYS.ALL}>
-                    {renderList(
-                        TAB_KEYS.ALL,
-                        'All Orders'
-                    )}
-                </TabPane>
-
-                <TabPane tabId={TAB_KEYS.IN_PROGRESS}>
-                    {renderList(
-                        TAB_KEYS.IN_PROGRESS,
-                        'In Progress Orders'
-                    )}
-                </TabPane>
-
-                <TabPane tabId={TAB_KEYS.DELIVERED}>
-                    {renderList(
-                        TAB_KEYS.DELIVERED,
-                        'Delivered Orders'
-                    )}
-                </TabPane>
-
-                <TabPane tabId={TAB_KEYS.CANCELLED}>
-                    {renderList(
-                        TAB_KEYS.CANCELLED,
-                        'Cancelled Orders'
-                    )}
-                </TabPane>
-
             </TabContent>
-
         </>
     );
 };

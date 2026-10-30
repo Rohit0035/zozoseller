@@ -320,13 +320,13 @@ const PendingLabelsList = ({ orders, fetchOrders, ALL_ALLOWED_STATUSES }) => {
 
 				<Col md="6">
 					<div className="d-flex justify-content-end">
-						<button
+						{/* <button
 							className="btn btn-danger btn-sm me-2"
 							disabled={!selectedRows.length}
 							onClick={handleBulkCancel}
 						>
 							Cancel Orders
-						</button>
+						</button> */}
 						<button
 							className="btn btn-warning btn-sm me-2"
 							disabled={!selectedRows.length}

@@ -10,6 +10,7 @@ import AddListingBulkIndex from "./pages/listing/addbulklisting/AddListingBulkIn
 import { useSelector } from "react-redux";
 import EditListingIndex from "./pages/listing/editlisting/EditListingIndex";
 import ChangePassword from "./pages/ChangePassword";
+import FBZInventoryIndex from "./pages/inventory/FBZInventoryIndex";
 
 // Lazy loaded pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -179,6 +180,14 @@ export default function AppRoutes() {
           element={
             <PrivateRoute>
               <InventoryIndex />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/fbz-inventory"
+          element={
+            <PrivateRoute>
+              <FBZInventoryIndex />
             </PrivateRoute>
           }
         />

@@ -19,10 +19,10 @@ export const StoreInventory = async (data) => {
   }
 };
 
-export const GetInventories = async () => {
+export const GetInventories = async ({fulfillmentBy=''}) => {
   try {
     const response = await fetchWithAuth(
-      `${API_CONFIG.baseURL}/inventories`
+      `${API_CONFIG.baseURL}/inventories?fulfillmentBy=${fulfillmentBy}`
     );
     return response.data; // Axios automatically parses JSON
   } catch (error) {

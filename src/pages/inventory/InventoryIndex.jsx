@@ -21,6 +21,7 @@ import {
 import { GetInventories } from "../../api/inventoryAPI"; // Assuming this is your API call
 import { showToast } from "../../components/ToastifyNotification";
 import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 
 const allColumns = [
   { name: "Product Title", selector: (row) => row.title, sortable: true },
@@ -131,7 +132,7 @@ const InventoryIndex = () => {
     dispatch({ type: "loader", loader: true });
 
     try {
-      const response = await GetInventories();
+      const response = await GetInventories({fulfillmentBy: 'Seller'});
       console.log("API Response:", response);
 
       if (response.success === true && response.data) {
@@ -309,7 +310,7 @@ const InventoryIndex = () => {
         <Col md="12">
           <Breadcrumb className="my-2">
             <BreadcrumbItem>
-              <h5>Inventory</h5>
+              <h5>Seller Inventory</h5>
             </BreadcrumbItem>
             <BreadcrumbItem active>Home</BreadcrumbItem>
           </Breadcrumb>
@@ -370,6 +371,12 @@ const InventoryIndex = () => {
           <div className="d-flex align-items-end justify-content-end">
             {/* Customize Columns Dropdown */}
             <div className="position-relative me-2">
+              <Link
+                to="/fbz-inventory"
+                className="btn btn-warning text-white btn-sm me-2"
+              >
+                FBZ Inventory
+              </Link>
               <button
                 className="btn btn-outline-primary text-white btn-sm"
                 style={{ backgroundColor: "#02339a" }}

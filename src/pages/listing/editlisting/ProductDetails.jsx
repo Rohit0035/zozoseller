@@ -839,7 +839,7 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 			showToast('error', 'Failed to save product details.');
 			console.error("Save error:", err);
 		} finally {
-			// dispatch({ type: 'loader', loader: false }); // Deactivate loader
+			dispatch({ type: 'loader', loader: false });
 		}
 	};
 
