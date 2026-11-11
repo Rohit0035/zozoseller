@@ -26,6 +26,7 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { GetCommissionSlabsBySubsCategoryTwoId } from "../../../api/commissionSlabAPI";
 import { GetHsns } from "../../../api/hsnAPI";
+import { GetShippingConfigsBySubsCategoryTwoId } from "../../../api/shippingConfigAPI";
 
 const ProductDetails = ({ listingData, onListingDataChange }) => {
 	const [open, setOpen] = useState("1");
@@ -58,6 +59,15 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 	const [selectedHsnOption, setSelectedHsnOption] = useState(
 		listingData.hsn ? hsnOptions.find(opt => opt.value === listingData.hsn) : { value: '', label: 'Please select' }
 	);
+
+	const skipNextAutosave = useRef(false);
+
+	const [shippingConfig, setShippingConfig] = useState({
+		weightType: "Actual", // "Actual", "Volumetric", "Higher"
+		perUnitWeight: 0.5,
+		volumetricDivisor: 5000,
+		ratePerUnit: 70,
+	});
 
 	useEffect(() => {
 		if (listingData?.subCategoryTwoId) {
@@ -135,10 +145,29 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		}
 	};
 
+	const fetchShippingConfig = async (data) => {
+		try {
+			const response = await GetShippingConfigsBySubsCategoryTwoId(data);
+			if (response.success === true) {
+				setShippingConfig({
+					weightType: response?.data?.weightType || shippingConfig.weightType,
+					perUnitWeight: response?.data?.perUnitWeight || shippingConfig.perUnitWeight,
+					volumetricDivisor: response?.data?.volumetricDivisor || shippingConfig.volumetricDivisor,
+					ratePerUnit: response?.data?.ratePerUnit || shippingConfig.ratePerUnit,
+				});
+			} else {
+				showToast('error', response.message);
+			}
+		} catch (error) {
+			showToast('error', 'Failed to fetch shipping config');
+		}
+	};
+
 	useEffect(() => {
 		if (listingData?.subCategoryTwoId) {
 			fetchSpecifications({ "subCategoryTwoId": listingData.subCategoryTwoId });
 			fetchCommissionSlabs({ "subCategoryTwoId": listingData.subCategoryTwoId });
+			fetchShippingConfig({ "subCategoryTwoId": listingData.subCategoryTwoId });
 		}
 		if (listingData?.subCategoryOneId && listingData?.categoryId) {
 			fetchAttributes({ categoryId: listingData.categoryId, subCategoryOneId: listingData.subCategoryOneId });
@@ -303,6 +332,30 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		});
 	};
 
+	const calculateChargeableWeight = ({
+		actualWeight,
+		length,
+		breadth,
+		height,
+		weightType,
+		volumetricDivisor,
+	}) => {
+		const volumetricWeight =
+			(length * breadth * height) / volumetricDivisor;
+
+		switch (weightType) {
+			case "Actual":
+				return actualWeight;
+
+			case "Volumetric":
+				return volumetricWeight;
+
+			case "Higher":
+			default:
+				return Math.max(actualWeight, volumetricWeight);
+		}
+	};
+
 	// useEffect for Variable Product variations calculations
 	useEffect(() => {
 		if (listingData.type === 'variable' && variations.length > 0) {
@@ -313,16 +366,29 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 				const packageWeight = parseFloat(variation.packageWeight) || 0;
 				const packageLength = parseFloat(variation.packageLength) || 0;
-				const packageWidth = parseFloat(variation.packageWidth) || parseFloat(variation.packageBreadth) || 0;
+				const packageBreadth = parseFloat(variation.packageWidth) || parseFloat(variation.packageBreadth) || 0;
 				const packageHeight = parseFloat(variation.packageHeight) || 0;
 
 				const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
 				// --- NEW SHIPPING LOGIC ---
-				const volumetricWeight = (packageLength * packageWidth * packageHeight) / 5000;
-				const chargeableWeight = Math.max(packageWeight, volumetricWeight);
-				const shippingChargesPartial = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
-				const shippingGstPartial = (shippingChargesPartial * gstPercentage) / 100;
+				const chargeableWeight = calculateChargeableWeight({
+					actualWeight: packageWeight,
+					length: packageLength,
+					breadth: packageBreadth, // Use packageWidth for variations if that's your variable name
+					height: packageHeight,
+					weightType: shippingConfig.weightType,
+					volumetricDivisor: shippingConfig.volumetricDivisor,
+				});
+
+				const shippingChargesPartial =
+					chargeableWeight > 0
+						? Math.ceil(chargeableWeight / shippingConfig.perUnitWeight) * shippingConfig.ratePerUnit
+						: 0;
+
+				const shippingGstPartial =
+					(shippingChargesPartial * gstPercentage) / 100;
+
 				const shippingCharge = shippingChargesPartial + shippingGstPartial;
 				// --------------------------
 
@@ -420,10 +486,29 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 		const gstPercentage = parseFloat(listingData.taxCode) || 0;
 
 		// --- NEW SHIPPING LOGIC ---
-		const volumetricWeight = (packageLength * packageBreadth * packageHeight) / 5000;
-		const chargeableWeight = Math.max(packageWeight, volumetricWeight);
-		const shippingChargesPartial = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
-		const shippingGstPartial = (shippingChargesPartial * gstPercentage) / 100;
+		// const volumetricWeight = (packageLength * packageBreadth * packageHeight) / 5000;
+		// const chargeableWeight = Math.max(packageWeight, volumetricWeight);
+		// const shippingChargesPartial = chargeableWeight > 0 ? Math.ceil(chargeableWeight / 0.5) * 70 : 0;
+		// const shippingGstPartial = (shippingChargesPartial * gstPercentage) / 100;
+		// const shippingCharge = shippingChargesPartial + shippingGstPartial;
+
+		const chargeableWeight = calculateChargeableWeight({
+			actualWeight: packageWeight,
+			length: packageLength,
+			breadth: packageBreadth, // Use packageWidth for variations if that's your variable name
+			height: packageHeight,
+			weightType: shippingConfig.weightType,
+			volumetricDivisor: shippingConfig.volumetricDivisor,
+		});
+
+		const shippingChargesPartial =
+			chargeableWeight > 0
+				? Math.ceil(chargeableWeight / shippingConfig.perUnitWeight) * shippingConfig.ratePerUnit
+				: 0;
+
+		const shippingGstPartial =
+			(shippingChargesPartial * gstPercentage) / 100;
+
 		const shippingCharge = shippingChargesPartial + shippingGstPartial;
 		// --------------------------
 
@@ -791,12 +876,14 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 				if (response.success) {
 					if (status === "Draft") {
+						skipNextAutosave.current = true;
+
 						onListingDataChange(prev => ({
-							...prev,
-							draftedProductId: response.product._id,
-							mainImage: response.product?.mainImage,
-							galleryImages: response.product?.galleryImages,
-							variations: response.product?.variations
+						...prev,
+						draftedProductId: response.product._id,
+						mainImage: response.product?.images?.mainImage || prev.mainImage,
+						galleryImages: response.product?.images?.galleryImages || prev.galleryImages,
+						variations: response.variations || prev.variations
 						}));
 					} else {
 						showToast("success", response.message);
@@ -820,6 +907,13 @@ const ProductDetails = ({ listingData, onListingDataChange }) => {
 
 	useEffect(() => {
 		if (!listingData.name?.trim()) return;
+
+		// Skip the state update caused by the first successful draft save
+		if (skipNextAutosave.current) {
+			skipNextAutosave.current = false;
+			lastSavedData.current = JSON.stringify(listingData);
+			return;
+		}
 
 		const current = JSON.stringify(listingData);
 

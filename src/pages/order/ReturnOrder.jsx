@@ -9,14 +9,19 @@ import {
     Col,
     Row,
     Badge,
-    Button
+    Button,
+    Modal,
+    ModalHeader,
+    ModalBody,
+    ModalFooter
 } from 'reactstrap';
 
 import { RiArrowDropDownLine } from "react-icons/ri";
 import {
     FaList,
     FaExclamationCircle,
-    FaCheckCircle
+    FaCheckCircle,
+    FaEye
 } from 'react-icons/fa';
 
 import { useDispatch } from 'react-redux';
@@ -26,6 +31,7 @@ import {
     GetReturnRequests,
     UpdateStatus
 } from '../../api/returnRequestAPI';
+import { IMAGE_URL } from '../../utils/api-config';
 
 // ======================
 // Helper Functions
@@ -57,6 +63,8 @@ const ReturnOrder = () => {
     const [filterText, setFilterText] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [imageModal, setImageModal] = useState(false);
+    const [selectedImage, setSelectedImage] = useState('');
 
     const [sortConfig, setSortConfig] = useState({
         field: 'returnDateTimestamp',
@@ -72,58 +80,40 @@ const ReturnOrder = () => {
         dispatch({ type: 'loader', loader: true });
 
         try {
-
             const response = await GetReturnRequests();
-
             if (response?.success) {
-
                 const formattedData = response.data.map((item, index) => {
-
                     const orderItem = item?.subOrderId?.orderItems?.[0];
-
                     return {
                         index: index + 1,
-
                         id: item?._id,
-
                         title:
                             orderItem?.productId?.name || 'N/A',
-
                         sku:
                             orderItem?.productVariationId?.sku ||
                             orderItem?.productId?.sku ||
                             'N/A',
-
                         category:
                             orderItem?.productId?.categoryId?.name || 'N/A',
-
                         customerName:
                             item?.subOrderId?.orderId?.userId?.firstName || 'N/A',
-
                         orderDateDisplay:
                             formatDate(item?.subOrderId?.createdAt),
-
                         orderDateTimestamp:
                             new Date(item?.subOrderId?.createdAt).getTime() || 0,
-
                         returnDateDisplay:
                             formatDate(item?.updatedAt),
-
                         returnDateTimestamp:
                             new Date(item?.updatedAt).getTime() || 0,
-
                         returnReason:
                             item?.reason || 'N/A',
-
                         refundStatus:
                             item?.refundStatus || 'Pending',
-
                         quantity:
                             orderItem?.quantity || 0,
-
                         amount:
                             item?.subOrderId?.total || 0,
-
+                        image: item?.image,
                         status:
                             item?.status || 'Pending'
                     };
@@ -132,16 +122,11 @@ const ReturnOrder = () => {
                 setData(formattedData);
 
             } else {
-
                 showToast('error', response?.message || 'Failed to fetch return requests');
             }
-
         } catch (error) {
-
             showToast('error', error?.message || 'Something went wrong');
-
         } finally {
-
             dispatch({ type: 'loader', loader: false });
         }
     };
@@ -149,6 +134,16 @@ const ReturnOrder = () => {
     useEffect(() => {
         fetchReturnRequests();
     }, []);
+
+    const handleView = (image) => {
+        if (!image) {
+            showToast('error', 'Image not available');
+            return;
+        }
+
+        setSelectedImage(`${IMAGE_URL}/${image}`);
+        setImageModal(true);
+    };
 
     // ======================
     // Handle Status Update
@@ -163,31 +158,20 @@ const ReturnOrder = () => {
         if (!confirmUpdate) return;
 
         dispatch({ type: 'loader', loader: true });
-
         try {
-
             const res = await UpdateStatus({
                 id,
                 status
             });
-
             if (res?.success) {
-
                 showToast('success', res?.message || 'Status updated successfully');
-
                 fetchReturnRequests();
-
             } else {
-
                 showToast('error', res?.message || 'Failed to update status');
             }
-
         } catch (error) {
-
             showToast('error', error?.message || 'Something went wrong');
-
         } finally {
-
             dispatch({ type: 'loader', loader: false });
         }
     };
@@ -264,6 +248,15 @@ const ReturnOrder = () => {
             cell: row => `₹${row.amount}`
         },
         {
+            name: 'Image',
+            selector: row => row.image,
+            cell: row=> (
+                <Button className='btn btn-sm btn-warning' onClick={() => handleView(row.image) }>
+                    <FaEye size={20} />
+                </Button>
+            )
+        },
+        {
             name: 'Status',
             selector: row => row.status,
             sortable: true,
@@ -335,6 +328,7 @@ const ReturnOrder = () => {
             'Customer Name',
             'Status',
             'Refund Status',
+            'image',
             'Action'
         ],
 
@@ -359,9 +353,7 @@ const ReturnOrder = () => {
     };
 
     const applyPreset = (presetName) => {
-
         setVisibleColumns(presets[presetName]);
-
         setDropdownOpen(false);
     };
 
@@ -370,15 +362,10 @@ const ReturnOrder = () => {
     // ======================
 
     const filteredAndSortedData = useMemo(() => {
-
         let currentData = [...data];
-
         // Search Filter
-
         if (filterText) {
-
             const lowerCaseFilter = filterText.toLowerCase();
-
             currentData = currentData.filter(item =>
                 Object.values(item).some(value =>
                     value !== null &&
@@ -391,12 +378,9 @@ const ReturnOrder = () => {
         // Sorting
 
         currentData.sort((a, b) => {
-
             const valA = a[sortConfig.field];
             const valB = b[sortConfig.field];
-
             if (typeof valA === 'string') {
-
                 return sortConfig.order === 'asc'
                     ? valA.localeCompare(valB)
                     : valB.localeCompare(valA);
@@ -406,9 +390,7 @@ const ReturnOrder = () => {
                 ? valA - valB
                 : valB - valA;
         });
-
         return currentData;
-
     }, [data, filterText, sortConfig]);
 
     // ======================
@@ -684,6 +666,41 @@ const ReturnOrder = () => {
                 </Col>
 
             </Row>
+
+            <Modal
+                isOpen={imageModal}
+                toggle={() => setImageModal(false)}
+                centered
+                size="lg"
+            >
+                <ModalHeader toggle={() => setImageModal(false)}>
+                    Return Request Image
+                </ModalHeader>
+
+                <ModalBody className="text-center">
+                    {selectedImage && (
+                        <img
+                            src={`${IMAGE_URL}${selectedImage}`}
+                            alt="Return Request"
+                            className="img-fluid rounded"
+                            style={{
+                                maxHeight: '500px',
+                                maxWidth: '100%',
+                                objectFit: 'contain'
+                            }}
+                        />
+                    )}
+                </ModalBody>
+
+                <ModalFooter>
+                    <Button
+                        color="secondary"
+                        onClick={() => setImageModal(false)}
+                    >
+                        Close
+                    </Button>
+                </ModalFooter>
+            </Modal>
 
         </div>
     );

@@ -73,6 +73,22 @@ const AddListingIndex = () => {
         // setListingData({ /* reset to initial state for a new listing */ });
     };
 
+    const isNextDisabled = () => {
+        if (currentStep === 0) {
+            return (
+                !listingData.categoryId ||
+                !listingData.subCategoryOneId ||
+                !listingData.subCategoryTwoId
+            );
+        }
+
+        if (currentStep === 1) {
+            return !listingData.brandId;
+        }
+
+        return false;
+    };
+
     const renderStepComponent = () => {
         switch (currentStep) {
             case 0:
@@ -157,6 +173,7 @@ const AddListingIndex = () => {
                         <Button
                             color="primary"
                             onClick={handleNext}
+                            disabled={isNextDisabled()}
                         >
                             Next
                         </Button>

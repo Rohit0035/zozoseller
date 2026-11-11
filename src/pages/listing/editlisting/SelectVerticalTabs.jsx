@@ -214,7 +214,13 @@ const SelectVerticalTabs = ({ currentStep, setCurrentStep, listingData, onListin
                             <>
                                 <Col md="6" className="text-center">
                                     {selectedLevel3Data?.image && (
-                                        <img src={`${IMAGE_URL}/${selectedLevel3Data.image}`} alt="" style={{ maxWidth: '100px' }} />
+                                        <img src={`${IMAGE_URL}/${selectedLevel3Data.image}`} alt="" 
+                                        style={{
+                                            maxWidth: '100%',
+                                            height: 'auto',
+                                            display: 'block',
+                                            margin: 'auto'
+                                        }} />
                                     )}
                                 </Col>
                                 <Col md="6" className='text-center'>
