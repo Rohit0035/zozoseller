@@ -44,9 +44,10 @@ const sidebarMenu = [
     submenu: [
       { label: "My Listings", path: "/listing" },
       { label: "Add New Listings", path: "/addlisting" },
-      { label: "Rack Approval Requests", path: "/trackapprovalrequests" }
+      { label: "Rack Approval Requests", path: "/trackapprovalrequests" },
+
       // { label: 'My Audits', path: '/myaudits' },
-      // { label: 'Selection Insights', path: '/' },
+      { label: 'Selection Insights', path: '/' },
       // { label: 'Fashion Trends', path: '/' },
     ]
   },
@@ -65,7 +66,6 @@ const sidebarMenu = [
       { label: "Active Orders", path: "/activeorder" },
       { label: "Returns", path: "/return-order" },
       { label: "Cancellations", path: "/cancel-order" },
-      // { label: 'Insights', path: '/base/insights' },
       {
         label: "Customer Returns Reduction",
         path: "/customer-return-reduction"

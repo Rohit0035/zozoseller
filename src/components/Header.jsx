@@ -5,9 +5,11 @@ import {
   DropdownMenu,
   DropdownItem,
 } from 'reactstrap';
-import { FaBars } from 'react-icons/fa';
+import { FaAngleLeft, FaAngleRight, FaBars, FaHome } from 'react-icons/fa';
 import LogoLg from '../assets/images/logo-lg.png'
 import { FaUserCircle, FaBell } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+
 import { IoMdAlert } from "react-icons/io";
 import { Link, useNavigate } from 'react-router-dom';
 import { FaLongArrowAltRight } from "react-icons/fa";
@@ -16,7 +18,10 @@ import { LOGOUT } from '../reducers/authReducer';
 import { showToast } from './ToastifyNotification';
 import { GetNotifications } from '../api/notificationAPI';
 import { formatDistanceToNow } from 'date-fns';
+import ZozoSerach from './ZozoSerach';
 export default function Header({ toggleSidebar, toggleCollapse }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const dispatch = useDispatch();
   const isAuthenticated = useSelector(state => state.auth?.isAuthenticated) || false;
   const user = useSelector(state => state.auth?.user) || {};
@@ -61,9 +66,26 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
           </NavbarBrand>
         </div>
         <div className="d-none d-lg-block">
-          <Button color="#02339a" onClick={toggleCollapse}>
-            <FaBars size={20} color="#02339a" />
+          <Button
+            style={{
+               marginTop:'-3px'
+            }}
+            onClick={() => {
+              toggleCollapse();
+              setIsCollapsed(!isCollapsed);
+            }}
+            className='bg-transparent text-st border-0 p-0'
+          >
+            <span className="ms-2">
+              {isCollapsed ? <FaAngleRight size={18} /> : <FaAngleLeft  size={18}/>}
+            </span>
           </Button>
+          <span className="ms-1 fw-bold small fst-italic">
+            Seller Hub
+          </span>
+        </div>
+        <div className=''>
+           <ZozoSerach />
         </div>
         <div className="d-flex gap-1">
           <UncontrolledDropdown>
@@ -92,32 +114,32 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
                 ))
               )}
               < DropdownItem > View all notifications</DropdownItem>
-          </DropdownMenu>
-        </UncontrolledDropdown>
+            </DropdownMenu>
+          </UncontrolledDropdown>
 
-        {/* Profile Dropdown */}
-        <UncontrolledDropdown>
-          <DropdownToggle
-            // caret
-            color="light"
-            className="d-flex align-items-center border-0 bg-transparent"
-          >
-            <FaUserCircle size={20} color="#02339a" />
-          </DropdownToggle>
-          <DropdownMenu end>
-            <DropdownItem header>{user?.firstName}</DropdownItem>
-            <DropdownItem divider />
-            <DropdownItem tag={Link} to="/Profile">My Account</DropdownItem>
-            <DropdownItem divider />
-            <DropdownItem tag={Link} to="/change-password">Change Password</DropdownItem>
-            <DropdownItem divider />
-            <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
-          </DropdownMenu>
-        </UncontrolledDropdown>
-      </div>
+          {/* Profile Dropdown */}
+          <UncontrolledDropdown>
+            <DropdownToggle
+              // caret
+              color="light"
+              className="d-flex align-items-center border-0 bg-transparent"
+            >
+              <FaUserCircle size={20} color="#02339a" />
+            </DropdownToggle>
+            <DropdownMenu end>
+              <DropdownItem header>{user?.firstName}</DropdownItem>
+              <DropdownItem divider />
+              <DropdownItem tag={Link} to="/Profile">My Account</DropdownItem>
+              <DropdownItem divider />
+              <DropdownItem tag={Link} to="/change-password">Change Password</DropdownItem>
+              <DropdownItem divider />
+              <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
+            </DropdownMenu>
+          </UncontrolledDropdown>
+        </div>
 
-      {/* <NavbarBrand className="mb-0 h1">DEFAULT</NavbarBrand> */}
-      {/* <div className='text-center w-100 bg-light py-2 mt-1'>
+        {/* <NavbarBrand className="mb-0 h1">DEFAULT</NavbarBrand> */}
+        {/* <div className='text-center w-100 bg-light py-2 mt-1'>
           <IoMdAlert size={22} className='me-2' color='#fc0' />
           <small>
             Provide and verify your bank details to receive payments on your orders
@@ -127,7 +149,7 @@ export default function Header({ toggleSidebar, toggleCollapse }) {
             <FaLongArrowAltRight size={22} className='text-primary ms-2' />
           </Link>
         </div> */}
-    </Navbar >
+      </Navbar >
     </>
 
   );

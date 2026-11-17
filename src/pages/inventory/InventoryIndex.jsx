@@ -132,7 +132,7 @@ const InventoryIndex = () => {
     dispatch({ type: "loader", loader: true });
 
     try {
-      const response = await GetInventories({fulfillmentBy: 'Seller'});
+      const response = await GetInventories({ fulfillmentBy: 'Seller' });
       console.log("API Response:", response);
 
       if (response.success === true && response.data) {
@@ -273,36 +273,42 @@ const InventoryIndex = () => {
   const allInventoryCount = data.length;
   const recommendationsCount = data.length; // Assuming recommendations show all data for now
 
+
   const counters = [
     {
       title: "All Inventory",
       count: allInventoryCount,
-      icon: <FaList size={30} color="#fff" />,
-      bgColor: "#6c757d",
-      textColor: "#fff",
+      icon: <FaList />,
+      dotBg: "#073B8A",
+      bgColor: "#073B8A",
+      lightBg: "#EAF1FC"
     },
     {
       title: "Low Stock",
       count: lowStockCount,
-      icon: <FaExclamationCircle size={30} color="#fff" />,
-      bgColor: "#dc3545",
-      textColor: "#fff",
+      icon: <FaExclamationCircle />,
+      dotBg: "#DC3545",
+      bgColor: "#073B8A",
+      lightBg: "#EAF1FC"
     },
     {
       title: "Out of Stock",
       count: outOfStockCount,
-      icon: <FaHourglassHalf size={30} color="#fff" />,
-      bgColor: "#ffc107",
-      textColor: "#000",
+      icon: <FaHourglassHalf />,
+      dotBg: "#E3A008",
+      bgColor: "#073B8A",
+      lightBg: "#EAF1FC"
     },
     {
       title: "Recommendations",
-      count: recommendationsCount, // Display total count for recommendations as per logic
-      icon: <FaCheckCircle size={30} color="#fff" />,
-      bgColor: "#28a745",
-      textColor: "#fff",
-    },
+      count: recommendationsCount,
+      icon: <FaCheckCircle />,
+      dotBg: "#198754",
+      bgColor: "#073B8A",
+      lightBg: "#EAF1FC"
+    }
   ];
+
 
   return (
     <div>
@@ -316,45 +322,80 @@ const InventoryIndex = () => {
           </Breadcrumb>
         </Col>
       </Row>
+
       {/* Inventory Summary Counters */}
-      <Row>
+      <Row className="row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-3">
         {counters.map((item, index) => (
-          <Col key={index} md="3" sm="6" xs="12" className="mb-3">
-            {/* Removed <Link> component to handle clicks directly */}
+          <Col key={index}>
             <Card
-              className="text-start shadow-sm"
+              className="h-100 border-0 shadow-sm bg-light"
+              onClick={() => setActiveFilter(item.title)}
               style={{
-                backgroundColor: item.bgColor,
-                color: item.textColor,
-                cursor: "pointer", // Indicate it's clickable
-                border:
-                  activeFilter === item.title ? "2px solid #007bff" : "none", // Highlight active filter
+                borderRadius: "14px",
+                borderBottom: `3px solid ${item.bgColor}`,
+                cursor: "pointer",
+                outline: activeFilter === item.title
+                  ? `2px solid ${item.bgColor}`
+                  : "none",
+                outlineOffset: activeFilter === item.title ? "1px" : "0"
               }}
-              onClick={() => setActiveFilter(item.title)} // Set active filter on click
             >
-              <CardBody className="p-2">
+              <CardBody className="p-3">
                 <div className="d-flex justify-content-between align-items-center">
+
                   <div>
-                    <h3
-                      className="text-white"
-                      style={{ color: item.textColor }}
+                    <h2
+                      className="fw-bold mb-1"
+                      style={{
+                        color: "#183B65",
+                        fontSize: "30px",
+                        lineHeight: "1.3"
+                      }}
                     >
                       {item.count}
-                    </h3>
-                    <h5
-                      className="mb-1 fs-6 fw-bold text-white"
-                      style={{ color: item.textColor }}
-                    >
+                    </h2>
+
+                    <h6 className="mb-1 fw-semibold text-secondary">
                       {item.title}
-                    </h5>
+                    </h6>
+
+                    <div className="d-flex align-items-center gap-1">
+                      <span
+                        className="rounded-circle"
+                        style={{
+                          width: "7px",
+                          height: "7px",
+                          backgroundColor: item.dotBg
+                        }}
+                      />
+                      <small className="text-muted">
+                        {activeFilter === item.title
+                          ? "Currently selected"
+                          : "View inventory"}
+                      </small>
+                    </div>
                   </div>
-                  <div>{item.icon}</div>
+
+                  <div
+                    className="rounded-3 d-flex align-items-center justify-content-center"
+                    style={{
+                      width: "54px",
+                      height: "54px",
+                      backgroundColor: item.lightBg,
+                      color: item.bgColor,
+                      fontSize: "23px"
+                    }}
+                  >
+                    {item.icon}
+                  </div>
+
                 </div>
               </CardBody>
             </Card>
           </Col>
         ))}
       </Row>
+
 
       <Row className="mt-4">
         <Col md="6" className="mb-2">

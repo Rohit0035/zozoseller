@@ -21,54 +21,85 @@ const ApprovalRequests = () => {
     const [isProfileComplete, setIsProfileComplete] = useState(false);
     const navigate = useNavigate();
 
-    
+
 
     const dispatch = useDispatch();
-     // --- API Fetching Logic ---
-        const fetchProducts = async () => {
-            dispatch({ type: 'loader', loader: true });
-            try {
-                const response = await GetProducts();
-                if (response.success) {
-                    showToast('success', response.message);
-                    const formattedData = response.data.map((item, index) => ({
-                        index: index + 1,
-                        id: item._id, // Keep _id for potential future actions
-                        title: item.name,
-                        brand: item?.brandId?.name || 'N/A',
-                        vertical: item?.categoryId?.name +'->'+item?.subCategoryOneId?.name +'->'+ item?.subCategoryTwoId?.name || 'N/A',
-                        status: item.status,
-                        comments: item.comments || 'N/A',
-                        lastUpdated: formatDateWithTime(item.updatedAt),
-                    }));
-                    setData(formattedData);
-                    setFilteredData(formattedData); // Initialize filteredData with all fetched data
-                } else {
-                    showToast('error', response.message);
-                    setError(response.message);
-                }
-            } catch (error) {
-                showToast('error', error.message || 'Failed to fetch products');
-                setError(error.message || 'Failed to fetch products');
-            } finally {
-                dispatch({ type: 'loader', loader: false });
+    // --- API Fetching Logic ---
+    const fetchProducts = async () => {
+        dispatch({ type: 'loader', loader: true });
+        try {
+            const response = await GetProducts();
+            if (response.success) {
+                showToast('success', response.message);
+                const formattedData = response.data.map((item, index) => ({
+                    index: index + 1,
+                    id: item._id, // Keep _id for potential future actions
+                    title: item.name,
+                    brand: item?.brandId?.name || 'N/A',
+                    vertical: item?.categoryId?.name + '->' + item?.subCategoryOneId?.name + '->' + item?.subCategoryTwoId?.name || 'N/A',
+                    status: item.status,
+                    comments: item.comments || 'N/A',
+                    lastUpdated: formatDateWithTime(item.updatedAt),
+                }));
+                setData(formattedData);
+                setFilteredData(formattedData); // Initialize filteredData with all fetched data
+            } else {
+                showToast('error', response.message);
+                setError(response.message);
             }
-        };
-    
-        useEffect(() => {
-            if (isProfileComplete) {
-                fetchProducts();
-            }
-        }, [isProfileComplete]); // Fetch products on component mount
+        } catch (error) {
+            showToast('error', error.message || 'Failed to fetch products');
+            setError(error.message || 'Failed to fetch products');
+        } finally {
+            dispatch({ type: 'loader', loader: false });
+        }
+    };
+
+    useEffect(() => {
+        if (isProfileComplete) {
+            fetchProducts();
+        }
+    }, [isProfileComplete]); // Fetch products on component mount
 
     const toggleModal = () => setModalOpen(!modalOpen);
 
+
     const counters = [
-        { title: 'All Requests', count: data.length, icon: <FaList size={30} color="#fff" />, bgColor: '#6c757d', textColor: '#fff' },
-        { title: 'Action Required', count: data.filter(item => item.status === 'Action Required').length, icon: <FaExclamationCircle size={30} color="#fff" />, bgColor: '#dc3545', textColor: '#fff' },
-        { title: 'Pending', count: data.filter(item => item.status === 'Pending').length, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
-        { title: 'Approved', count: data.filter(item => item.status === 'Approved').length, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
+        {
+            title: "All Requests",
+            count: data.length,
+            icon: <FaList size={21} />,
+            DotColor: "#073B8A",
+
+            bgColor: "#073B8A",
+            lightBg: "#EAF1FC"
+        },
+        {
+            title: "Action Required",
+            count: data.filter(item => item.status === "Action Required").length,
+            icon: <FaExclamationCircle size={21} />,
+            DotColor: "#dc3545",
+            bgColor: "#073B8A",
+            lightBg: "#EAF1FC"
+        },
+        {
+            title: "Pending",
+            count: data.filter(item => item.status === "Pending").length,
+            icon: <FaHourglassHalf size={21} />,
+            DotColor: "#E3A008",
+            bgColor: "#073B8A",
+            lightBg: "#EAF1FC"
+        },
+        {
+            title: "Approved",
+            count: data.filter(item => item.status === "Approved").length,
+            icon: <FaCheckCircle size={21} />,
+            DotColor: "#198754",
+            bgColor: "#073B8A",
+            lightBg: "#EAF1FC"
+        }
     ];
+
 
     const columns = [
         { name: 'Request ID', selector: row => row.id, sortable: true },
@@ -129,18 +160,73 @@ const ApprovalRequests = () => {
             </Row>
 
             {/* Counters */}
-            <Row>
+
+            <Row className="row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 mb-3">
                 {counters.map((item, index) => (
-                    <Col key={index} md="3" sm="6" xs="12" className="mb-3">
-                        <Link to="/trackapprovalrequests" className='text-decoration-none'>
-                            <Card className="text-start shadow-sm" style={{ backgroundColor: item.bgColor, color: item.textColor }}>
-                                <CardBody className='p-2'>
-                                    <div className='d-flex justify-content-between align-items-center'>
+                    <Col key={index}>
+                        <Link
+                            to="/trackapprovalrequests"
+                            className="text-decoration-none"
+                        >
+                            <Card
+                                className="h-100 border-0 shadow-sm bg-light"
+                                style={{
+                                    borderRadius: "14px",
+                                    borderBottom: `3px solid ${item.bgColor}`,
+                                    transition: "all 0.2s ease"
+                                }}
+                            >
+                                <CardBody className="p-3">
+                                    <div className="d-flex justify-content-between align-items-start">
+
                                         <div>
-                                            <h3 className="text-white" style={{ color: item.textColor }}>{item.count}</h3>
-                                            <h5 className="mb-1 fs-6 fw-bold text-white" style={{ color: item.textColor }}>{item.title}</h5>
+                                            <div className="text-uppercase fw-semibold text-secondary mb-2"
+                                                style={{
+                                                    fontSize: "12px",
+                                                    letterSpacing: "0.6px"
+                                                }}
+                                            >
+                                                {item.title}
+                                            </div>
+
+                                            <h2
+                                                className="fw-bold mb-2"
+                                                style={{
+                                                    color: "#183B65",
+                                                    fontSize: "30px"
+                                                }}
+                                            >
+                                                {item.count}
+                                            </h2>
+
+                                            <div className="d-flex align-items-center gap-1">
+                                                <span
+                                                    className="rounded-circle"
+                                                    style={{
+                                                        width: "7px",
+                                                        height: "7px",
+                                                        background: item.DotColor
+                                                    }}
+                                                />
+                                                <small className="text-muted">
+                                                    View details
+                                                </small>
+                                            </div>
                                         </div>
-                                        <div>{item.icon}</div>
+
+                                        <div
+                                            className="rounded-3 d-flex align-items-center justify-content-center"
+                                            style={{
+                                                width: "54px",
+                                                height: "54px",
+                                                backgroundColor: item.lightBg,
+                                                color: item.bgColor,
+                                                fontSize: "23px"
+                                            }}
+                                        >
+                                            {item.icon}
+                                        </div>
+
                                     </div>
                                 </CardBody>
                             </Card>
@@ -148,6 +234,7 @@ const ApprovalRequests = () => {
                     </Col>
                 ))}
             </Row>
+
 
             {/* Search + CSV Export */}
             <Card>

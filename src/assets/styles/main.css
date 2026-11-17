@@ -18,6 +18,10 @@
   color: #f4f5ff;
 }
 
+.text-st{
+  color:var(--primary) !important;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;

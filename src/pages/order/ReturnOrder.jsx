@@ -250,8 +250,8 @@ const ReturnOrder = () => {
         {
             name: 'Image',
             selector: row => row.image,
-            cell: row=> (
-                <Button className='btn btn-sm btn-warning' onClick={() => handleView(row.image) }>
+            cell: row => (
+                <Button className='btn btn-sm btn-warning' onClick={() => handleView(row.image)}>
                     <FaEye size={20} />
                 </Button>
             )
@@ -296,7 +296,7 @@ const ReturnOrder = () => {
                     >
                         Reject
                     </Button>
-                    
+
                     <Button
                         color="success"
                         size="sm"
@@ -413,37 +413,38 @@ const ReturnOrder = () => {
     // Counters
     // ======================
 
+
     const counters = useMemo(() => [
-
         {
-            title: 'All Returns',
+            title: "All Returns",
             count: data.length,
-            icon: <FaList size={24} />,
-            bgColor: '#6c757d',
-            textColor: '#fff'
+            icon: <FaList size={22} />,
+            dotBg: "#073B8A",
+            bgColor: "#073B8A",
+            lightBg: "#EAF1FC"
         },
-
         {
-            title: 'Pending Refunds',
+            title: "Pending Refunds",
             count: data.filter(
-                item => item.refundStatus !== 'Refunded'
+                item => item.refundStatus !== "Refunded"
             ).length,
-            icon: <FaExclamationCircle size={24} />,
-            bgColor: '#dc3545',
-            textColor: '#fff'
+            icon: <FaExclamationCircle size={22} />,
+            dotBg: "#E3A008",
+            bgColor: "#073B8A",
+            lightBg: "#EAF1FC"
         },
-
         {
-            title: 'Completed Refunds',
+            title: "Completed Refunds",
             count: data.filter(
-                item => item.refundStatus === 'Refunded'
+                item => item.refundStatus === "Refunded"
             ).length,
-            icon: <FaCheckCircle size={24} />,
-            bgColor: '#198754',
-            textColor: '#fff'
+            icon: <FaCheckCircle size={22} />,
+            dotBg: "#198754",
+            bgColor: "#073B8A",
+            lightBg: "#EAF1FC"
         }
-
     ], [data]);
+
 
     // ======================
     // Render
@@ -470,41 +471,64 @@ const ReturnOrder = () => {
 
             <hr />
 
-            {/* Counters */}
 
-            <Row>
+            <Row className="row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3 mb-3">
 
                 {counters.map((item, index) => (
-
-                    <Col
-                        key={index}
-                        md="4"
-                        sm="6"
-                        xs="12"
-                        className="mb-3"
-                    >
+                    <Col key={index}>
                         <Card
-                            className="shadow-sm"
+                            className="h-100 border-0 shadow-sm bg-light"
                             style={{
-                                backgroundColor: item.bgColor,
-                                color: item.textColor
+                                borderRadius: "14px",
+                                borderBottom: `3px solid ${item.bgColor}`
                             }}
                         >
-                            <CardBody className="p-2">
+                            <CardBody className="p-3">
 
                                 <div className="d-flex justify-content-between align-items-center">
 
                                     <div>
-                                        <h3 className="mb-0">
+                                        <h2
+                                            className="fw-bold mb-2"
+                                            style={{
+                                                color: "#183B65",
+                                                fontSize: "30px",
+                                                lineHeight: "1.3"
+                                            }}
+                                        >
                                             {item.count}
-                                        </h3>
+                                        </h2>
 
-                                        <p className="mb-0 fw-bold">
+                                        <h6 className="mb-2 fw-semibold text-secondary">
                                             {item.title}
-                                        </p>
+                                        </h6>
+
+                                        <div className="d-flex align-items-center gap-1">
+                                            <span
+                                                className="rounded-circle"
+                                                style={{
+                                                    width: "7px",
+                                                    height: "7px",
+                                                    backgroundColor: item.dotBg
+                                                }}
+                                            />
+
+                                            <small className="text-muted">
+                                                Returns overview
+                                            </small>
+                                        </div>
                                     </div>
 
-                                    <div>
+                                    <div
+                                        className="rounded-3 d-flex align-items-center justify-content-center"
+                                        style={{
+                                            width: "54px",
+                                            height: "54px",
+                                            backgroundColor: item.lightBg,
+                                            color: item.bgColor,
+                                            fontSize: "23px"
+                                        }}
+                                    >
                                         {item.icon}
                                     </div>
 
@@ -513,10 +537,10 @@ const ReturnOrder = () => {
                             </CardBody>
                         </Card>
                     </Col>
-
                 ))}
 
             </Row>
+
 
             <hr />
 

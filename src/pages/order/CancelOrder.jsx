@@ -61,7 +61,7 @@ const CancelOrder = () => {
     // Changed initial sort field to reflect the property name
     const [sortConfig, setSortConfig] = useState({ field: 'date', order: 'desc' });
     const [data, setData] = useState([]); // Stores raw API data
-    
+
     // filteredData is now calculated using useMemo
     // const [filteredData, setFilteredData] = useState([]); // Removed this, using useMemo now
 
@@ -69,14 +69,14 @@ const CancelOrder = () => {
 
     const fetchOrders = async () => { // Removed `data` argument as we'll filter for cancelled orders
         dispatch({ type: 'loader', loader: true })
-    
+
         try {
             // Assuming orderStatus = 'Cancelled' or 'Returned' is needed for this page
-            const response = await GetVendorOrders({ orderStatus: ['Cancelled', 'Returned', 'Refunded'] }); 
-            
+            const response = await GetVendorOrders({ orderStatus: ['Cancelled', 'Returned', 'Refunded'] });
+
             if (response.success === true) {
                 showToast('success', response.message)
-                
+
                 const formattedData = response.data.map((item, index) => ({
                     index: index + 1,
                     id: item._id,
@@ -93,7 +93,7 @@ const CancelOrder = () => {
                     refundStatus: item.refundStatus || (item.orderStatus === 'Cancelled' ? 'Pending' : 'N/A'), // Set default Refunded status
                     channel: item.orderId?.channel || 'N/A',
                 }));
-                
+
                 setData(formattedData);
             } else {
                 showToast('error', response.message)
@@ -104,7 +104,7 @@ const CancelOrder = () => {
             dispatch({ type: 'loader', loader: false })
         }
     }
-    
+
     useEffect(() => {
         fetchOrders();
     }, []);
@@ -126,7 +126,7 @@ const CancelOrder = () => {
         // 2. Sorting Logic
         if (sortConfig.field) {
             const sortKey = sortFieldMap[sortConfig.field] || sortConfig.field;
-            
+
             currentData.sort((a, b) => {
                 const valA = a[sortKey];
                 const valB = b[sortKey];
@@ -135,15 +135,15 @@ const CancelOrder = () => {
                 if (valB === undefined || valB === null) return sortConfig.order === 'desc' ? -1 : 1;
 
                 if (typeof valA === 'string') {
-                    return sortConfig.order === 'desc' 
-                        ? valB.localeCompare(valA) 
+                    return sortConfig.order === 'desc'
+                        ? valB.localeCompare(valA)
                         : valA.localeCompare(valB);
                 } else {
                     return sortConfig.order === 'desc' ? (valB - valA) : (valA - valB);
                 }
             });
         }
-        
+
         return currentData;
     }, [data, filterText, sortConfig]);
     // --- END: Filtered and Sorted Data Logic ---
@@ -172,11 +172,34 @@ const CancelOrder = () => {
     const columnsToShow = allColumns.filter(col => visibleColumns.includes(col.name));
 
     // --- NEW: Updated Counter Logic ---
+
     const counters = useMemo(() => [
-        { title: 'All Cancellations', count: data.length, icon: <FaList size={30} color="#fff" />, bgColor: '#6c757d', textColor: '#fff' },
-        { title: 'Refunded', count: data.filter(o => o.refundStatus === 'Refunded').length, icon: <FaCheckCircle size={30} color="#fff" />, bgColor: '#28a745', textColor: '#fff' },
-        { title: 'Refund Pending', count: data.filter(o => o.refundStatus === 'Pending').length, icon: <FaHourglassHalf size={30} color="#fff" />, bgColor: '#ffc107', textColor: '#000' },
+        {
+            title: "All Cancellations",
+            count: data.length,
+            icon: <FaList size={22} />,
+            dotBg: "#073B8A",
+            bgColor: "#073B8A",
+            lightBg: "#EAF1FC"
+        },
+        {
+            title: "Refunded",
+            count: data.filter(o => o.refundStatus === "Refunded").length,
+            icon: <FaCheckCircle size={22} />,
+            dotBg: "#198754",
+            bgColor: "#198754",
+            lightBg: "#E8F7EF"
+        },
+        {
+            title: "Refund Pending",
+            count: data.filter(o => o.refundStatus === "Pending").length,
+            icon: <FaHourglassHalf size={22} />,
+            dotBg: "#E3A008",
+            bgColor: "#E3A008",
+            lightBg: "#FFF6DD"
+        }
     ], [data]);
+
     // --- END: Updated Counter Logic ---
 
     return (
@@ -196,24 +219,73 @@ const CancelOrder = () => {
 
             <hr />
 
-            {/* Counters */}
-            <Row>
+
+            {/* Cancellation Counters */}
+            <Row className="row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3 mb-3">
                 {counters.map((item, index) => (
-                    <Col key={index} md="4" sm="6" xs="12" className="mb-3">
-                        <Card className="text-start shadow-sm" style={{ backgroundColor: item.bgColor, color: item.textColor }}>
-                            <CardBody className='p-2'>
-                                <div className='d-flex justify-content-between align-items-center'>
+                    <Col key={index}>
+                        <Card
+                            className="h-100 border-0 shadow-sm bg-light"
+                            style={{
+                                borderRadius: "14px",
+                                borderBottom: `3px solid ${item.bgColor}`
+                            }}
+                        >
+                            <CardBody className="p-3">
+                                <div className="d-flex justify-content-between align-items-center">
+
                                     <div>
-                                        <h3 className="mb-0 text-white">{item.count}</h3>
-                                        <small className='text-white'>{item.title}</small>
+                                        <h2
+                                            className="fw-bold mb-2"
+                                            style={{
+                                                color: "#183B65",
+                                                fontSize: "30px"
+                                            }}
+                                        >
+                                            {item.count}
+                                        </h2>
+
+                                        <h6 className="mb-2 fw-semibold text-secondary">
+                                            {item.title}
+                                        </h6>
+
+                                        <div className="d-flex align-items-center gap-2">
+                                            <span
+                                                className="rounded-circle"
+                                                style={{
+                                                    width: "8px",
+                                                    height: "8px",
+                                                    backgroundColor: item.dotBg,
+                                                    display: "inline-block"
+                                                }}
+                                            />
+
+                                            <small className="text-muted">
+                                                Cancellation overview
+                                            </small>
+                                        </div>
                                     </div>
-                                    <div className='text-white'>{item.icon}</div>
+
+                                    <div
+                                        className="rounded-3 d-flex align-items-center justify-content-center"
+                                        style={{
+                                            width: "54px",
+                                            height: "54px",
+                                            backgroundColor: item.lightBg,
+                                            color: item.bgColor,
+                                            fontSize: "23px"
+                                        }}
+                                    >
+                                        {item.icon}
+                                    </div>
+
                                 </div>
                             </CardBody>
                         </Card>
                     </Col>
                 ))}
             </Row>
+
 
             <hr />
 

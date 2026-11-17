@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GetDashboardData } from "../api/authAPI";
+import SearchHome from "../components/SearchHome";
 
 const Dashboard = () => {
 
@@ -50,13 +51,15 @@ const Dashboard = () => {
           <div className="">
             <Row>
               <Col md="12">
-                <Breadcrumb className="my-2">
+                {/* <Breadcrumb className="my-2">
                   <BreadcrumbItem>
                     <h5>Dashboard</h5>
                   </BreadcrumbItem>
                   <BreadcrumbItem active>Today</BreadcrumbItem>
-                </Breadcrumb>
-                <StatsCards dashboardData={dashboardData}/>
+                </Breadcrumb> */}
+
+                 <SearchHome/>
+                 <StatsCards dashboardData={dashboardData}/>
               </Col>
               {/* <Col md="5">
                 <Card>
@@ -70,13 +73,16 @@ const Dashboard = () => {
         </Col>
 
         <Col md="12">
-          <div className="mt-3 p-3" style={{ backgroundColor: "#eff7ff" }}>
+          <div className="mt-3 p-3 bg-light">
             <DashboardCards dashboardData={dashboardData}/>
           </div>
         </Col>
 
-        <Col md="12" className="mt-3">
+        <Col md="12" className="mt-2">
+        <div className="mt-3 p-2 bg-light">
           <SimpleSwiper />
+
+        </div>
         </Col>
       </Row>
     </div>

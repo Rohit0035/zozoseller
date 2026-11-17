@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { CSVLink } from 'react-csv';
-import { Button, Col, Row } from 'reactstrap'; // Assuming you still want reactstrap Col and Row
+import {
+    Button, Col, Row, UncontrolledDropdown,
+    DropdownToggle,
+    DropdownMenu,
+    DropdownItem,
+    UncontrolledTooltip
+} from 'reactstrap'; // Assuming you still want reactstrap Col and Row
 import { RiArrowDropDownLine } from "react-icons/ri";
 import { useDispatch } from 'react-redux'; // Import useDispatch
 import { showToast } from '../../components/ToastifyNotification'; // Import showToast
@@ -9,10 +15,25 @@ import { BulkDeleteProduct, DeleteProduct, GetProducts } from '../../api/product
 import { formatDateWithTime } from '../../utils/dateFormatter';
 import { Link } from 'react-router-dom';
 import { FaPencil } from 'react-icons/fa6';
-import { FaTrash } from 'react-icons/fa';
+import {
+    FaPencilAlt,
+    FaExternalLinkAlt,
+    FaEllipsisV
+} from 'react-icons/fa';
+
 import Swal from 'sweetalert2';
+import ProImg from "../../assets/images/seller/pro-1.jpg"
+import ZozolistFilter from '../../components/ZozolistFilter';
+import EditListingSidebar from "../listing/EditListingSidebar";
 
 const ListingProduct = ({ setListingCounts, activeFilter }) => {
+
+    const [isOpen, setIsOpen] = useState(false);
+
+    const toggleSidebar = () => {
+        setIsOpen((prev) => !prev);
+    };
+
     const [data, setData] = useState([]); // State to hold raw fetched data
     const [filteredData, setFilteredData] = useState([]); // State for filtered/sorted data
     const [loading, setLoading] = useState(true); // Loading state
@@ -30,11 +51,37 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
 
     // Columns including new fields - adjusted selectors for API data structure
     const allColumns = [
-        { name: 'S.No', 
-            cell: (row, index) => (currentPage - 1) * rowsPerPage + index + 1,
-            sortable: true 
+        // {
+        //     name: 'S.No',
+        //     cell: (row, index) => (currentPage - 1) * rowsPerPage + index + 1,
+        //     sortable: true
+        // },
+        {
+            name: 'Product Title',
+            selector: row => row.name,
+            sortable: true,
+            width: '300px',
+            cell: row => (
+                <div className="d-flex align-items-center gap-2 py-2">
+                    <img
+                        // src={`http://localhost:5000/${row.images?.mainImage}`}
+                        src={ProImg}
+                        alt={row.name}
+                        width="50"
+                        height="50"
+                        className="rounded-2"
+                        style={{ objectFit: "cover" }}
+                        onError={(e) => {
+                            console.log("Image failed:", e.target.src);
+                        }}
+                    />
+
+                    <span className="fw-medium text-line">
+                        {row.name}
+                    </span>
+                </div>
+            ),
         },
-        { name: 'Product Title', selector: row => row.name, sortable: true },
         { name: 'SKU', selector: row => row.sku, sortable: true },
         { name: 'Creation Time', selector: row => row.createdAt, sortable: true },
         { name: 'Update Time', selector: row => row.updatedAt, sortable: true },
@@ -54,20 +101,99 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
         { name: 'Status', selector: row => row.status || 'N/A', sortable: false },
         {
             name: 'Actions',
+            width: '150px',
             cell: row => (
-                row.status != 'Deleted' ?
-                <>
-                    <Link to={`/listing/edit/${row.id}`} className='btn btn-success text-white btn-sm me-1'>
-                        <FaPencil />
-                    </Link>
-                    <Button
-                        className='btn btn-danger btn-sm'
-                        onClick={() => handleDeleteClick(row.id)}
-                    >
-                        <FaTrash />
-                    </Button>
-                </>: 'Deleted'
+                row.status !== 'Deleted' ? (
+                    <div className="d-flex align-items-center gap-3">
 
+                        {/* Edit */}
+                        {/* <Link
+                            to="/"
+                            id={`edit-${row.id}`}
+                            to={`/listing/edit/${row.id}`}
+                            className="text-st"
+                        >
+                            <FaPencilAlt />
+                        </Link> */}
+                        <Link
+                            to="#"
+                            className="text-st"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                setIsOpen(true);
+                            }}
+                        >
+                            <FaPencilAlt />
+                        </Link>
+                        {/* <UncontrolledTooltip target={`edit-${row.id}`} style={{ fontSize: "10px" }}>
+                            Edit Listing
+                        </UncontrolledTooltip> */}
+
+                        {/* Website */}
+                        <a
+
+                            id={`view-${row.id}`}
+                            href="https://www.zozokart.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-st"
+                        >
+                            <FaExternalLinkAlt />
+                        </a>
+                        <UncontrolledTooltip target={`view-${row.id}`} style={{ fontSize: "10px" }}>
+                            View on zozokart.com
+                        </UncontrolledTooltip>
+
+                        {/* Three Dot Dropdown */}
+                        <UncontrolledDropdown >
+                            <DropdownToggle
+                                tag="span"
+                                className="text-dark"
+                                style={{ cursor: 'pointer' }}
+                                id={`more-${row.id}`}
+                            >
+                                <FaEllipsisV />
+                            </DropdownToggle>
+
+                            <DropdownMenu end className="shadow small">
+
+                                <DropdownItem onClick={() => handleEditCatalog(row)} className='small'>
+                                    Edit Catalog
+                                </DropdownItem>
+
+                                <DropdownItem onClick={() => handleCopyListing(row.id)} className='small'>
+                                    Copy Listing
+                                </DropdownItem>
+
+                                <DropdownItem onClick={() => handleArchiveListing(row.id)} className='small'>
+                                    Archive Listing
+                                </DropdownItem>
+
+                                <DropdownItem onClick={() => handleDeactivateListing(row.id)} className='small'>
+                                    Deactivate Listing
+                                </DropdownItem>
+
+                                <DropdownItem onClick={() => handleManageVariants(row.id)} className='small'>
+                                    Manage Variants
+                                </DropdownItem>
+
+                                <DropdownItem onClick={() => handleCreateSettlement(row.id)} className='small'>
+                                    Create Settlement plan
+                                </DropdownItem>
+
+                                <DropdownItem onClick={() => handleAddVideo(row.id)} className='small'>
+                                    Add Video
+                                </DropdownItem>
+
+                            </DropdownMenu>
+                        </UncontrolledDropdown>
+
+                        <UncontrolledTooltip target={`more-${row.id}`}>
+                            More Actions
+                        </UncontrolledTooltip>
+
+                    </div>
+                ) : 'Deleted'
             ),
         },
         // Action column is omitted here as per your new demo, but you can re-add it from previous component if needed
@@ -341,42 +467,44 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
 
 
     return (
-        <div className="">
-            <Row>
-                <Col md="4" className='mb-2'>
-                    <input
+        <>
+            <div className="">
+                <Row>
+                    <Col md="7" className='mb-2'>
+                        {/* <input
                         type="text"
                         className="form-control"
                         placeholder="Search for FSN, Title or SKU ID"
                         style={{ maxWidth: '250px' }}
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
-                    />
-                </Col>
-                <Col md="8">
-                    <div className="d-flex align-items-end justify-content-end">
-                        <div className="position-relative me-2">
-                            {selectedRows.length > 0 && (
-                                <>
-                                    <Button
-                                        className='me-2'
-                                        color="danger"
-                                        size="sm"
-                                        onClick={handleBulkDelete}
-                                    >
-                                        Delete All ({selectedRows.length})
-                                    </Button>
-                                    <Button
-                                        color="danger"
-                                        size="sm"
-                                        className="me-2"
-                                        onClick={handleDeleteCurrentPage}
-                                    >
-                                        Delete Current Page ({currentPageCount})
-                                    </Button>
-                                </>
-                            )}
-                            {/* <button className="btn btn-outline-secondary text-white btn-sm" style={{ backgroundColor: '#02339a' }} onClick={() => setSortDropdownOpen(!sortDropdownOpen)}>
+                    /> */}
+                        <ZozolistFilter />
+                    </Col>
+                    <Col md="5">
+                        <div className="d-flex align-items-end justify-content-end">
+                            <div className="position-relative me-2">
+                                {selectedRows.length > 0 && (
+                                    <>
+                                        <Button
+                                            className='me-2'
+                                            color="danger"
+                                            size="sm"
+                                            onClick={handleBulkDelete}
+                                        >
+                                            Delete All ({selectedRows.length})
+                                        </Button>
+                                        <Button
+                                            color="danger"
+                                            size="sm"
+                                            className="me-2"
+                                            onClick={handleDeleteCurrentPage}
+                                        >
+                                            Delete Current Page ({currentPageCount})
+                                        </Button>
+                                    </>
+                                )}
+                                {/* <button className="btn btn-outline-secondary text-white btn-sm" style={{ backgroundColor: '#02339a' }} onClick={() => setSortDropdownOpen(!sortDropdownOpen)}>
                                 Sort By <RiArrowDropDownLine size={20} />
                             </button>
                             {sortDropdownOpen && (
@@ -416,77 +544,84 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
                                     </div>
                                 </div>
                             )} */}
-                        </div>
-                        {/* Customize Columns Dropdown */}
-                        <div className="position-relative me-2">
-                            <button className="btn btn-outline-primary text-white btn-sm" style={{ backgroundColor: '#02339a' }} onClick={() => setDropdownOpen(!dropdownOpen)}>
-                                Customize Columns <RiArrowDropDownLine size={20} />
-                            </button>
-                            {dropdownOpen && (
-                                <div
-                                    className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
-                                    style={{ width: '280px', maxHeight: '260px', overflowY: 'auto', zIndex: 1000, cursor: 'pointer' }}
-                                >
-                                    <strong className="px-2 d-block">Customize Columns</strong>
-                                    {allColumns.map(col => (
-                                        <label key={col.name} className="dropdown-item d-flex align-items-center">
-                                            <input
-                                                type="checkbox"
-                                                className="form-check-input me-2"
-                                                checked={visibleColumns.includes(col.name)}
-                                                onChange={() => toggleColumn(col.name)}
-                                            />
-                                            {col.name}
-                                        </label>
-                                    ))}
-                                    <hr />
-                                    <div className="px-2">
-                                        <div className="dropdown-item text-primary" onClick={() => applyPreset('Default View')}>
-                                            Default View
-                                        </div>
-                                        <div className="dropdown-item text-primary " onClick={() => applyPreset('Full View')}>
-                                            Full View
+                            </div>
+                            {/* Customize Columns Dropdown */}
+                            <div className="position-relative me-2">
+                                <button className="btn btn-outline-primary text-white btn-sm" style={{ backgroundColor: '#02339a' }} onClick={() => setDropdownOpen(!dropdownOpen)}>
+                                    Customize Columns <RiArrowDropDownLine size={20} />
+                                </button>
+                                {dropdownOpen && (
+                                    <div
+                                        className="position-absolute bg-white border rounded shadow-sm mt-1 p-2"
+                                        style={{ width: '280px', maxHeight: '260px', overflowY: 'auto', zIndex: 1000, cursor: 'pointer' }}
+                                    >
+                                        <strong className="px-2 d-block">Customize Columns</strong>
+                                        {allColumns.map(col => (
+                                            <label key={col.name} className="dropdown-item d-flex align-items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    className="form-check-input me-2"
+                                                    checked={visibleColumns.includes(col.name)}
+                                                    onChange={() => toggleColumn(col.name)}
+                                                />
+                                                {col.name}
+                                            </label>
+                                        ))}
+                                        <hr />
+                                        <div className="px-2">
+                                            <div className="dropdown-item text-st" onClick={() => applyPreset('Default View')}>
+                                                Default View
+                                            </div>
+                                            <div className="dropdown-item text-st " onClick={() => applyPreset('Full View')}>
+                                                Full View
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
+                            <CSVLink
+                                data={selectedRows.length ? selectedRows : filteredData}
+                                headers={csvHeaders} // Use the new csvHeaders
+                                style={{ backgroundColor: '#02339a' }}
+                                filename="product_list.csv"
+                                className="btn btn-success text-white btn-sm"
+                            >
+                                Export CSV
+                            </CSVLink>
                         </div>
-                        <CSVLink
-                            data={selectedRows.length ? selectedRows : filteredData}
-                            headers={csvHeaders} // Use the new csvHeaders
-                            style={{ backgroundColor: '#02339a' }}
-                            filename="product_list.csv"
-                            className="btn btn-success text-white btn-sm"
-                        >
-                            Export CSV
-                        </CSVLink>
-                    </div>
-                </Col>
-            </Row>
-            <hr />
-            {/* Responsive Table */}
-            <div className="table-responsive">
-                {loading ? (
-                    <p>Loading products...</p>
-                ) : error ? (
-                    <p style={{ color: 'red' }}>Error: {error}</p>
-                ) : (
-                    <DataTable
-                        columns={columnsToShow}
-                        data={filteredData}
-                        pagination
-                        striped
-                        // dense
-                        selectableRows={activeFilter !== 'Deleted'}
-                        onSelectedRowsChange={handleRowSelected}
-                        highlightOnHover
-                        progressPending={loading} // Added progressPending for DataTable
-                        onChangePage={(page) => setCurrentPage(page)}
-                        onChangeRowsPerPage={(newPerPage) => setRowsPerPage(newPerPage)}
-                    />
-                )}
+                    </Col>
+                </Row>
+                <hr />
+                {/* Responsive Table */}
+                <div className="table-responsive">
+                    {loading ? (
+                        <p>Loading products...</p>
+                    ) : error ? (
+                        <p style={{ color: 'red' }}>Error: {error}</p>
+                    ) : (
+                        <DataTable
+                            columns={columnsToShow}
+                            data={filteredData}
+                            pagination
+                            striped
+                            // dense
+                            selectableRows={activeFilter !== 'Deleted'}
+                            onSelectedRowsChange={handleRowSelected}
+                            highlightOnHover
+                            progressPending={loading} // Added progressPending for DataTable
+                            onChangePage={(page) => setCurrentPage(page)}
+                            onChangeRowsPerPage={(newPerPage) => setRowsPerPage(newPerPage)}
+                        />
+                    )}
+                </div>
             </div>
-        </div>
+
+            <EditListingSidebar
+                isOpen={isOpen}
+                toggle={toggleSidebar}
+            />
+        </>
+
     );
 };
 

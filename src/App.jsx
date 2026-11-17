@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 import { Container } from "reactstrap";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import "./assets/styles/custom.css"
 
 export default function App() {
   const [collapsed, setCollapsed] = useState(false);

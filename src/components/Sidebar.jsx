@@ -3,7 +3,7 @@ import React from 'react';
 import { Nav, NavbarBrand, NavItem } from 'reactstrap';
 import { Link, useLocation } from 'react-router-dom';
 import '../assets/styles/sidebar.css';
-import LogoSm from '../assets/images/logo.png';
+import LogoSm from '../assets/images/logo-lg.png';
 import sidebarMenu from '../data/sidebarMenu';
 
 export default function Sidebar({ collapsed, isOpen, onClose }) {
@@ -14,7 +14,7 @@ export default function Sidebar({ collapsed, isOpen, onClose }) {
       <div className="sidebar-overlay d-md-none" onClick={onClose}></div>
       <Nav vertical>
         <NavbarBrand className='mt-2 mb-3 px-2 d-none d-lg-block text-center'>
-          <img src={LogoSm} alt="Zozo-logo" width="50px" />
+          <img src={LogoSm} alt="Zozo-logo" width="90px" />
         </NavbarBrand>
 
         {sidebarMenu.map((item, index) => (
