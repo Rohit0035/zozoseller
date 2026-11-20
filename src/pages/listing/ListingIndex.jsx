@@ -9,8 +9,12 @@ import { checkProfileCompletion } from '../../utils/common';
 import MyListTag from './MyListTag';
 import AdsRecommendation from './AdsRecommendation';
 import ListingVideoNotice from './ListingVideoNotice';
+import AddVariantSidebar from './AddVariantSidebar';
 
 const ListingIndex = () => {
+
+      const [isOpen, setIsOpen] = useState(false);
+
 
     const [videoModal, setVideoModal] = useState(false);
     const [videoUrl, setVideoUrl] = useState('');
@@ -56,6 +60,13 @@ const ListingIndex = () => {
     }
 
 
+    const handleContinue = (selectedProduct) => {
+    console.log("Selected Product:", selectedProduct);
+
+    // Call your API here
+    setIsOpen(false);
+  };
+
     return (
         <>
             <Row>
@@ -87,7 +98,7 @@ const ListingIndex = () => {
                             <DropdownMenu>
                                 <DropdownItem tag={Link} to="/add-single-listing" >Add Single Listing</DropdownItem>
                                 <DropdownItem tag={Link} to="/add-bulk-listing">Add Bulk Listing</DropdownItem>
-                                <DropdownItem tag={Link} to="/add-bulk-listing">Add Variant to Existing Listing</DropdownItem>
+                                <DropdownItem onClick={() => setIsOpen(true)}>Add Variant to Existing Listing</DropdownItem>
                             </DropdownMenu>
                         </UncontrolledDropdown>
                     </div>
@@ -247,6 +258,12 @@ const ListingIndex = () => {
                     </div>
                 </ModalBody>
             </Modal>
+
+            <AddVariantSidebar
+        isOpen={isOpen}
+        toggle={() => setIsOpen(false)}
+        onContinue={handleContinue}
+      />
 
         </>
     );

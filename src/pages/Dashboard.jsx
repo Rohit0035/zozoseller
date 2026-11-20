@@ -8,7 +8,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GetDashboardData } from "../api/authAPI";
-import SearchHome from "../components/SearchHome";
 
 const Dashboard = () => {
 
@@ -58,7 +57,6 @@ const Dashboard = () => {
                   <BreadcrumbItem active>Today</BreadcrumbItem>
                 </Breadcrumb> */}
 
-                 <SearchHome/>
                  <StatsCards dashboardData={dashboardData}/>
               </Col>
               {/* <Col md="5">

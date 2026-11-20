@@ -6,7 +6,13 @@ import {
     DropdownToggle,
     DropdownMenu,
     DropdownItem,
-    UncontrolledTooltip
+    UncontrolledTooltip,
+    UncontrolledPopover,
+    PopoverHeader,
+    PopoverBody,
+    Input,
+    Label
+
 } from 'reactstrap'; // Assuming you still want reactstrap Col and Row
 import { RiArrowDropDownLine } from "react-icons/ri";
 import { useDispatch } from 'react-redux'; // Import useDispatch
@@ -14,21 +20,36 @@ import { showToast } from '../../components/ToastifyNotification'; // Import sho
 import { BulkDeleteProduct, DeleteProduct, GetProducts } from '../../api/productAPI'; // Import GetProducts API call
 import { formatDateWithTime } from '../../utils/dateFormatter';
 import { Link } from 'react-router-dom';
-import { FaPencil } from 'react-icons/fa6';
+import { FaPencil, FaVideo } from 'react-icons/fa6';
 import {
     FaPencilAlt,
     FaExternalLinkAlt,
-    FaEllipsisV
+    FaEllipsisV,
+    FaEdit,
+    FaTimes,
+    FaStar
 } from 'react-icons/fa';
 
 import Swal from 'sweetalert2';
 import ProImg from "../../assets/images/seller/pro-1.jpg"
 import ZozolistFilter from '../../components/ZozolistFilter';
 import EditListingSidebar from "../listing/EditListingSidebar";
+import ListDropUpload from './ListDropUpload';
+import ListDropActions from './ListDropActions';
+import PerfectScrollbar from "react-perfect-scrollbar";
+import "react-perfect-scrollbar/dist/css/styles.css";
+import AddListingVideoOffcanvas from "./AddListingVideoOffcanvas";
+import { GoVideo } from "react-icons/go";
+import ListingDetailsSidebar from "./ListingDetailsSidebar";
+
+
+
 
 const ListingProduct = ({ setListingCounts, activeFilter }) => {
 
     const [isOpen, setIsOpen] = useState(false);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+
 
     const toggleSidebar = () => {
         setIsOpen((prev) => !prev);
@@ -49,6 +70,22 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
 
     const dispatch = useDispatch(); // Initialize useDispatch for loader
 
+    const handleStockUpdate = (id, newQty) => {
+        setData(prev =>
+            prev.map(item =>
+                item.id === id
+                    ? { ...item, stockQty: newQty }
+                    : item
+            )
+        );
+    };
+
+    const [stockPopover, setStockPopover] = useState(false);
+
+    const toggleStockPopover = () => {
+        setStockPopover(prev => !prev);
+    };
+
     // Columns including new fields - adjusted selectors for API data structure
     const allColumns = [
         // {
@@ -62,24 +99,30 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
             sortable: true,
             width: '300px',
             cell: row => (
-                <div className="d-flex align-items-center gap-2 py-2">
-                    <img
-                        // src={`http://localhost:5000/${row.images?.mainImage}`}
-                        src={ProImg}
-                        alt={row.name}
-                        width="50"
-                        height="50"
-                        className="rounded-2"
-                        style={{ objectFit: "cover" }}
-                        onError={(e) => {
-                            console.log("Image failed:", e.target.src);
-                        }}
-                    />
+                <Link
+                    to="void:javascript(0);" className='text-dark text-decoration-none'
+                    onClick={() => setDetailsOpen(true)}
+                >
+                    <div className="d-flex align-items-center gap-2 py-2">
+                        <img
+                            // src={`http://localhost:5000/${row.images?.mainImage}`}
+                            src={ProImg}
+                            alt={row.name}
+                            width="50"
+                            height="50"
+                            className="rounded-2"
+                            style={{ objectFit: "cover" }}
+                            onError={(e) => {
+                                console.log("Image failed:", e.target.src);
+                            }}
+                        />
 
-                    <span className="fw-medium text-line">
-                        {row.name}
-                    </span>
-                </div>
+                        <span className="fw-medium text-line">
+                            {row.name}
+                        </span>
+                    </div>
+                </Link>
+
             ),
         },
         { name: 'SKU', selector: row => row.sku, sortable: true },
@@ -87,17 +130,220 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
         { name: 'Update Time', selector: row => row.updatedAt, sortable: true },
         { name: 'Sales', selector: row => row.sales || 0, sortable: true },
         { name: 'Product Details', selector: row => row.description, sortable: true },
-        { name: 'Listing Price', selector: row => row.regularPrice, sortable: true },
+        // { name: 'Listing Price', selector: row => row.regularPrice, sortable: true },
+        {
+            name: 'Listing Price',
+            selector: row => row.productPrice,
+            sortable: true,
+            minWidth: '180px',
+            cell: row => (
+                <>
+                    <div className="d-flex align-items-center gap-2">
+                        <div>
+                            <div className="fw-semibold text-dark">
+                                ₹3099
+                            </div>
+                            <small className="text-muted">
+                                Sale: ₹613.89
+                            </small>
+                        </div>
+
+                        <FaPencilAlt
+                            size={12}
+                            className="txt-st"
+                            id="listing-price-edit"
+                            role="button"
+                            style={{ cursor: 'pointer' }}
+                        />
+                    </div>
+
+                    <UncontrolledPopover
+                        trigger="click"
+                        placement="right"
+                        target="listing-price-edit"
+                        className="border-0 shadow-sm"
+                    // style={{ minWidth: '340px', maxWidth: '380px' }}
+                    >
+                        <PopoverHeader className="small fw-semibold">
+                            Update Listing Price
+                        </PopoverHeader>
+
+                        <PopoverBody className="p-0">
+                            <PerfectScrollbar
+                                options={{ suppressScrollX: true }}
+                                style={{ maxHeight: '400px' }}
+                            >
+                                <div className="p-3">
+                                    <Row className="g-2">
+
+                                        <Col xs="6">
+                                            <Label className="small fw-semibold">
+                                                Regular Price (₹)
+                                            </Label>
+                                            <Input type="number" defaultValue={3099} />
+                                        </Col>
+
+                                        <Col xs="6">
+                                            <Label className="small fw-semibold">
+                                                Product Price (₹)
+                                            </Label>
+                                            <Input type="number" defaultValue={613.89} />
+                                        </Col>
+
+                                        <Col xs="6">
+                                            <Label className="small fw-semibold">
+                                                Commission Rate (%)
+                                            </Label>
+                                            <Input type="number" defaultValue={35} />
+                                        </Col>
+
+                                        <Col xs="6">
+                                            <Label className="small fw-semibold">
+                                                Commission Amount (₹)
+                                            </Label>
+                                            <Input type="number" defaultValue={542.15} />
+                                        </Col>
+
+                                        <Col xs="6">
+                                            <Label className="small fw-semibold">
+                                                GST Amount (₹)
+                                            </Label>
+                                            <Input type="number" defaultValue={376.41} />
+                                        </Col>
+
+                                        <Col xs="6">
+                                            <Label className="small fw-semibold">
+                                                TCS Amount (₹)
+                                            </Label>
+                                            <Input type="number" defaultValue={1.55} />
+                                        </Col>
+
+                                        <Col xs="6">
+                                            <Label className="small fw-semibold">
+                                                Shipping Charge (₹)
+                                            </Label>
+                                            <Input type="number" defaultValue={15} />
+                                        </Col>
+
+                                        <Col xs="6">
+                                            <Label className="small fw-semibold">
+                                                Sale Price (₹)
+                                            </Label>
+                                            <Input type="number" defaultValue={1549} />
+                                        </Col>
+
+                                    </Row>
+                                </div>
+                            </PerfectScrollbar>
+
+                            <div className="border-top p-3">
+                                <Button color="primary" size="sm" block>
+                                    Apply Changes
+                                </Button>
+                            </div>
+                        </PopoverBody>
+                    </UncontrolledPopover>
+                </>
+            ),
+        },
         { name: 'Benchmark Price', selector: row => row.benchmarkPrice || 'N/A', sortable: true },
         { name: 'Final Price', selector: row => row.salePrice || 'N/A', sortable: true },
         { name: 'MRP', selector: row => row.mrp || 'N/A', sortable: true },
-        { name: 'Stock', selector: row => row.stockQty, sortable: true },
+        // { name: 'Stock', selector: row => row.stockQty, sortable: true },
+
+        {
+            name: 'Stock',
+            selector: row => row.stockQty,
+            sortable: true,
+            cell: row => (
+                <>
+                    <span className="me-1">
+                        100 units{' '}
+                        <FaPencilAlt
+                            size={12}
+                            className='txt-st '
+                            id="stock-edit"
+                            role="button"
+                            style={{ cursor: 'pointer' }}
+                        />
+                    </span>
+
+                    <UncontrolledPopover
+                        trigger="click"
+                        placement="right"
+                        target="stock-edit"
+                        className="border-0 shadow-sm"
+                    >
+                        <PopoverHeader className="small d-flex justify-content-between align-items-center">
+                            Update Stock
+                        </PopoverHeader>
+
+                        <PopoverBody>
+                            <Input
+                                type="number"
+                                defaultValue={100}
+                                min={0}
+                                max={5000}
+                            />
+
+                            <p className="mt-3 mb-3 small">
+                                The maximum stock quantity you can update is 5000 units
+                                per location. For MinOQ listings, the limit is
+                                5000 × MinOQ, per location.
+                            </p>
+
+                            <Button color="primary" className="btn-sm">
+                                Apply
+                            </Button>
+                        </PopoverBody>
+                    </UncontrolledPopover>
+                </>
+            ),
+        },
         { name: 'Returns', selector: row => row.returns || '0%', sortable: true },
         { name: 'New', selector: row => (row.isNew ? 'Yes' : 'No'), sortable: true },
         { name: 'Fulfillment', selector: row => row.fulfillment || 'N/A', sortable: true },
         { name: 'Procurement SLA', selector: row => row.procurementSLA || 'N/A', sortable: true },
-        { name: 'Listing Quality', selector: row => row.listingQuality || 'N/A', sortable: true },
-        { name: 'Additional Info', selector: row => row.additionalInfo || 'N/A', sortable: false },
+        {
+            name: 'Listing Quality',
+            selector: row => row.listingQuality || 'N/A',
+            sortable: true,
+            cell: row => (
+                <>
+                    <Link
+                        to="void:javascript(0);" className='text-dark text-decoration-none'
+                        onClick={() => setDetailsOpen(true)}
+                    >
+                        Good
+                        <div className='small'>
+                            <FaStar className="text-warning me-1" />
+                            3.8 - 0%
+                        </div>
+                    </Link>
+                </>
+            )
+        },
+
+        {
+            name: 'Additional Info',
+            selector: row => row.additionalInfo || 'N/A',
+            sortable: false,
+            cell: row => (
+                <>
+                    <Link
+                        to="void:javascript(0);"
+                        onClick={() => setVideoOpen(true)}
+                        id={`videos-${row.id}`}
+                        className="text-st"
+                    >
+                        <GoVideo size={18} />
+                    </Link>
+                    <UncontrolledTooltip target={`videos-${row.id}`} style={{ fontSize: "10px" }}>
+                        upload video
+                    </UncontrolledTooltip>
+                </>
+            )
+        },
         { name: 'Status', selector: row => row.status || 'N/A', sortable: false },
         {
             name: 'Actions',
@@ -117,6 +363,7 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
                         </Link> */}
                         <Link
                             to="#"
+                            id={`edit-${row.id}`}
                             className="text-st"
                             onClick={(e) => {
                                 e.preventDefault();
@@ -125,9 +372,9 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
                         >
                             <FaPencilAlt />
                         </Link>
-                        {/* <UncontrolledTooltip target={`edit-${row.id}`} style={{ fontSize: "10px" }}>
+                        <UncontrolledTooltip target={`edit-${row.id}`} style={{ fontSize: "10px" }}>
                             Edit Listing
-                        </UncontrolledTooltip> */}
+                        </UncontrolledTooltip>
 
                         {/* Website */}
                         <a
@@ -181,7 +428,7 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
                                     Create Settlement plan
                                 </DropdownItem>
 
-                                <DropdownItem onClick={() => handleAddVideo(row.id)} className='small'>
+                                <DropdownItem  onClick={() => setVideoOpen(true)} className='small'>
                                     Add Video
                                 </DropdownItem>
 
@@ -201,7 +448,7 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
     ];
 
     const presets = {
-        'Default View': ['S.No', 'Product Title', 'SKU', 'Sales', 'Stock', 'Status', 'Actions'], // Adjusted default view
+        'Default View': ['Product Title', 'SKU', 'Listing Price', 'Listing Quality', 'Stock', 'Additional Info', 'Actions'], // Adjusted default view
         'Full View': allColumns.map(col => col.name),
     };
     const [visibleColumns, setVisibleColumns] = useState(presets['Default View']);
@@ -465,6 +712,10 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
     const currentPageRows = filteredData.slice(start, end);
     const currentPageCount = currentPageRows.length;
 
+    // videos upload
+    const [videoOpen, setVideoOpen] = useState(false);
+
+
 
     return (
         <>
@@ -479,10 +730,13 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
                     /> */}
+
+                        {/* zozofilter */}
                         <ZozolistFilter />
+
                     </Col>
                     <Col md="5">
-                        <div className="d-flex align-items-end justify-content-end">
+                        <div className="d-flex align-items-end justify-content-end py-2">
                             <div className="position-relative me-2">
                                 {selectedRows.length > 0 && (
                                     <>
@@ -548,7 +802,7 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
                             {/* Customize Columns Dropdown */}
                             <div className="position-relative me-2">
                                 <button className="btn btn-outline-primary text-white btn-sm" style={{ backgroundColor: '#02339a' }} onClick={() => setDropdownOpen(!dropdownOpen)}>
-                                    Customize Columns <RiArrowDropDownLine size={20} />
+                                    Sort By <RiArrowDropDownLine size={20} />
                                 </button>
                                 {dropdownOpen && (
                                     <div
@@ -586,8 +840,15 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
                                 filename="product_list.csv"
                                 className="btn btn-success text-white btn-sm"
                             >
-                                Export CSV
+                                Download
                             </CSVLink>
+
+                            {/* upload dropdown */}
+                            <ListDropUpload />
+
+                            {/* action dropdown */}
+                            <ListDropActions />
+
                         </div>
                     </Col>
                 </Row>
@@ -619,6 +880,18 @@ const ListingProduct = ({ setListingCounts, activeFilter }) => {
             <EditListingSidebar
                 isOpen={isOpen}
                 toggle={toggleSidebar}
+            />
+
+            {/* uploded videos */}
+            <AddListingVideoOffcanvas
+                isOpen={videoOpen}
+                toggle={() => setVideoOpen(false)}
+            />
+
+            {/* detailsidebar */}
+            <ListingDetailsSidebar
+                isOpen={detailsOpen}
+                toggle={() => setDetailsOpen(false)}
             />
         </>
 
